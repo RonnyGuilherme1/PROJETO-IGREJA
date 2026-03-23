@@ -1,0 +1,123 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ChevronRight, ShieldUser } from "lucide-react";
+import { apiConfig } from "@/lib/env";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { masterNavItems } from "@/modules/master/config/navigation";
+
+interface MasterSidebarProps {
+  onNavigate?: () => void;
+}
+
+export function MasterSidebar({ onNavigate }: MasterSidebarProps) {
+  const pathname = usePathname();
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="border-b border-sidebar-border px-6 py-6">
+        <Link
+          href="/master/dashboard"
+          onClick={onNavigate}
+          className="flex items-center gap-3"
+        >
+          <div className="flex size-11 items-center justify-center rounded-2xl bg-white/10">
+            <ShieldUser className="size-5" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold tracking-wide text-sidebar-foreground">
+              Church ERP Platform
+            </p>
+            <p className="text-xs text-sidebar-foreground/60">
+              Area master
+            </p>
+          </div>
+        </Link>
+      </div>
+
+      <div className="flex-1 px-4 py-6">
+        <p className="px-2 text-xs font-medium uppercase tracking-[0.24em] text-sidebar-foreground/45">
+          Navegacao
+        </p>
+        <nav className="mt-4 space-y-1.5">
+          {masterNavItems.map((item) => {
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onNavigate}
+                className={cn(
+                  "group flex items-center gap-3 rounded-2xl px-3 py-3 transition-colors",
+                  isActive
+                    ? "bg-white text-sidebar shadow-sm"
+                    : "text-sidebar-foreground/80 hover:bg-white/10 hover:text-sidebar-foreground",
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex size-10 items-center justify-center rounded-2xl transition-colors",
+                    isActive
+                      ? "bg-secondary text-primary"
+                      : "bg-white/8 text-sidebar-foreground/80 group-hover:bg-white/10",
+                  )}
+                >
+                  <Icon className="size-4" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">{item.title}</p>
+                  <p
+                    className={cn(
+                      "mt-1 text-xs leading-5",
+                      isActive
+                        ? "text-foreground/60"
+                        : "text-sidebar-foreground/55",
+                    )}
+                  >
+                    {item.description}
+                  </p>
+                </div>
+                <ChevronRight className="size-4 opacity-60" />
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      <div className="border-t border-sidebar-border px-4 py-4">
+        <div className="rounded-3xl bg-white/8 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-sidebar-foreground">
+                API REST
+              </p>
+              <p className="text-xs text-sidebar-foreground/60">
+                Configuracao da plataforma
+              </p>
+            </div>
+            <Badge
+              variant={apiConfig.isConfigured ? "secondary" : "outline"}
+              className={cn(
+                "border-white/10",
+                apiConfig.isConfigured
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-transparent text-sidebar-foreground",
+              )}
+            >
+              {apiConfig.isConfigured ? "OK" : "Pendente"}
+            </Badge>
+          </div>
+
+          <p className="mt-3 break-all font-mono text-xs leading-6 text-sidebar-foreground/70">
+            {apiConfig.baseUrl || "Defina NEXT_PUBLIC_API_URL em .env.local"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  SECRETARIA
+  TESOUREIRO
+  CONSULTA
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PlatformRole {
+  PLATFORM_ADMIN
+  PLATFORM_SUPPORT
+}
+
+enum ChurchStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum FinanceType {
+  ENTRY
+  EXPENSE
+}
+
+enum FinanceTransactionStatus {
+  ACTIVE
+  CANCELLED
+}
+
+model Tenant {
+  id                  String               @id @default(uuid()) @db.Uuid
+  name                String
+  slug                String               @unique
+  status              TenantStatus         @default(ACTIVE)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  users               User[]
+  churches            Church[]
+  members             Member[]
+  financeCategories   FinanceCategory[]
+  financeTransactions FinanceTransaction[]
+}
+
+model User {
+  id                         String                 @id @default(uuid()) @db.Uuid
+  name                       String
+  username                   String?                @unique
+  email                      String?                @unique
+  passwordHash               String
+  role                       UserRole               @default(CONSULTA)
+  status                     UserStatus             @default(ACTIVE)
+  tenantId                   String?                @db.Uuid
+  tenant                     Tenant?                @relation(fields: [tenantId], references: [id])
+  platformRole               PlatformRole?
+  churchId                   String?                @db.Uuid
+  church                     Church?                @relation(fields: [churchId], references: [id])
+  createdAt                  DateTime               @default(now())
+  updatedAt                  DateTime               @updatedAt
+  financeTransactionsCreated FinanceTransaction[] @relation("FinanceTransactionCreatedBy")
+
+  @@index([tenantId])
+  @@index([churchId])
+}
+
+model Church {
+  id                  String               @id @default(uuid()) @db.Uuid
+  tenantId            String?              @db.Uuid
+  tenant              Tenant?              @relation(fields: [tenantId], references: [id])
+  name                String
+  cnpj                String?
+  phone               String?
+  email               String?
+  address             String?
+  pastorName          String?
+  status              ChurchStatus         @default(ACTIVE)
+  notes               String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  users               User[]
+  members             Member[]
+  financeTransactions FinanceTransaction[]
+
+  @@index([tenantId])
+}
+
+model Member {
+  id            String       @id @default(uuid()) @db.Uuid
+  tenantId      String?      @db.Uuid
+  tenant        Tenant?      @relation(fields: [tenantId], references: [id])
+  fullName      String
+  birthDate     DateTime?
+  gender        String?
+  phone         String?
+  email         String?
+  address       String?
+  maritalStatus String?
+  joinedAt      DateTime?
+  status        MemberStatus @default(ACTIVE)
+  notes         String?
+  churchId      String       @db.Uuid
+  church        Church       @relation(fields: [churchId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([churchId])
+  @@index([status])
+}
+
+model FinanceCategory {
+  id           String               @id @default(uuid()) @db.Uuid
+  tenantId     String?              @db.Uuid
+  tenant       Tenant?              @relation(fields: [tenantId], references: [id])
+  name         String
+  type         FinanceType
+  active       Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  transactions FinanceTransaction[]
+
+  @@index([tenantId])
+  @@index([type])
+  @@index([active])
+}
+
+model FinanceTransaction {
+  id              String                   @id @default(uuid()) @db.Uuid
+  tenantId        String?                  @db.Uuid
+  tenant          Tenant?                  @relation(fields: [tenantId], references: [id])
+  churchId        String                   @db.Uuid
+  categoryId      String                   @db.Uuid
+  type            FinanceType
+  description     String
+  amount          Decimal                  @db.Decimal(14, 2)
+  transactionDate DateTime
+  notes           String?
+  status          FinanceTransactionStatus @default(ACTIVE)
+  createdByUserId String                   @db.Uuid
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  church          Church                   @relation(fields: [churchId], references: [id])
+  category        FinanceCategory          @relation(fields: [categoryId], references: [id])
+  createdByUser   User                     @relation("FinanceTransactionCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@index([tenantId])
+  @@index([churchId])
+  @@index([categoryId])
+  @@index([type])
+  @@index([transactionDate])
+  @@index([status])
+  @@index([createdByUserId])
+}
