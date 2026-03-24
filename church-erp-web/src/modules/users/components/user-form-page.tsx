@@ -44,6 +44,7 @@ interface ChurchOption {
 
 const initialFormValues: UserFormValues = {
   name: "",
+  username: "",
   email: "",
   password: "",
   role: "",
@@ -90,7 +91,8 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
         if (userResponse) {
           setFormValues({
             name: userResponse.name,
-            email: userResponse.email,
+            username: userResponse.username ?? "",
+            email: userResponse.email ?? "",
             password: "",
             role: userResponse.role,
             status: userResponse.status || "ACTIVE",
@@ -146,9 +148,10 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
       if (mode === "create") {
         const payload: CreateUserPayload = {
           name: formValues.name,
+          username: formValues.username,
           email: formValues.email,
           password: formValues.password,
-          role: formValues.role,
+          role: formValues.role as CreateUserPayload["role"],
           status: formValues.status,
           churchId: formValues.churchId || null,
         };
@@ -157,8 +160,10 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
       } else if (userId) {
         const payload: UpdateUserPayload = {
           name: formValues.name,
+          username: formValues.username,
           email: formValues.email,
-          role: formValues.role,
+          password: formValues.password || undefined,
+          role: formValues.role as NonNullable<UpdateUserPayload["role"]>,
           status: formValues.status,
           churchId: formValues.churchId || null,
         };
@@ -264,21 +269,38 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
                   />
                 </div>
 
-                {mode === "create" ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="user-password">Senha</Label>
-                    <Input
-                      id="user-password"
-                      type="password"
-                      value={formValues.password}
-                      onChange={(event) =>
-                        handleFieldChange("password", event.target.value)
-                      }
-                      placeholder="Defina uma senha inicial"
-                      required
-                    />
-                  </div>
-                ) : null}
+                <div className="space-y-2">
+                  <Label htmlFor="user-username">Username</Label>
+                  <Input
+                    id="user-username"
+                    value={formValues.username}
+                    onChange={(event) =>
+                      handleFieldChange("username", event.target.value)
+                    }
+                    placeholder="usuario.login"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="user-password">
+                    {mode === "create" ? "Senha" : "Nova senha"}
+                  </Label>
+                  <Input
+                    id="user-password"
+                    type="password"
+                    value={formValues.password}
+                    onChange={(event) =>
+                      handleFieldChange("password", event.target.value)
+                    }
+                    placeholder={
+                      mode === "create"
+                        ? "Defina uma senha inicial"
+                        : "Preencha apenas para alterar"
+                    }
+                    required={mode === "create"}
+                  />
+                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="user-role">Perfil</Label>

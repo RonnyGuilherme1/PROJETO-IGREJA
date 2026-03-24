@@ -22,13 +22,13 @@ export default async function AdminLayout({
   const user = getStoredAuthUser(
     accessToken,
     cookieStore.get(AUTH_SESSION_COOKIE)?.value,
-  ) ?? {
-    name: "Usuario autenticado",
-    email: "",
-    profile: "Acesso interno",
-  };
+  );
 
-  if (user.authMode === "MASTER") {
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (user.accessType === "PLATFORM") {
     redirect("/master/dashboard");
   }
 

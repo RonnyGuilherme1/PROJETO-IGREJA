@@ -1,13 +1,17 @@
+export type ChurchStatus = "ACTIVE" | "INACTIVE";
+
 export interface ChurchItem {
   id: string;
   name: string;
-  cnpj: string;
-  phone: string;
-  email: string;
-  address: string;
-  pastorName: string;
-  status: string;
-  notes: string;
+  cnpj: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  pastorName: string | null;
+  status: ChurchStatus;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ChurchFilters {
@@ -27,19 +31,19 @@ export interface CreateChurchPayload {
   email: string;
   address: string;
   pastorName: string;
-  status: string;
+  status: ChurchStatus;
   notes: string;
 }
 
 export interface UpdateChurchPayload {
-  name: string;
-  cnpj: string;
-  phone: string;
-  email: string;
-  address: string;
-  pastorName: string;
-  status: string;
-  notes: string;
+  name?: string;
+  cnpj?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  pastorName?: string | null;
+  status?: ChurchStatus;
+  notes?: string | null;
 }
 
 export interface ChurchFormValues {
@@ -49,7 +53,7 @@ export interface ChurchFormValues {
   email: string;
   address: string;
   pastorName: string;
-  status: string;
+  status: ChurchStatus;
   notes: string;
 }
 

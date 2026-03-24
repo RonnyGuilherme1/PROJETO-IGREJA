@@ -1,10 +1,21 @@
+import type {
+  PlatformRole,
+  UserRole,
+  UserStatus,
+} from "@/modules/auth/types/auth";
+
 export interface UserItem {
   id: string;
   name: string;
-  email: string;
-  role: string;
-  status: string;
-  churchId?: string | null;
+  username: string | null;
+  email: string | null;
+  role: UserRole;
+  status: UserStatus;
+  tenantId: string | null;
+  platformRole: PlatformRole | null;
+  churchId: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserFilters {
@@ -21,27 +32,31 @@ export interface UserListResult {
 
 export interface CreateUserPayload {
   name: string;
+  username: string;
   email: string;
   password: string;
-  role: string;
-  status: string;
+  role: UserRole;
+  status: UserStatus;
   churchId?: string | null;
 }
 
 export interface UpdateUserPayload {
-  name: string;
-  email: string;
-  role: string;
-  status: string;
+  name?: string;
+  username?: string;
+  email?: string | null;
+  password?: string;
+  role?: UserRole;
+  status?: UserStatus;
   churchId?: string | null;
 }
 
 export interface UserFormValues {
   name: string;
+  username: string;
   email: string;
   password: string;
-  role: string;
-  status: string;
+  role: UserRole | "";
+  status: UserStatus;
   churchId: string;
 }
 

@@ -27,7 +27,7 @@ export default async function LoginPage() {
       cookieStore.get(AUTH_SESSION_COOKIE)?.value,
     );
 
-    redirect(user?.authMode === "MASTER" ? "/master/dashboard" : "/dashboard");
+    redirect(user?.accessType === "PLATFORM" ? "/master/dashboard" : "/dashboard");
   }
 
   return (

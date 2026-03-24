@@ -17,8 +17,8 @@ export default async function MembrosPage() {
 
   return (
     <MembersListPage
-      canEdit={canEditMembers(user?.profile)}
-      currentProfile={user?.profile}
+      canEdit={canEditMembers(user)}
+      currentUser={user}
     />
   );
 }

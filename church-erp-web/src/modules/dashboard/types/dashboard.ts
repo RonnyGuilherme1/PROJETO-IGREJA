@@ -1,3 +1,24 @@
+export interface DashboardCardsResponse {
+  totalMembers: number;
+  totalChurches: number;
+  totalMonthEntries: string;
+  totalMonthExpenses: string;
+  monthBalance: string;
+  totalActiveUsers: number;
+}
+
+export interface DashboardFinanceByMonthResponse {
+  month: string;
+  entries: string;
+  expenses: string;
+  balance: string;
+}
+
+export interface DashboardMembersByMonthResponse {
+  month: string;
+  totalMembers: number;
+}
+
 export interface DashboardMetrics {
   totalMembers: number;
   totalChurches: number;

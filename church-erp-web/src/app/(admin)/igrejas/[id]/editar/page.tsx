@@ -25,7 +25,7 @@ export default async function EditarIgrejaPage({
     cookieStore.get(AUTH_SESSION_COOKIE)?.value,
   );
 
-  if (!canEditChurches(user?.profile)) {
+  if (!canEditChurches(user)) {
     redirect("/igrejas");
   }
 

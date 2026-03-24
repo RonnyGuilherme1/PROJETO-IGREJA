@@ -4,23 +4,17 @@ import {
   type TenantThemeKey,
 } from "@/lib/tenant-branding";
 
+export type MasterTenantStatus = "ACTIVE" | "INACTIVE";
+
 export interface MasterTenantItem {
   id: string;
   name: string;
   code: string;
-  status: string;
+  status: MasterTenantStatus;
   logoUrl: string | null;
   themeKey: TenantThemeKey;
-  adminName: string;
-  adminUsername: string;
-  adminEmail: string;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface MasterTenantFilters {
-  name: string;
-  status: string;
 }
 
 export interface MasterTenantsListResult {
@@ -30,27 +24,27 @@ export interface MasterTenantsListResult {
 
 export interface CreateMasterTenantPayload {
   name: string;
-  status: string;
+  status: MasterTenantStatus;
   logoUrl?: string | null;
   themeKey: TenantThemeKey;
   adminName: string;
   adminUsername: string;
-  adminEmail: string;
+  adminEmail?: string | null;
   adminPassword: string;
 }
 
 export interface UpdateMasterTenantPayload {
-  name: string;
-  code: string;
-  status: string;
+  name?: string;
+  code?: string;
+  status?: MasterTenantStatus;
   logoUrl?: string | null;
-  themeKey: TenantThemeKey;
+  themeKey?: TenantThemeKey;
 }
 
 export interface MasterTenantFormValues {
   name: string;
   code: string;
-  status: string;
+  status: MasterTenantStatus;
   logoUrl: string;
   themeKey: TenantThemeKey;
   adminName: string;

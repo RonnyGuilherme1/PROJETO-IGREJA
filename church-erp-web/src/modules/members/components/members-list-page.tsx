@@ -20,11 +20,12 @@ import { MembersFilters } from "@/modules/members/components/members-filters";
 import { MembersTable } from "@/modules/members/components/members-table";
 import { getMembersAccessLabel } from "@/modules/members/lib/members-permissions";
 import { inactivateMember, listMembers } from "@/modules/members/services/members-service";
+import type { AuthUser } from "@/modules/auth/types/auth";
 import type { MemberFilters, MemberItem } from "@/modules/members/types/member";
 
 interface MembersListPageProps {
   canEdit: boolean;
-  currentProfile?: string;
+  currentUser?: AuthUser | null;
 }
 
 interface ChurchOption {
@@ -40,7 +41,7 @@ const initialFilters: MemberFilters = {
 
 export function MembersListPage({
   canEdit,
-  currentProfile,
+  currentUser,
 }: MembersListPageProps) {
   const [filters, setFilters] = useState<MemberFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<MemberFilters>(initialFilters);
@@ -51,6 +52,9 @@ export function MembersListPage({
   const [churchesError, setChurchesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inactivatingId, setInactivatingId] = useState<string | null>(null);
+  const churchNamesById = Object.fromEntries(
+    churchOptions.map((church) => [church.id, church.name]),
+  );
 
   const loadMembers = useCallback(async (currentFilters: MemberFilters) => {
     setIsLoading(true);
@@ -171,7 +175,7 @@ export function MembersListPage({
       <PageHeader
         title="Membros"
         description="Gerencie o cadastro de membros com filtros, listagem organizada e integracao com a API."
-        badge={getMembersAccessLabel(currentProfile)}
+        badge={getMembersAccessLabel(currentUser)}
         action={
           canEdit ? (
             <Button asChild>
@@ -228,6 +232,7 @@ export function MembersListPage({
 
           <MembersTable
             members={members}
+            churchNamesById={churchNamesById}
             isLoading={isLoading}
             canEdit={canEdit}
             inactivatingId={inactivatingId}

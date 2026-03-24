@@ -16,7 +16,7 @@ export default async function NovaMovimentacaoPage() {
     cookieStore.get(AUTH_SESSION_COOKIE)?.value,
   );
 
-  if (!canEditTreasury(user?.profile)) {
+  if (!canEditTreasury(user)) {
     redirect("/tesouraria");
   }
 

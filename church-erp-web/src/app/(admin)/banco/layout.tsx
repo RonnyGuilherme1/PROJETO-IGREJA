@@ -4,7 +4,6 @@ import {
   AUTH_SESSION_COOKIE,
   AUTH_TOKEN_COOKIE,
   getStoredAuthUser,
-  isAdminProfile,
 } from "@/modules/auth/lib/auth-session";
 
 export default async function BancoLayout({
@@ -24,7 +23,7 @@ export default async function BancoLayout({
     cookieStore.get(AUTH_SESSION_COOKIE)?.value,
   );
 
-  if (!isAdminProfile(user?.profile)) {
+  if (!user || user.accessType !== "TENANT" || user.role !== "ADMIN") {
     redirect("/dashboard");
   }
 

@@ -17,8 +17,8 @@ export default async function IgrejasPage() {
 
   return (
     <ChurchesListPage
-      canEdit={canEditChurches(user?.profile)}
-      currentProfile={user?.profile}
+      canEdit={canEditChurches(user)}
+      currentUser={user}
     />
   );
 }

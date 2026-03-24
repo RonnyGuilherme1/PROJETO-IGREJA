@@ -27,11 +27,12 @@ import { ChurchesFilters } from "@/modules/churches/components/churches-filters"
 import { ChurchesTable } from "@/modules/churches/components/churches-table";
 import { getChurchesAccessLabel } from "@/modules/churches/lib/churches-permissions";
 import { listChurches } from "@/modules/churches/services/churches-service";
+import type { AuthUser } from "@/modules/auth/types/auth";
 import type { ChurchFilters, ChurchItem } from "@/modules/churches/types/church";
 
 interface ChurchesListPageProps {
   canEdit: boolean;
-  currentProfile?: string;
+  currentUser?: AuthUser | null;
 }
 
 const initialFilters: ChurchFilters = {
@@ -41,7 +42,7 @@ const initialFilters: ChurchFilters = {
 
 export function ChurchesListPage({
   canEdit,
-  currentProfile,
+  currentUser,
 }: ChurchesListPageProps) {
   const [filters, setFilters] = useState<ChurchFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<ChurchFilters>(initialFilters);
@@ -124,7 +125,7 @@ export function ChurchesListPage({
       <PageHeader
         title="Igrejas"
         description="Cadastre, acompanhe e visualize os dados principais das igrejas em uma estrutura administrativa limpa."
-        badge={getChurchesAccessLabel(currentProfile)}
+        badge={getChurchesAccessLabel(currentUser)}
         action={
           canEdit ? (
             <Button asChild>

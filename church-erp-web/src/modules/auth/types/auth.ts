@@ -1,29 +1,46 @@
 import type { TenantThemeKey } from "@/lib/tenant-branding";
 
-export type AuthMode = "TENANT" | "MASTER";
+export type UserRole = "ADMIN" | "SECRETARIA" | "TESOUREIRO" | "CONSULTA";
+
+export type UserStatus = "ACTIVE" | "INACTIVE";
+
+export type PlatformRole = "PLATFORM_ADMIN" | "PLATFORM_SUPPORT";
+
+export type AuthAccessType = "PLATFORM" | "TENANT";
+
+export interface AuthUserTenant {
+  id: string;
+  name: string;
+  code: string;
+  logoUrl: string | null;
+  themeKey: TenantThemeKey;
+}
 
 export interface AuthUser {
+  id: string;
   name: string;
-  email: string;
-  profile: string;
-  username?: string;
-  tenantId?: string;
-  tenantCode?: string;
-  tenantName?: string;
-  tenantLogoUrl?: string | null;
-  tenantThemeKey?: TenantThemeKey;
-  authMode?: AuthMode;
+  username: string | null;
+  email: string | null;
+  role: UserRole;
+  status: UserStatus;
+  tenantId: string | null;
+  platformRole: PlatformRole | null;
+  accessType: AuthAccessType;
+  churchId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  tenantCode: string | null;
+  tenantName: string | null;
+  tenantLogoUrl: string | null;
+  tenantThemeKey: TenantThemeKey | null;
+  tenant: AuthUserTenant | null;
 }
 
 export interface AuthSession {
   accessToken: string;
-  tokenType: string;
-  expiresIn?: number;
   user: AuthUser;
 }
 
 export interface AuthSessionMeta {
-  tokenType: string;
-  expiresIn?: number;
   user: AuthUser;
 }

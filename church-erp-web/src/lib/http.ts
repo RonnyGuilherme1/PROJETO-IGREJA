@@ -1,10 +1,6 @@
 import axios from "axios";
 import {
-  AUTH_SESSION_COOKIE,
-  getAuthSessionMetaFromCookie,
   getClientAccessToken,
-  getCookieValue,
-  getStoredTokenType,
 } from "@/modules/auth/lib/auth-session";
 
 export const http = axios.create({
@@ -19,15 +15,9 @@ export const http = axios.create({
 function isAuthLoginRequest(url?: string) {
   const normalizedUrl = String(url ?? "");
 
-  return [
-    "/auth/login",
-    "/auth/tenant/login",
-    "/tenant/auth/login",
-    "/auth/master/login",
-    "/master/auth/login",
-    "/platform/auth/login",
-    "/auth/platform/login",
-  ].some((path) => normalizedUrl.includes(path));
+  return ["/auth/login", "/auth/master/login"].some((path) =>
+    normalizedUrl.includes(path),
+  );
 }
 
 http.interceptors.request.use((config) => {
@@ -45,16 +35,8 @@ http.interceptors.request.use((config) => {
     return config;
   }
 
-  const sessionCookieValue = getCookieValue(AUTH_SESSION_COOKIE);
-  const sessionMeta = getAuthSessionMetaFromCookie(sessionCookieValue);
-  const tokenType = getStoredTokenType(sessionCookieValue);
   config.headers = config.headers ?? {};
-  config.headers.Authorization = `${tokenType} ${accessToken}`;
-
-  if (sessionMeta?.user.authMode === "TENANT" && sessionMeta.user.tenantCode) {
-    config.headers["X-Tenant-Code"] = sessionMeta.user.tenantCode;
-    config.headers["X-Tenant"] = sessionMeta.user.tenantCode;
-  }
+  config.headers.Authorization = `Bearer ${accessToken}`;
 
   return config;
 });

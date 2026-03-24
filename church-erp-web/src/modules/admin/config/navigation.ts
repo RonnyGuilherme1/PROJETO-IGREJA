@@ -7,7 +7,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { isAdminProfile } from "@/modules/auth/lib/auth-session";
+import type { AuthUser } from "@/modules/auth/types/auth";
 
 export interface AdminNavItem {
   title: string;
@@ -47,6 +47,7 @@ export const adminNavItems: AdminNavItem[] = [
     href: "/usuarios",
     description: "Acesso e permissoes",
     icon: ShieldUser,
+    adminOnly: true,
   },
   {
     title: "Configuracoes",
@@ -57,8 +58,10 @@ export const adminNavItems: AdminNavItem[] = [
   },
 ];
 
-export function getAdminNavItems(profile?: string) {
+export function getAdminNavItems(user?: AuthUser | null) {
   return adminNavItems.filter(
-    (item) => !item.adminOnly || isAdminProfile(profile),
+    (item) =>
+      !item.adminOnly ||
+      (user?.accessType === "TENANT" && user.role === "ADMIN"),
   );
 }

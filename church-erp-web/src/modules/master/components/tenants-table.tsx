@@ -37,10 +37,11 @@ function formatDate(value: string) {
     return "-";
   }
 
-  const parsed = new Date(`${value}T00:00:00`);
+  const dateValue = value.includes("T") ? value.slice(0, 10) : value;
+  const parsed = new Date(`${dateValue}T00:00:00`);
 
   if (Number.isNaN(parsed.getTime())) {
-    return value;
+    return dateValue;
   }
 
   return new Intl.DateTimeFormat("pt-BR").format(parsed);
@@ -65,7 +66,7 @@ export function TenantsTable({
                 Codigo
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Admin
+                Tema
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 Status
@@ -103,9 +104,6 @@ export function TenantsTable({
             {tenants.map((tenant) => {
               const inactive = isInactive(tenant.status);
               const rowLoading = togglingId === tenant.id;
-              const adminLabel =
-                tenant.adminName || tenant.adminUsername || tenant.adminEmail || "-";
-
               return (
                 <tr key={tenant.id} className="align-top">
                   <td className="px-4 py-4">
@@ -136,7 +134,7 @@ export function TenantsTable({
                     {tenant.code || "-"}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {adminLabel}
+                    {getTenantThemeLabel(tenant.themeKey)}
                   </td>
                   <td className="px-4 py-4">
                     <Badge variant={inactive ? "outline" : "secondary"}>

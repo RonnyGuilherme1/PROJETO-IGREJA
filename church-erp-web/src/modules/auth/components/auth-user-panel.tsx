@@ -21,19 +21,24 @@ export function AuthUserPanel({ user }: AuthUserPanelProps) {
   const [isPending, startTransition] = useTransition();
   const tenantLabel = getTenantLabel(user.tenantName, user.tenantCode);
   const accessScope =
-    user.authMode === "MASTER"
+    user.accessType === "PLATFORM"
       ? "Master"
       : tenantLabel
         ? tenantLabel
         : null;
-  const details = [user.email || user.username, user.profile, accessScope]
+  const roleLabel = (user.platformRole ?? user.role)
+    .replace(/^PLATFORM_/i, "")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+  const details = [user.email || user.username, roleLabel, accessScope]
     .filter(Boolean)
     .join(" | ");
 
   function handleLogout() {
     clearAuthSession();
     startTransition(() => {
-      router.replace(getAuthLoginPath(user.authMode));
+      router.replace(getAuthLoginPath(user.accessType));
       router.refresh();
     });
   }

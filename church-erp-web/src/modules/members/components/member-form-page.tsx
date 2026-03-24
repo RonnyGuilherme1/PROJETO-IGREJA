@@ -123,27 +123,34 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
           return;
         }
 
-        setChurchOptions(
-          churchesResponse.items.map((church) => ({
-            id: church.id,
-            name: church.name,
-          })),
-        );
+        const nextChurchOptions = churchesResponse.items.map((church) => ({
+          id: church.id,
+          name: church.name,
+        }));
+        const singleChurchId =
+          nextChurchOptions.length === 1 ? nextChurchOptions[0].id : "";
+
+        setChurchOptions(nextChurchOptions);
 
         if (memberResponse) {
           setFormValues({
             fullName: memberResponse.fullName,
-            birthDate: memberResponse.birthDate,
-            gender: normalizeGender(memberResponse.gender),
-            phone: memberResponse.phone,
-            email: memberResponse.email,
-            address: memberResponse.address,
-            maritalStatus: normalizeMaritalStatus(memberResponse.maritalStatus),
-            joinedAt: memberResponse.joinedAt,
+            birthDate: memberResponse.birthDate ?? "",
+            gender: normalizeGender(memberResponse.gender ?? ""),
+            phone: memberResponse.phone ?? "",
+            email: memberResponse.email ?? "",
+            address: memberResponse.address ?? "",
+            maritalStatus: normalizeMaritalStatus(memberResponse.maritalStatus ?? ""),
+            joinedAt: memberResponse.joinedAt ?? "",
             status: memberResponse.status || "ACTIVE",
-            notes: memberResponse.notes,
+            notes: memberResponse.notes ?? "",
             churchId: memberResponse.churchId,
           });
+        } else {
+          setFormValues((current) => ({
+            ...current,
+            churchId: singleChurchId,
+          }));
         }
       } catch (error) {
         if (isActive) {

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, Building2, CircleOff, Plus, ShieldCheck } from "lucide-react";
+import { ArrowRight, Building2, CircleOff, ImageIcon, Plus, ShieldCheck } from "lucide-react";
 import { getApiErrorMessage } from "@/lib/http";
+import { getTenantThemeLabel } from "@/lib/tenant-branding";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -53,15 +54,13 @@ export function MasterDashboardPage() {
   const summary = useMemo(() => {
     const active = tenants.filter((tenant) => !isInactive(tenant.status)).length;
     const inactive = tenants.length - active;
-    const withAdmin = tenants.filter(
-      (tenant) => tenant.adminUsername || tenant.adminEmail || tenant.adminName,
-    ).length;
+    const withCustomLogo = tenants.filter((tenant) => Boolean(tenant.logoUrl)).length;
 
     return {
       total: tenants.length,
       active,
       inactive,
-      withAdmin,
+      withCustomLogo,
       recent: [...tenants]
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .slice(0, 5),
@@ -146,13 +145,13 @@ export function MasterDashboardPage() {
         <Card className="bg-white/85">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Admins configurados</p>
+              <p className="text-sm font-medium text-muted-foreground">Logos customizadas</p>
               <p className="text-3xl font-semibold tracking-tight text-foreground">
-                {summary.withAdmin}
+                {summary.withCustomLogo}
               </p>
             </div>
             <div className="flex size-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-700">
-              <ShieldCheck className="size-5" />
+              <ImageIcon className="size-5" />
             </div>
           </CardContent>
         </Card>
@@ -186,7 +185,7 @@ export function MasterDashboardPage() {
                       Codigo
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Admin
+                      Tema
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                       Status
@@ -224,7 +223,7 @@ export function MasterDashboardPage() {
                         {tenant.code || "-"}
                       </td>
                       <td className="px-4 py-4 text-sm text-muted-foreground">
-                        {tenant.adminName || tenant.adminUsername || tenant.adminEmail || "-"}
+                        {getTenantThemeLabel(tenant.themeKey)}
                       </td>
                       <td className="px-4 py-4">
                         <Badge

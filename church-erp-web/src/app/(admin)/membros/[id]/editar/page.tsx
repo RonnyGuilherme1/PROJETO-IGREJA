@@ -25,7 +25,7 @@ export default async function EditarMembroPage({
     cookieStore.get(AUTH_SESSION_COOKIE)?.value,
   );
 
-  if (!canEditMembers(user?.profile)) {
+  if (!canEditMembers(user)) {
     redirect("/membros");
   }
 

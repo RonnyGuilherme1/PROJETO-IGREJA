@@ -5,23 +5,25 @@ export type TreasuryTransactionStatus = "ACTIVE" | "CANCELLED";
 export interface TreasuryMovementItem {
   id: string;
   churchId: string;
-  churchName: string;
   categoryId: string;
-  categoryName: string;
   type: TreasuryType;
   description: string;
-  amount: number;
+  amount: string;
   transactionDate: string;
-  notes: string;
+  notes: string | null;
   status: TreasuryTransactionStatus;
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TreasuryCategoryItem {
   id: string;
   name: string;
   type: TreasuryType;
-  status: string;
-  description: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TreasuryFilters {
@@ -49,20 +51,19 @@ export interface CreateTreasuryPayload {
   categoryId: string;
   type: TreasuryType;
   description: string;
-  amount: number;
+  amount: string;
   transactionDate: string;
   notes: string;
 }
 
 export interface UpdateTreasuryPayload {
-  churchId: string;
-  categoryId: string;
-  type: TreasuryType;
-  description: string;
-  amount: number;
-  transactionDate: string;
-  notes: string;
-  status?: TreasuryTransactionStatus;
+  churchId?: string;
+  categoryId?: string;
+  type?: TreasuryType;
+  description?: string;
+  amount?: string;
+  transactionDate?: string;
+  notes?: string | null;
 }
 
 export interface TreasuryFormValues {

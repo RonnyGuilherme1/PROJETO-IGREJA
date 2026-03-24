@@ -1,17 +1,28 @@
+export type MemberStatus = "ACTIVE" | "INACTIVE";
+
+export type MemberGender = "MASCULINO" | "FEMININO";
+
+export type MemberMaritalStatus =
+  | "SOLTEIRO"
+  | "CASADO"
+  | "DIVORCIADO"
+  | "VIUVO";
+
 export interface MemberItem {
   id: string;
   fullName: string;
-  birthDate: string;
-  gender: string;
-  phone: string;
-  email: string;
-  address: string;
-  maritalStatus: string;
-  joinedAt: string;
-  status: string;
-  notes: string;
+  birthDate: string | null;
+  gender: MemberGender | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  maritalStatus: MemberMaritalStatus | null;
+  joinedAt: string | null;
+  status: MemberStatus;
+  notes: string | null;
   churchId: string;
-  churchName: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MemberFilters {
@@ -23,6 +34,9 @@ export interface MemberFilters {
 export interface MemberListResult {
   items: MemberItem[];
   total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface CreateMemberPayload {
@@ -34,23 +48,23 @@ export interface CreateMemberPayload {
   address: string;
   maritalStatus: string;
   joinedAt: string;
-  status: string;
+  status: MemberStatus;
   notes: string;
   churchId: string;
 }
 
 export interface UpdateMemberPayload {
-  fullName: string;
-  birthDate: string;
-  gender: string;
-  phone: string;
-  email: string;
-  address: string;
-  maritalStatus: string;
-  joinedAt: string;
-  status: string;
-  notes: string;
-  churchId: string;
+  fullName?: string;
+  birthDate?: string | null;
+  gender?: MemberGender | null | "";
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  maritalStatus?: MemberMaritalStatus | null | "";
+  joinedAt?: string | null;
+  status?: MemberStatus;
+  notes?: string | null;
+  churchId?: string;
 }
 
 export interface MemberFormValues {
@@ -62,7 +76,7 @@ export interface MemberFormValues {
   address: string;
   maritalStatus: string;
   joinedAt: string;
-  status: string;
+  status: MemberStatus;
   notes: string;
   churchId: string;
 }

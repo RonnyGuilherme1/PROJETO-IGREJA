@@ -26,7 +26,6 @@ import {
   updateTreasuryMovement,
 } from "@/modules/treasury/services/treasury-service";
 import {
-  TREASURY_STATUS_OPTIONS,
   TREASURY_TYPE_OPTIONS,
   type CreateTreasuryPayload,
   type TreasuryCategoryItem,
@@ -71,6 +70,9 @@ export function TreasuryFormPage({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isRedirecting, startTransition] = useTransition();
+  const availableCategories = categories.filter(
+    (category) => category.active || category.id === formValues.categoryId,
+  );
   const selectedCategory = categories.find(
     (category) => category.id === formValues.categoryId,
   );
@@ -113,9 +115,9 @@ export function TreasuryFormPage({
             categoryId: movementResponse.categoryId,
             type: movementResponse.type || "ENTRY",
             description: movementResponse.description,
-            amount: String(movementResponse.amount),
-            transactionDate: movementResponse.transactionDate,
-            notes: movementResponse.notes,
+            amount: movementResponse.amount,
+            transactionDate: movementResponse.transactionDate.slice(0, 10),
+            notes: movementResponse.notes ?? "",
             status: movementResponse.status || "ACTIVE",
           });
         }
@@ -189,7 +191,7 @@ export function TreasuryFormPage({
         categoryId: formValues.categoryId,
         type: formValues.type,
         description: formValues.description,
-        amount: Number(formValues.amount),
+        amount: formValues.amount,
         transactionDate: formValues.transactionDate,
         notes: formValues.notes,
       };
@@ -197,10 +199,7 @@ export function TreasuryFormPage({
       if (mode === "create") {
         await createTreasuryMovement(payload as CreateTreasuryPayload);
       } else if (movementId) {
-        await updateTreasuryMovement(movementId, {
-          ...(payload as UpdateTreasuryPayload),
-          status: formValues.status,
-        });
+        await updateTreasuryMovement(movementId, payload as UpdateTreasuryPayload);
       }
 
       startTransition(() => {
@@ -301,7 +300,7 @@ export function TreasuryFormPage({
                     required
                   >
                     <option value="">Selecione uma categoria</option>
-                    {categories.map((category) => (
+                    {availableCategories.map((category) => (
                       <option key={category.id} value={category.id}>
                         {category.name}
                       </option>
@@ -367,26 +366,17 @@ export function TreasuryFormPage({
                     required
                   />
                 </div>
-
-                {mode === "edit" ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="treasury-status">Status</Label>
-                    <Select
-                      id="treasury-status"
-                      value={formValues.status}
-                      onChange={(event) =>
-                        handleFieldChange("status", event.target.value)
-                      }
-                    >
-                      {TREASURY_STATUS_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                ) : null}
               </div>
+
+              {mode === "edit" ? (
+                <div className="rounded-2xl border border-border bg-secondary/35 px-4 py-3 text-sm text-muted-foreground">
+                  Status atual:{" "}
+                  <strong>
+                    {formValues.status === "CANCELLED" ? "Cancelada" : "Ativa"}
+                  </strong>
+                  . O cancelamento definitivo deve ser feito pela acao de cancelar na listagem.
+                </div>
+              ) : null}
 
               <div className="space-y-2">
                 <Label htmlFor="treasury-notes">Observacoes</Label>

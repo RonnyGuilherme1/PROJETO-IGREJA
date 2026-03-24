@@ -34,10 +34,7 @@ import {
   type TenantBrandingItem,
 } from "@/modules/admin/types/tenant-branding";
 import {
-  AUTH_SESSION_COOKIE,
-  getAuthSessionMetaFromCookie,
   getClientAccessToken,
-  getCookieValue,
   persistAuthSession,
 } from "@/modules/auth/lib/auth-session";
 import type { AuthUser } from "@/modules/auth/types/auth";
@@ -120,6 +117,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
     buildFormValues(buildTenantBrandingFromUser(user)),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
@@ -138,15 +136,18 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
           return;
         }
 
-        const mergedTenantBranding = mergeTenantBranding(
-          buildTenantBrandingFromUser(user),
-          currentTenantBranding,
-        );
-
-        setTenantBranding(mergedTenantBranding);
-        setFormValues(buildFormValues(mergedTenantBranding));
-      } catch {
-        // Mantem os dados atuais da sessao quando a consulta tenant-scoped nao estiver disponivel.
+        setLoadError(null);
+        setTenantBranding(currentTenantBranding);
+        setFormValues(buildFormValues(currentTenantBranding));
+      } catch (error) {
+        if (isActive) {
+          setLoadError(
+            getApiErrorMessage(
+              error,
+              "Nao foi possivel carregar a identidade visual atual do banco.",
+            ),
+          );
+        }
       }
     }
 
@@ -238,14 +239,10 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
       return;
     }
 
-    const sessionCookieValue = getCookieValue(AUTH_SESSION_COOKIE);
-    const sessionMeta = getAuthSessionMetaFromCookie(sessionCookieValue);
-    const baseUser = sessionMeta?.user ?? user;
+    const baseUser = user;
 
     persistAuthSession({
       accessToken,
-      tokenType: sessionMeta?.tokenType ?? "Bearer",
-      expiresIn: sessionMeta?.expiresIn,
       user: {
         ...baseUser,
         tenantId: nextTenantBranding.id || baseUser.tenantId,
@@ -253,6 +250,15 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
         tenantCode: nextTenantBranding.code || baseUser.tenantCode,
         tenantLogoUrl: nextTenantBranding.logoUrl,
         tenantThemeKey: nextTenantBranding.themeKey,
+        tenant: nextTenantBranding.id
+          ? {
+              id: nextTenantBranding.id,
+              name: nextTenantBranding.name,
+              code: nextTenantBranding.code,
+              logoUrl: nextTenantBranding.logoUrl,
+              themeKey: nextTenantBranding.themeKey,
+            }
+          : null,
       },
     });
   }
@@ -330,6 +336,12 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {loadError ? (
+              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {loadError}
+              </div>
+            ) : null}
+
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="tenant-theme">Tema do banco</Label>

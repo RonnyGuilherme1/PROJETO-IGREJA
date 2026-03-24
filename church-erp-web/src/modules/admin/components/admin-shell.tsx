@@ -25,7 +25,7 @@ interface AdminShellProps {
 export function AdminShell({ children, user }: AdminShellProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const navigationItems = getAdminNavItems(user.profile);
+  const navigationItems = getAdminNavItems(user);
 
   const currentPage =
     navigationItems.find(

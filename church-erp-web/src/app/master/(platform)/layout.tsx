@@ -25,7 +25,11 @@ export default async function MasterPlatformLayout({
     cookieStore.get(AUTH_SESSION_COOKIE)?.value,
   );
 
-  if (!user || !canAccessMasterArea(user)) {
+  if (!user) {
+    redirect("/master/login");
+  }
+
+  if (!canAccessMasterArea(user)) {
     redirect("/dashboard");
   }
 

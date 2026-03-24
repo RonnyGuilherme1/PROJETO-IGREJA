@@ -1,23 +1,12 @@
-function normalizeProfile(profile?: string) {
-  if (!profile?.trim()) {
-    return [];
-  }
+import type { AuthUser } from "@/modules/auth/types/auth";
 
-  return profile
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, " ")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+export function canEditMembers(user?: AuthUser | null) {
+  return (
+    user?.accessType === "TENANT" &&
+    (user.role === "ADMIN" || user.role === "SECRETARIA")
+  );
 }
 
-export function canEditMembers(profile?: string) {
-  const tokens = normalizeProfile(profile);
-  return tokens.includes("ADMIN") || tokens.includes("SECRETARIA");
-}
-
-export function getMembersAccessLabel(profile?: string) {
-  return canEditMembers(profile) ? "Edicao liberada" : "Modo consulta";
+export function getMembersAccessLabel(user?: AuthUser | null) {
+  return canEditMembers(user) ? "Edicao liberada" : "Modo consulta";
 }

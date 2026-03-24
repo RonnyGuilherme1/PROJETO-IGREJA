@@ -79,13 +79,13 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
 
         setFormValues({
           name: church.name,
-          cnpj: church.cnpj,
-          phone: church.phone,
-          email: church.email,
-          address: church.address,
-          pastorName: church.pastorName,
+          cnpj: church.cnpj ?? "",
+          phone: church.phone ?? "",
+          email: church.email ?? "",
+          address: church.address ?? "",
+          pastorName: church.pastorName ?? "",
           status: church.status || "ACTIVE",
-          notes: church.notes,
+          notes: church.notes ?? "",
         });
       } catch (error) {
         if (isActive) {

@@ -78,14 +78,16 @@ export function TreasuryCategoriesSheet({
                     ID: {category.id}
                   </p>
                 </div>
-                <Badge variant={category.type === "EXPENSE" ? "outline" : "secondary"}>
-                  {getTypeLabel(category.type)}
-                </Badge>
-              </div>
-
-              <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <p>Status: {category.status || "-"}</p>
-                <p>{category.description || "Sem descricao."}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge
+                    variant={category.type === "EXPENSE" ? "outline" : "secondary"}
+                  >
+                    {getTypeLabel(category.type)}
+                  </Badge>
+                  <Badge variant={category.active ? "secondary" : "outline"}>
+                    {category.active ? "Ativa" : "Inativa"}
+                  </Badge>
+                </div>
               </div>
             </div>
           ))}

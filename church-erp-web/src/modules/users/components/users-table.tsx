@@ -31,16 +31,19 @@ function getStatusLabel(status: string) {
 }
 
 function getRoleLabel(role: string) {
-  if (!role.trim()) {
-    return "-";
+  if (role === "SECRETARIA") {
+    return "Secretaria";
   }
 
-  return role
-    .replace(/^ROLE_/i, "")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (character) => character.toUpperCase());
+  if (role === "TESOUREIRO") {
+    return "Tesoureiro";
+  }
+
+  if (role === "CONSULTA") {
+    return "Consulta";
+  }
+
+  return "Administrador";
 }
 
 export function UsersTable({
@@ -59,7 +62,7 @@ export function UsersTable({
                 Nome
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                E-mail
+                Contato
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 Perfil
@@ -107,12 +110,15 @@ export function UsersTable({
                     <div className="space-y-1">
                       <p className="font-medium text-foreground">{user.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        ID: {user.id}
+                        Username: {user.username || "-"}
                       </p>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {user.email || "-"}
+                    <div className="space-y-1">
+                      <p>{user.email || "-"}</p>
+                      <p className="text-xs text-muted-foreground">ID: {user.id}</p>
+                    </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
                     {getRoleLabel(user.role)}

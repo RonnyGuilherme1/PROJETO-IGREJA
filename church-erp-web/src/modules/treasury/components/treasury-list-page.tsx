@@ -22,9 +22,11 @@ import { TreasurySummaryCards } from "@/modules/treasury/components/treasury-sum
 import { TreasuryTable } from "@/modules/treasury/components/treasury-table";
 import { getTreasuryAccessLabel } from "@/modules/treasury/lib/treasury-permissions";
 import {
+  cancelTreasuryMovement,
   listTreasuryCategories,
   listTreasuryMovements,
 } from "@/modules/treasury/services/treasury-service";
+import type { AuthUser } from "@/modules/auth/types/auth";
 import type {
   TreasuryCategoryItem,
   TreasuryFilters as TreasuryFiltersType,
@@ -34,7 +36,7 @@ import type {
 
 interface TreasuryListPageProps {
   canEdit: boolean;
-  currentProfile?: string;
+  currentUser?: AuthUser | null;
 }
 
 interface ChurchOption {
@@ -58,7 +60,7 @@ const emptySummary: TreasurySummary = {
 
 export function TreasuryListPage({
   canEdit,
-  currentProfile,
+  currentUser,
 }: TreasuryListPageProps) {
   const [filters, setFilters] = useState<TreasuryFiltersType>(initialFilters);
   const [appliedFilters, setAppliedFilters] =
@@ -73,6 +75,13 @@ export function TreasuryListPage({
   const [error, setError] = useState<string | null>(null);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [churchesError, setChurchesError] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const categoryNamesById = Object.fromEntries(
+    categories.map((category) => [category.id, category.name]),
+  );
+  const churchNamesById = Object.fromEntries(
+    churches.map((church) => [church.id, church.name]),
+  );
 
   const loadMovements = useCallback(async (currentFilters: TreasuryFiltersType) => {
     setIsLoading(true);
@@ -166,6 +175,33 @@ export function TreasuryListPage({
     setAppliedFilters(initialFilters);
   }
 
+  async function handleCancelMovement(item: TreasuryMovementItem) {
+    const confirmed = window.confirm(
+      `Deseja cancelar a movimentacao ${item.description}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setCancellingId(item.id);
+    setError(null);
+
+    try {
+      await cancelTreasuryMovement(item.id);
+      await loadMovements(appliedFilters);
+    } catch (actionError) {
+      setError(
+        getApiErrorMessage(
+          actionError,
+          "Nao foi possivel cancelar a movimentacao selecionada.",
+        ),
+      );
+    } finally {
+      setCancellingId(null);
+    }
+  }
+
   if (error && items.length === 0 && !isLoading) {
     return (
       <ErrorView
@@ -181,7 +217,7 @@ export function TreasuryListPage({
       <PageHeader
         title="Tesouraria"
         description="Acompanhe entradas e saidas financeiras com filtros por periodo, categoria e igreja."
-        badge={getTreasuryAccessLabel(currentProfile)}
+        badge={getTreasuryAccessLabel(currentUser)}
         action={
           <div className="flex flex-col gap-3 sm:flex-row">
             <TreasuryCategoriesSheet
@@ -251,7 +287,15 @@ export function TreasuryListPage({
             </div>
           ) : null}
 
-          <TreasuryTable items={items} isLoading={isLoading} canEdit={canEdit} />
+          <TreasuryTable
+            items={items}
+            categoriesById={categoryNamesById}
+            churchesById={churchNamesById}
+            isLoading={isLoading}
+            canEdit={canEdit}
+            cancellingId={cancellingId}
+            onCancel={handleCancelMovement}
+          />
         </CardContent>
       </Card>
     </div>

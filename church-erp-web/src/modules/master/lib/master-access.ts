@@ -1,7 +1,11 @@
 import type { AuthUser } from "@/modules/auth/types/auth";
 
 export function canAccessMasterArea(user?: AuthUser | null) {
-  return user?.authMode === "MASTER";
+  return (
+    user?.accessType === "PLATFORM" &&
+    user.platformRole === "PLATFORM_ADMIN" &&
+    user.tenantId === null
+  );
 }
 
 export function getMasterAccessLabel() {

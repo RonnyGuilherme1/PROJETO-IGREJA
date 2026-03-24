@@ -18,7 +18,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
   const pathname = usePathname();
-  const navigationItems = getAdminNavItems(user?.profile);
+  const navigationItems = getAdminNavItems(user);
   const tenantLabel =
     getTenantLabel(user?.tenantName, user?.tenantCode) ?? "Painel administrativo";
   const tenantTitle = user?.tenantName?.trim() || "Church ERP";

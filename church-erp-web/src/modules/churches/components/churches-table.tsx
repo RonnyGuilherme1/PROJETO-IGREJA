@@ -27,7 +27,11 @@ function getStatusLabel(status: string) {
   return isInactive(status) ? "Inativa" : "Ativa";
 }
 
-function formatCnpj(value: string) {
+function formatCnpj(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+
   const digits = value.replace(/\D/g, "");
 
   if (digits.length !== 14) {
@@ -40,7 +44,11 @@ function formatCnpj(value: string) {
   );
 }
 
-function formatPhone(value: string) {
+function formatPhone(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+
   const digits = value.replace(/\D/g, "");
 
   if (digits.length === 10) {

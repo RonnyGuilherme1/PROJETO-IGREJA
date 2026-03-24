@@ -8,6 +8,7 @@ import type { MemberItem } from "@/modules/members/types/member";
 
 interface MembersTableProps {
   members: MemberItem[];
+  churchNamesById: Record<string, string>;
   isLoading: boolean;
   canEdit: boolean;
   inactivatingId: string | null;
@@ -46,10 +47,11 @@ function formatDate(value: string) {
     return "-";
   }
 
-  const parsed = new Date(`${value}T00:00:00`);
+  const dateValue = value.includes("T") ? value.slice(0, 10) : value;
+  const parsed = new Date(`${dateValue}T00:00:00`);
 
   if (Number.isNaN(parsed.getTime())) {
-    return value;
+    return dateValue;
   }
 
   return new Intl.DateTimeFormat("pt-BR").format(parsed);
@@ -57,6 +59,7 @@ function formatDate(value: string) {
 
 export function MembersTable({
   members,
+  churchNamesById,
   isLoading,
   canEdit,
   inactivatingId,
@@ -130,16 +133,16 @@ export function MembersTable({
                     </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {member.churchName || member.churchId || "-"}
+                    {churchNamesById[member.churchId] || member.churchId || "-"}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {formatPhone(member.phone)}
+                    {formatPhone(member.phone || "")}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
                     {member.email || "-"}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {formatDate(member.joinedAt)}
+                    {formatDate(member.joinedAt || "")}
                   </td>
                   <td className="px-4 py-4">
                     <Badge variant={inactive ? "outline" : "secondary"}>

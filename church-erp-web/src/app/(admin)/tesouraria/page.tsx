@@ -17,8 +17,8 @@ export default async function TesourariaPage() {
 
   return (
     <TreasuryListPage
-      canEdit={canEditTreasury(user?.profile)}
-      currentProfile={user?.profile}
+      canEdit={canEditTreasury(user)}
+      currentUser={user}
     />
   );
 }

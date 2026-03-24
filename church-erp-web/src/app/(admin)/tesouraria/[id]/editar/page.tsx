@@ -25,7 +25,7 @@ export default async function EditarMovimentacaoPage({
     cookieStore.get(AUTH_SESSION_COOKIE)?.value,
   );
 
-  if (!canEditTreasury(user?.profile)) {
+  if (!canEditTreasury(user)) {
     redirect("/tesouraria");
   }
 

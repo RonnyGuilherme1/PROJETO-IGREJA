@@ -388,7 +388,6 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                           handleFieldChange("adminEmail", event.target.value)
                         }
                         placeholder="admin@cliente.org.br"
-                        required
                       />
                     </div>
 

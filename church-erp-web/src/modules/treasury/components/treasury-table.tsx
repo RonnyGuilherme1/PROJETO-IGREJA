@@ -1,22 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { LoaderCircle, Pencil, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { TreasuryMovementItem } from "@/modules/treasury/types/treasury";
 
 interface TreasuryTableProps {
   items: TreasuryMovementItem[];
+  categoriesById: Record<string, string>;
+  churchesById: Record<string, string>;
   isLoading: boolean;
   canEdit: boolean;
+  cancellingId: string | null;
+  onCancel: (item: TreasuryMovementItem) => void;
 }
 
-function formatCurrency(value: number) {
+function formatCurrency(value: string) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(value);
+  }).format(Number(value) || 0);
 }
 
 function formatDate(value: string) {
@@ -24,10 +28,11 @@ function formatDate(value: string) {
     return "-";
   }
 
-  const parsed = new Date(`${value}T00:00:00`);
+  const dateValue = value.includes("T") ? value.slice(0, 10) : value;
+  const parsed = new Date(`${dateValue}T00:00:00`);
 
   if (Number.isNaN(parsed.getTime())) {
-    return value;
+    return dateValue;
   }
 
   return new Intl.DateTimeFormat("pt-BR").format(parsed);
@@ -43,8 +48,12 @@ function getTypeLabel(type: string) {
 
 export function TreasuryTable({
   items,
+  categoriesById,
+  churchesById,
   isLoading,
   canEdit,
+  cancellingId,
+  onCancel,
 }: TreasuryTableProps) {
   return (
     <div className="overflow-hidden rounded-3xl border border-border bg-white">
@@ -102,6 +111,8 @@ export function TreasuryTable({
 
             {items.map((item) => {
               const expense = isExpense(item.type);
+              const isCancelled = item.status === "CANCELLED";
+              const rowLoading = cancellingId === item.id;
 
               return (
                 <tr key={item.id} className="align-top">
@@ -124,10 +135,10 @@ export function TreasuryTable({
                     </Badge>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {item.categoryName || item.categoryId || "-"}
+                    {categoriesById[item.categoryId] || item.categoryId || "-"}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {item.churchName || item.churchId || "-"}
+                    {churchesById[item.churchId] || item.churchId || "-"}
                   </td>
                   <td
                     className={`px-4 py-4 text-sm font-medium ${expense ? "text-rose-600" : "text-emerald-700"}`}
@@ -136,17 +147,33 @@ export function TreasuryTable({
                     {formatCurrency(item.amount)}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {item.status || "-"}
+                    {item.status === "CANCELLED" ? "Cancelada" : "Ativa"}
                   </td>
                   <td className="px-4 py-4">
-                    <div className="flex justify-end">
+                    <div className="flex flex-col justify-end gap-2 sm:flex-row">
                       {canEdit ? (
-                        <Button asChild variant="outline" size="sm">
-                          <Link href={`/tesouraria/${item.id}/editar`}>
-                            <Pencil className="size-4" />
-                            Editar
-                          </Link>
-                        </Button>
+                        <>
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/tesouraria/${item.id}/editar`}>
+                              <Pencil className="size-4" />
+                              Editar
+                            </Link>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => onCancel(item)}
+                            disabled={isCancelled || rowLoading}
+                          >
+                            {rowLoading ? (
+                              <LoaderCircle className="size-4 animate-spin" />
+                            ) : (
+                              <XCircle className="size-4" />
+                            )}
+                            Cancelar
+                          </Button>
+                        </>
                       ) : (
                         <span className="text-sm text-muted-foreground">
                           Somente visualizacao
