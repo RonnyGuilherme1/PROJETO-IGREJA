@@ -1,10 +1,14 @@
 import 'reflect-metadata';
 
+import { mkdirSync } from 'fs';
+import express from 'express';
+import { join } from 'path';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
+import { TENANT_LOGO_UPLOAD_ROOT } from './modules/tenants/constants/tenant-logo-upload.constants';
 
 function resolveCorsOrigin(corsOrigin?: string): true | string | string[] {
   if (!corsOrigin || corsOrigin === '*') {
@@ -22,6 +26,7 @@ function resolveCorsOrigin(corsOrigin?: string): true | string | string[] {
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+  const uploadRoot = join(TENANT_LOGO_UPLOAD_ROOT);
 
   app.enableShutdownHooks();
   app.setGlobalPrefix('api');
@@ -39,7 +44,8 @@ async function bootstrap(): Promise<void> {
       },
     }),
   );
-
+  mkdirSync(uploadRoot, { recursive: true });
+  app.use('/api/uploads', express.static(uploadRoot));
 
   await app.listen(process.env.PORT || 3001, '0.0.0.0');
 }

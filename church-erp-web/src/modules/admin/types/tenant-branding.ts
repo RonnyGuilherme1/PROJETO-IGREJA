@@ -17,6 +17,10 @@ export interface UpdateTenantBrandingPayload {
   themeKey: TenantThemeKey;
 }
 
+export interface TenantLogoUploadResponse {
+  logoUrl: string;
+}
+
 export interface TenantBrandingFormValues {
   logoUrl: string;
   themeKey: TenantThemeKey;

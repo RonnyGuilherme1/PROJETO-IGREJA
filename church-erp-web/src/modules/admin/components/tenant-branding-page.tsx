@@ -24,6 +24,7 @@ import {
 } from "@/lib/tenant-branding";
 import {
   getCurrentTenantBranding,
+  uploadCurrentTenantLogo,
   updateCurrentTenantBranding,
 } from "@/modules/admin/services/tenant-branding-service";
 import {
@@ -44,6 +45,15 @@ import type { AuthUser } from "@/modules/auth/types/auth";
 interface TenantBrandingPageProps {
   user: AuthUser;
 }
+
+const TENANT_LOGO_MAX_FILE_SIZE = 1024 * 1024;
+const TENANT_LOGO_INPUT_ACCEPT = ".png,.jpg,.jpeg,.webp";
+const TENANT_LOGO_ALLOWED_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+const TENANT_LOGO_ALLOWED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp"];
 
 function buildTenantBrandingFromUser(user: AuthUser): TenantBrandingItem {
   return {
@@ -75,6 +85,31 @@ function mergeTenantBranding(
   };
 }
 
+function validateTenantLogoFile(file: File): string | null {
+  if (file.size > TENANT_LOGO_MAX_FILE_SIZE) {
+    return "A logo do banco deve ter no maximo 1 MB.";
+  }
+
+  const normalizedMimeType = file.type.trim().toLowerCase();
+  const normalizedName = file.name.trim().toLowerCase();
+  const hasAllowedMimeType =
+    normalizedMimeType.length > 0 &&
+    TENANT_LOGO_ALLOWED_MIME_TYPES.has(normalizedMimeType);
+  const hasAllowedExtension = TENANT_LOGO_ALLOWED_EXTENSIONS.some((extension) =>
+    normalizedName.endsWith(extension),
+  );
+
+  if (
+    (normalizedMimeType && !hasAllowedMimeType) ||
+    (!normalizedMimeType && !hasAllowedExtension) ||
+    !hasAllowedExtension
+  ) {
+    return "Selecione uma imagem PNG, JPG, JPEG ou WEBP.";
+  }
+
+  return null;
+}
+
 export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
   const router = useRouter();
   const [isRedirecting, startTransition] = useTransition();
@@ -87,6 +122,10 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
+  const [selectedLogoPreviewUrl, setSelectedLogoPreviewUrl] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const [logoInputKey, setLogoInputKey] = useState(0);
 
   useEffect(() => {
     let isActive = true;
@@ -118,11 +157,78 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
     };
   }, [user]);
 
+  useEffect(() => {
+    return () => {
+      if (selectedLogoPreviewUrl) {
+        URL.revokeObjectURL(selectedLogoPreviewUrl);
+      }
+    };
+  }, [selectedLogoPreviewUrl]);
+
   function handleFieldChange(field: keyof TenantBrandingFormValues, value: string) {
     setFormValues((current) => ({
       ...current,
       [field]: value,
     }));
+  }
+
+  function resetSelectedLogoState() {
+    setSelectedLogoFile(null);
+    setLogoError(null);
+    setLogoInputKey((current) => current + 1);
+    setSelectedLogoPreviewUrl((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+
+      return null;
+    });
+  }
+
+  function handleLogoFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setSubmitError(null);
+    setSuccessMessage(null);
+
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const validationMessage = validateTenantLogoFile(file);
+
+    if (validationMessage) {
+      setLogoError(validationMessage);
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedLogoFile(file);
+    setLogoError(null);
+    setSelectedLogoPreviewUrl((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+
+      return URL.createObjectURL(file);
+    });
+  }
+
+  function handleUseDefaultLogo() {
+    resetSelectedLogoState();
+    setFormValues((current) => ({
+      ...current,
+      logoUrl: "",
+    }));
+    setSubmitError(null);
+    setSuccessMessage(null);
+  }
+
+  function handleDiscardChanges() {
+    setFormValues(buildFormValues(tenantBranding));
+    resetSelectedLogoState();
+    setSubmitError(null);
+    setSuccessMessage(null);
   }
 
   function syncStoredSession(nextTenantBranding: TenantBrandingItem) {
@@ -158,8 +264,15 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
     setIsSubmitting(true);
 
     try {
+      let nextLogoUrl = formValues.logoUrl;
+
+      if (selectedLogoFile) {
+        const uploadResult = await uploadCurrentTenantLogo(selectedLogoFile);
+        nextLogoUrl = uploadResult.logoUrl;
+      }
+
       const updatedTenantBranding = await updateCurrentTenantBranding({
-        logoUrl: formValues.logoUrl,
+        logoUrl: nextLogoUrl,
         themeKey: formValues.themeKey,
       });
       const nextTenantBranding = mergeTenantBranding(
@@ -169,6 +282,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
 
       setTenantBranding(nextTenantBranding);
       setFormValues(buildFormValues(nextTenantBranding));
+      resetSelectedLogoState();
       syncStoredSession(nextTenantBranding);
       setSuccessMessage("Identidade visual atualizada com sucesso.");
 
@@ -188,7 +302,16 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
   }
 
   const selectedThemeLabel = getTenantThemeLabel(formValues.themeKey);
-  const hasCustomLogo = formValues.logoUrl.trim().length > 0;
+  const previewLogoUrl = selectedLogoPreviewUrl ?? formValues.logoUrl;
+  const hasCustomLogo = Boolean(normalizeTenantLogoUrl(previewLogoUrl));
+  const hasPersistedCustomLogo = Boolean(normalizeTenantLogoUrl(formValues.logoUrl));
+  const previewLogoMessage = selectedLogoFile
+    ? "Preview pronto. Salve para enviar a nova logo deste banco."
+    : hasPersistedCustomLogo
+      ? "Logo personalizada configurada para este banco."
+      : hasCustomLogo
+        ? "Logo personalizada pronta para este banco."
+        : "Sem logo configurada. O sistema exibira a logo padrao atual.";
 
   return (
     <div className="space-y-6">
@@ -229,18 +352,35 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="tenant-logo-url">URL da logo (opcional)</Label>
+                <Label htmlFor="tenant-logo-file">Logo do banco (opcional)</Label>
                 <Input
-                  id="tenant-logo-url"
-                  value={formValues.logoUrl}
-                  onChange={(event) =>
-                    handleFieldChange("logoUrl", event.target.value)
-                  }
-                  placeholder="https://exemplo.com/logo.png"
+                  key={logoInputKey}
+                  id="tenant-logo-file"
+                  type="file"
+                  accept={TENANT_LOGO_INPUT_ACCEPT}
+                  onChange={handleLogoFileChange}
                 />
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Deixe em branco para manter a logo padrao atual do sistema.
-                </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Aceita PNG, JPG, JPEG ou WEBP com ate 1 MB. Se nao houver logo configurada, o sistema continua exibindo a logo padrao atual.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleUseDefaultLogo}
+                    disabled={isSubmitting || isRedirecting}
+                  >
+                    Usar logo padrao
+                  </Button>
+                </div>
+                {selectedLogoFile ? (
+                  <p className="text-xs leading-5 text-primary">
+                    Arquivo selecionado: <strong>{selectedLogoFile.name}</strong>. Salve para aplicar ao banco.
+                  </p>
+                ) : null}
+                {logoError ? (
+                  <p className="text-sm text-destructive">{logoError}</p>
+                ) : null}
               </div>
             </div>
 
@@ -248,7 +388,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <BrandLogo
                   alt="Logo do ambiente atual"
-                  logoUrl={formValues.logoUrl}
+                  logoUrl={previewLogoUrl}
                   className="flex size-[4.5rem] shrink-0 items-center justify-center rounded-3xl border border-border bg-card shadow-sm"
                   imageClassName="h-full w-full bg-card p-3"
                   iconClassName="size-7 text-primary"
@@ -262,9 +402,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
                     Tema selecionado: <strong>{selectedThemeLabel}</strong>
                   </p>
                   <p className="text-xs leading-5 text-muted-foreground">
-                    {hasCustomLogo
-                      ? "Logo personalizada pronta para este banco."
-                      : "Sem logo configurada. O sistema exibira a logo padrao atual."}
+                    {previewLogoMessage}
                   </p>
                 </div>
               </div>
@@ -294,7 +432,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setFormValues(buildFormValues(tenantBranding))}
+                onClick={handleDiscardChanges}
                 disabled={isSubmitting || isRedirecting}
               >
                 Descartar alteracoes

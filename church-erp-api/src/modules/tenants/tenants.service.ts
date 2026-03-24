@@ -1,21 +1,33 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { mkdir, unlink, writeFile } from 'fs/promises';
+import { basename, extname, join } from 'path';
 import { Prisma, TenantStatus, UserRole, UserStatus } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { DEFAULT_FINANCE_CATEGORIES } from '../finance/finance.service';
+import {
+  TENANT_LOGO_ALLOWED_EXTENSIONS,
+  TENANT_LOGO_ALLOWED_MIME_TYPES,
+  TENANT_LOGO_MAX_FILE_SIZE,
+  TENANT_LOGO_PUBLIC_BASE_PATH,
+  TENANT_LOGO_UPLOAD_DIRECTORY,
+} from './constants/tenant-logo-upload.constants';
 import { DEFAULT_TENANT_THEME_KEY } from './constants/tenant-theme.constants';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpdateTenantBrandingDto } from './dto/update-tenant-branding.dto';
 import { TenantResponseDto } from './dto/tenant-response.dto';
 import { TenantEntity, tenantSelect } from './types/tenant.type';
+import { UploadedTenantLogoFile } from './types/uploaded-tenant-logo-file.type';
 
 @Injectable()
 export class TenantsService {
@@ -112,6 +124,11 @@ export class TenantsService {
       select: tenantSelect,
     });
 
+    await this.deleteManagedLogoIfReplaced(
+      existingTenant.logoUrl,
+      tenant.logoUrl,
+    );
+
     return new TenantResponseDto(tenant);
   }
 
@@ -120,7 +137,7 @@ export class TenantsService {
     updateTenantBrandingDto: UpdateTenantBrandingDto,
   ): Promise<TenantResponseDto> {
     const tenantId = this.ensureTenantAdminAccess(currentUser);
-    await this.findTenantByIdOrThrow(tenantId);
+    const existingTenant = await this.findTenantByIdOrThrow(tenantId);
 
     const data: Prisma.TenantUpdateInput = {};
 
@@ -138,7 +155,27 @@ export class TenantsService {
       select: tenantSelect,
     });
 
+    await this.deleteManagedLogoIfReplaced(
+      existingTenant.logoUrl,
+      tenant.logoUrl,
+    );
+
     return new TenantResponseDto(tenant);
+  }
+
+  async uploadCurrentLogo(
+    currentUser: AuthenticatedUser,
+    file?: UploadedTenantLogoFile,
+  ): Promise<{ logoUrl: string }> {
+    const tenantId = this.ensureTenantAdminAccess(currentUser);
+    await this.findTenantByIdOrThrow(tenantId);
+
+    const validatedFile = this.validateTenantLogoFile(file);
+    const filename = await this.saveTenantLogoFile(tenantId, validatedFile);
+
+    return {
+      logoUrl: `${TENANT_LOGO_PUBLIC_BASE_PATH}/${filename}`,
+    };
   }
 
   async inactivate(id: string): Promise<TenantResponseDto> {
@@ -329,6 +366,131 @@ export class TenantsService {
     const trimmedLogoUrl = logoUrl.trim();
 
     return trimmedLogoUrl.length > 0 ? trimmedLogoUrl : null;
+  }
+
+  private validateTenantLogoFile(
+    file?: UploadedTenantLogoFile,
+  ): UploadedTenantLogoFile {
+    if (!file) {
+      throw new BadRequestException('Envie o arquivo da logo do banco.');
+    }
+
+    if (!file.buffer || file.buffer.length === 0) {
+      throw new BadRequestException('O arquivo enviado para a logo esta vazio.');
+    }
+
+    if (file.size > TENANT_LOGO_MAX_FILE_SIZE) {
+      throw new BadRequestException(
+        'A logo do banco deve ter no maximo 1 MB.',
+      );
+    }
+
+    const normalizedMimeType = String(file.mimetype ?? '').trim().toLowerCase();
+    const normalizedExtension = extname(file.originalname ?? '')
+      .trim()
+      .toLowerCase();
+
+    const hasAllowedMimeType =
+      normalizedMimeType.length > 0 &&
+      TENANT_LOGO_ALLOWED_MIME_TYPES.has(normalizedMimeType);
+    const hasAllowedExtension =
+      normalizedExtension.length > 0 &&
+      TENANT_LOGO_ALLOWED_EXTENSIONS.has(normalizedExtension);
+
+    if (
+      (normalizedMimeType && !hasAllowedMimeType) ||
+      (normalizedExtension && !hasAllowedExtension) ||
+      (!normalizedMimeType && !hasAllowedExtension)
+    ) {
+      throw new BadRequestException(
+        'A logo do banco deve ser PNG, JPG, JPEG ou WEBP.',
+      );
+    }
+
+    return file;
+  }
+
+  private async saveTenantLogoFile(
+    tenantId: string,
+    file: UploadedTenantLogoFile,
+  ): Promise<string> {
+    const extension = this.resolveTenantLogoExtension(file);
+    const safeTenantId = tenantId.replace(/[^a-z0-9-]/gi, '').toLowerCase();
+    const filename = `${safeTenantId}-${Date.now()}-${randomUUID()}.${extension}`;
+    const destination = join(TENANT_LOGO_UPLOAD_DIRECTORY, filename);
+
+    await mkdir(TENANT_LOGO_UPLOAD_DIRECTORY, { recursive: true });
+    await writeFile(destination, file.buffer);
+
+    return filename;
+  }
+
+  private resolveTenantLogoExtension(file: UploadedTenantLogoFile): string {
+    const normalizedExtension = extname(file.originalname ?? '')
+      .trim()
+      .toLowerCase();
+
+    if (TENANT_LOGO_ALLOWED_EXTENSIONS.has(normalizedExtension)) {
+      return normalizedExtension.slice(1);
+    }
+
+    switch (String(file.mimetype ?? '').trim().toLowerCase()) {
+      case 'image/png':
+        return 'png';
+      case 'image/webp':
+        return 'webp';
+      case 'image/jpeg':
+        return 'jpg';
+      default:
+        throw new BadRequestException(
+          'Nao foi possivel determinar a extensao da logo enviada.',
+        );
+    }
+  }
+
+  private async deleteManagedLogoIfReplaced(
+    previousLogoUrl?: string | null,
+    nextLogoUrl?: string | null,
+  ): Promise<void> {
+    const previousFilePath = this.resolveManagedLogoFilePath(previousLogoUrl);
+    const normalizedPreviousLogoUrl = this.normalizeLogoUrl(previousLogoUrl);
+    const normalizedNextLogoUrl = this.normalizeLogoUrl(nextLogoUrl);
+
+    if (
+      !previousFilePath ||
+      normalizedPreviousLogoUrl === normalizedNextLogoUrl
+    ) {
+      return;
+    }
+
+    try {
+      await unlink(previousFilePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
+
+  private resolveManagedLogoFilePath(logoUrl?: string | null): string | null {
+    const normalizedLogoUrl = this.normalizeLogoUrl(logoUrl);
+
+    if (
+      !normalizedLogoUrl ||
+      !normalizedLogoUrl.startsWith(`${TENANT_LOGO_PUBLIC_BASE_PATH}/`)
+    ) {
+      return null;
+    }
+
+    const filename = normalizedLogoUrl.slice(
+      TENANT_LOGO_PUBLIC_BASE_PATH.length + 1,
+    );
+
+    if (!filename || filename !== basename(filename)) {
+      return null;
+    }
+
+    return join(TENANT_LOGO_UPLOAD_DIRECTORY, filename);
   }
 
   private async ensureDefaultFinanceCategories(

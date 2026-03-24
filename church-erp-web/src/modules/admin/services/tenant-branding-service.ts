@@ -5,12 +5,14 @@ import {
 } from "@/lib/tenant-branding";
 import type {
   TenantBrandingItem,
+  TenantLogoUploadResponse,
   UpdateTenantBrandingPayload,
 } from "@/modules/admin/types/tenant-branding";
 
 type JsonRecord = Record<string, unknown>;
 
 const TENANT_BRANDING_ENDPOINT = "/tenant/branding";
+const TENANT_BRANDING_LOGO_ENDPOINT = "/tenant/branding/logo";
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -136,4 +138,26 @@ export async function updateCurrentTenantBranding(
   );
 
   return normalizeTenantBranding(extractSingleRecord(response.data));
+}
+
+export async function uploadCurrentTenantLogo(
+  file: File,
+): Promise<TenantLogoUploadResponse> {
+  ensureApiConfigured();
+
+  const formData = new FormData();
+  formData.append("logo", file);
+
+  const response = await http.postForm(TENANT_BRANDING_LOGO_ENDPOINT, formData);
+  const logoUrl = toTrimmedString(
+    findFirstValue(response.data, [["logoUrl"], ["data", "logoUrl"]]),
+  );
+
+  if (!logoUrl) {
+    throw new Error("A API nao retornou a URL final da logo do banco.");
+  }
+
+  return {
+    logoUrl,
+  };
 }
