@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, Pencil } from "lucide-react";
+import { CircleOff, Eye, LoaderCircle, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ChurchItem } from "@/modules/churches/types/church";
@@ -11,19 +11,16 @@ interface ChurchesTableProps {
   isLoading: boolean;
   selectedChurchId: string | null;
   canEdit: boolean;
+  inactivatingId: string | null;
   onView: (church: ChurchItem) => void;
+  onInactivate: (church: ChurchItem) => void;
 }
 
-function isInactive(status: string) {
-  return status
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/\s+/g, "_")
-    .includes("INACTIVE");
+function isInactive(status: ChurchItem["status"]) {
+  return status === "INACTIVE";
 }
 
-function getStatusLabel(status: string) {
+function getStatusLabel(status: ChurchItem["status"]) {
   return isInactive(status) ? "Inativa" : "Ativa";
 }
 
@@ -67,7 +64,9 @@ export function ChurchesTable({
   isLoading,
   selectedChurchId,
   canEdit,
+  inactivatingId,
   onView,
+  onInactivate,
 }: ChurchesTableProps) {
   return (
     <div className="overflow-hidden rounded-3xl border border-border bg-white">
@@ -120,6 +119,7 @@ export function ChurchesTable({
             {churches.map((church) => {
               const inactive = isInactive(church.status);
               const isSelected = selectedChurchId === church.id;
+              const rowLoading = inactivatingId === church.id;
 
               return (
                 <tr
@@ -160,12 +160,28 @@ export function ChurchesTable({
                         {isSelected ? "Visualizando" : "Visualizar"}
                       </Button>
                       {canEdit ? (
-                        <Button asChild size="sm">
-                          <Link href={`/igrejas/${church.id}/editar`}>
-                            <Pencil className="size-4" />
-                            Editar
-                          </Link>
-                        </Button>
+                        <>
+                          <Button asChild size="sm">
+                            <Link href={`/igrejas/${church.id}/editar`}>
+                              <Pencil className="size-4" />
+                              Editar
+                            </Link>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => onInactivate(church)}
+                            disabled={inactive || rowLoading}
+                          >
+                            {rowLoading ? (
+                              <LoaderCircle className="size-4 animate-spin" />
+                            ) : (
+                              <CircleOff className="size-4" />
+                            )}
+                            Inativar
+                          </Button>
+                        </>
                       ) : null}
                     </div>
                   </td>

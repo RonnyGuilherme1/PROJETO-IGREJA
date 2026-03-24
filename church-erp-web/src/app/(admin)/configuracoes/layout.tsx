@@ -1,13 +1,16 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { TenantBrandingPage } from "@/modules/admin/components/tenant-branding-page";
 import {
   AUTH_SESSION_COOKIE,
   AUTH_TOKEN_COOKIE,
   getStoredAuthUser,
 } from "@/modules/auth/lib/auth-session";
 
-export default async function BancoPage() {
+export default async function ConfiguracoesLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(AUTH_TOKEN_COOKIE)?.value;
 
@@ -20,9 +23,9 @@ export default async function BancoPage() {
     cookieStore.get(AUTH_SESSION_COOKIE)?.value,
   );
 
-  if (!user || !user.tenantId) {
+  if (!user || user.accessType !== "TENANT" || user.role !== "ADMIN") {
     redirect("/dashboard");
   }
 
-  return <TenantBrandingPage user={user} />;
+  return children;
 }

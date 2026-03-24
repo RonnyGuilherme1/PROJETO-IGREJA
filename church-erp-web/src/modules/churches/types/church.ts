@@ -16,7 +16,7 @@ export interface ChurchItem {
 
 export interface ChurchFilters {
   name: string;
-  status: string;
+  status: ChurchStatus | "";
 }
 
 export interface ChurchListResult {

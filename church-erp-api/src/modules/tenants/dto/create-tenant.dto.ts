@@ -23,12 +23,6 @@ export class CreateTenantDto {
   name!: string;
 
   @IsOptional()
-  @IsString()
-  @MinLength(2)
-  @MaxLength(100)
-  code?: string;
-
-  @IsOptional()
   @IsEnum(TenantStatus)
   status?: TenantStatus;
 

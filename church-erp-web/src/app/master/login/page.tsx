@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ShieldUser } from "lucide-react";
-import { apiConfig } from "@/lib/env";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -46,23 +45,22 @@ export default async function MasterLoginPage() {
                 Plataforma Master
               </Badge>
               <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-foreground">
-                Acesso central da plataforma para operacao administrativa global
+                Acesso central para acompanhar a operacao da plataforma
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-                Este fluxo atende a autenticacao master da plataforma,
-                preservando o painel interno e o cliente HTTP centralizado para
-                consumir a API real.
+                Este fluxo atende a autenticacao master da plataforma e
+                concentra a gestao global dos ambientes.
               </p>
             </div>
 
             <div className="mt-10 grid gap-4 md:grid-cols-2">
               <div className="rounded-3xl border bg-white/80 p-5">
                 <p className="text-sm font-semibold text-foreground">
-                  Fluxo separado
+                  Gestao central
                 </p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  O login master usa rota dedicada e mantem a sessao isolada no
-                  mesmo padrao do frontend.
+                  O login master usa rota dedicada e mantem a sessao separada
+                  do painel interno.
                 </p>
               </div>
 
@@ -78,10 +76,11 @@ export default async function MasterLoginPage() {
 
               <div className="rounded-3xl border bg-white/80 p-5 md:col-span-2">
                 <p className="text-sm font-semibold text-foreground">
-                  Proxy local da API
+                  Visao consolidada
                 </p>
-                <p className="mt-2 font-mono text-xs leading-6 text-muted-foreground break-all">
-                  {apiConfig.baseUrl}
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Monitore ambientes, identidade visual e status de operacao em
+                  um unico lugar.
                 </p>
               </div>
             </div>
@@ -89,14 +88,14 @@ export default async function MasterLoginPage() {
 
           <Card className="border-white/60 bg-white/90 shadow-2xl backdrop-blur">
             <CardHeader className="space-y-4">
-              <Badge variant={apiConfig.isConfigured ? "secondary" : "outline"} className="w-fit">
-                {apiConfig.isConfigured ? "API configurada" : "API pendente"}
+              <Badge className="w-fit bg-slate-900 text-white hover:bg-slate-900">
+                Plataforma
               </Badge>
               <div className="space-y-2">
                 <CardTitle className="text-3xl">Entrar como master</CardTitle>
                 <CardDescription className="text-sm leading-6">
-                  Acesse a plataforma com usuario e senha, sessao persistida e
-                  tratamento basico de erro.
+                  Acesse a plataforma com usuario e senha para administrar os
+                  ambientes da operacao.
                 </CardDescription>
               </div>
             </CardHeader>
@@ -104,9 +103,8 @@ export default async function MasterLoginPage() {
               <LoginForm mode="MASTER" />
 
               <div className="rounded-2xl bg-secondary/50 p-4 text-sm leading-6 text-muted-foreground">
-                O frontend consome o backend pelo proxy interno em{" "}
-                <strong>/api</strong>, sem depender de IP fixo no{" "}
-                <strong>.env</strong>.
+                Este acesso concentra a administracao da plataforma em uma
+                experiencia unica e consistente.
               </div>
             </CardContent>
           </Card>

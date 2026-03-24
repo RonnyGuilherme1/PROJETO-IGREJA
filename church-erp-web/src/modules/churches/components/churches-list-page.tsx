@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { getApiErrorMessage } from "@/lib/http";
+import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,10 @@ import { ChurchDetailsCard } from "@/modules/churches/components/church-details-
 import { ChurchesFilters } from "@/modules/churches/components/churches-filters";
 import { ChurchesTable } from "@/modules/churches/components/churches-table";
 import { getChurchesAccessLabel } from "@/modules/churches/lib/churches-permissions";
-import { listChurches } from "@/modules/churches/services/churches-service";
+import {
+  inactivateChurch,
+  listChurches,
+} from "@/modules/churches/services/churches-service";
 import type { AuthUser } from "@/modules/auth/types/auth";
 import type { ChurchFilters, ChurchItem } from "@/modules/churches/types/church";
 
@@ -52,6 +56,9 @@ export function ChurchesListPage({
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [inactivatingId, setInactivatingId] = useState<string | null>(null);
+  const [churchPendingInactivation, setChurchPendingInactivation] =
+    useState<ChurchItem | null>(null);
 
   const loadChurches = useCallback(async (currentFilters: ChurchFilters) => {
     setIsLoading(true);
@@ -110,10 +117,38 @@ export function ChurchesListPage({
     setIsDetailsOpen(true);
   }
 
+  async function handleInactivateChurch(church: ChurchItem) {
+    setChurchPendingInactivation(church);
+  }
+
+  async function confirmInactivateChurch() {
+    if (!churchPendingInactivation) {
+      return;
+    }
+
+    setInactivatingId(churchPendingInactivation.id);
+    setError(null);
+
+    try {
+      await inactivateChurch(churchPendingInactivation.id);
+      await loadChurches(appliedFilters);
+      setChurchPendingInactivation(null);
+    } catch (actionError) {
+      setError(
+        getApiErrorMessage(
+          actionError,
+          "Nao foi possivel inativar a igreja selecionada.",
+        ),
+      );
+    } finally {
+      setInactivatingId(null);
+    }
+  }
+
   if (error && churches.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Falha ao carregar igrejas"
+        title="Nao foi possivel abrir as igrejas"
         description={error}
         onAction={() => void loadChurches(appliedFilters)}
       />
@@ -124,7 +159,7 @@ export function ChurchesListPage({
     <div className="space-y-6">
       <PageHeader
         title="Igrejas"
-        description="Cadastre, acompanhe e visualize os dados principais das igrejas em uma estrutura administrativa limpa."
+        description="Cadastre, acompanhe e consulte as principais informacoes das igrejas."
         badge={getChurchesAccessLabel(currentUser)}
         action={
           canEdit ? (
@@ -146,7 +181,7 @@ export function ChurchesListPage({
               Filtre por nome e status para localizar igrejas rapidamente.
             </CardDescription>
           </div>
-          <Badge variant="secondary">{total} igreja(s)</Badge>
+          <Badge variant="secondary">Total: {total}</Badge>
         </CardHeader>
         <CardContent>
           <ChurchesFilters
@@ -163,7 +198,7 @@ export function ChurchesListPage({
         <CardHeader className="space-y-2">
           <CardTitle>Listagem</CardTitle>
           <CardDescription>
-            Visualize as igrejas cadastradas e abra os detalhes em um painel lateral.
+            Visualize as igrejas cadastradas e acompanhe seus principais dados em um painel lateral.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -178,7 +213,9 @@ export function ChurchesListPage({
             isLoading={isLoading}
             selectedChurchId={isDetailsOpen ? selectedChurchId : null}
             canEdit={canEdit}
+            inactivatingId={inactivatingId}
             onView={handleViewChurch}
+            onInactivate={handleInactivateChurch}
           />
         </CardContent>
       </Card>
@@ -195,6 +232,28 @@ export function ChurchesListPage({
           <ChurchDetailsCard churchId={selectedChurchId} canEdit={canEdit} />
         </SheetContent>
       </Sheet>
+
+      <ConfirmActionDialog
+        open={Boolean(churchPendingInactivation)}
+        title="Inativar igreja"
+        description={
+          churchPendingInactivation
+            ? `A igreja ${churchPendingInactivation.name} deixara de aparecer como ativa para a operacao.`
+            : ""
+        }
+        confirmLabel="Inativar"
+        confirmVariant="destructive"
+        isLoading={Boolean(
+          churchPendingInactivation &&
+            inactivatingId === churchPendingInactivation.id,
+        )}
+        onConfirm={() => void confirmInactivateChurch()}
+        onOpenChange={(open) => {
+          if (!open) {
+            setChurchPendingInactivation(null);
+          }
+        }}
+      />
     </div>
   );
 }

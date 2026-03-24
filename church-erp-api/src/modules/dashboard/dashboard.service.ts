@@ -122,7 +122,7 @@ export class DashboardService {
         COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0 END), 0) AS expenses
       FROM "FinanceTransaction"
       WHERE "status" = 'ACTIVE'
-        AND "tenantId" = ${tenantId}
+        AND "tenantId" = ${tenantId}::uuid
         AND "transactionDate" >= ${start}
         AND "transactionDate" < ${end}
       GROUP BY 1
@@ -170,7 +170,7 @@ export class DashboardService {
         TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS month,
         COUNT(*)::int AS total
       FROM "Member"
-      WHERE "tenantId" = ${tenantId}
+      WHERE "tenantId" = ${tenantId}::uuid
         AND "createdAt" >= ${start}
         AND "createdAt" < ${end}
       GROUP BY 1

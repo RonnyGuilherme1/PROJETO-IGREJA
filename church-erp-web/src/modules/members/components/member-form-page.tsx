@@ -43,42 +43,6 @@ interface ChurchOption {
   name: string;
 }
 
-function normalizeGender(value: string) {
-  const normalized = value.trim().toUpperCase();
-
-  if (normalized === "MASCULINO") {
-    return "MASCULINO";
-  }
-
-  if (normalized === "FEMININO") {
-    return "FEMININO";
-  }
-
-  return "";
-}
-
-function normalizeMaritalStatus(value: string) {
-  const normalized = value.trim().toUpperCase();
-
-  if (normalized === "SOLTEIRO") {
-    return "SOLTEIRO";
-  }
-
-  if (normalized === "CASADO") {
-    return "CASADO";
-  }
-
-  if (normalized === "DIVORCIADO") {
-    return "DIVORCIADO";
-  }
-
-  if (normalized === "VIUVO") {
-    return "VIUVO";
-  }
-
-  return "";
-}
-
 const initialFormValues: MemberFormValues = {
   fullName: "",
   birthDate: "",
@@ -136,11 +100,11 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
           setFormValues({
             fullName: memberResponse.fullName,
             birthDate: memberResponse.birthDate ?? "",
-            gender: normalizeGender(memberResponse.gender ?? ""),
+            gender: memberResponse.gender ?? "",
             phone: memberResponse.phone ?? "",
             email: memberResponse.email ?? "",
             address: memberResponse.address ?? "",
-            maritalStatus: normalizeMaritalStatus(memberResponse.maritalStatus ?? ""),
+            maritalStatus: memberResponse.maritalStatus ?? "",
             joinedAt: memberResponse.joinedAt ?? "",
             status: memberResponse.status || "ACTIVE",
             notes: memberResponse.notes ?? "",
@@ -245,7 +209,7 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
   if (loadError) {
     return (
       <ErrorView
-        title="Falha ao carregar membro"
+        title="Nao foi possivel abrir este membro"
         description={loadError}
         onAction={() => router.refresh()}
       />
@@ -261,7 +225,7 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
             ? "Cadastre um novo membro com os dados principais vinculando-o a uma igreja."
             : "Atualize os dados do membro mantendo o mesmo padrao administrativo do sistema."
         }
-        badge="Modulo de membros"
+        badge="Membros"
         action={
           <Button asChild variant="outline">
             <Link href="/membros">

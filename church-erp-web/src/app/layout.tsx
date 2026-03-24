@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Manrope } from "next/font/google";
-import { getApiConfig } from "@/lib/env";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -18,7 +17,7 @@ export const metadata: Metadata = {
     default: "Church ERP Web",
     template: "%s | Church ERP Web",
   },
-  description: "Base administrativa inicial para o ERP de igreja.",
+  description: "Painel administrativo para a operacao da igreja.",
 };
 
 export default function RootLayout({
@@ -26,13 +25,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const apiConfig = getApiConfig();
-
   return (
     <html
       lang="pt-BR"
       className={`${manrope.variable} ${jetbrainsMono.variable} h-full antialiased`}
-      data-api-url={apiConfig.baseUrl}
     >
       <body className="min-h-full bg-background text-foreground">
         {children}

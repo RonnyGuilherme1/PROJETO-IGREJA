@@ -3,11 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building2, ChevronRight } from "lucide-react";
-import { apiConfig } from "@/lib/env";
 import { getTenantLabel } from "@/lib/tenant-branding";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/layout/brand-logo";
-import { Badge } from "@/components/ui/badge";
 import { getAdminNavItems } from "@/modules/admin/config/navigation";
 import type { AuthUser } from "@/modules/auth/types/auth";
 
@@ -20,10 +18,10 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
   const pathname = usePathname();
   const navigationItems = getAdminNavItems(user);
   const tenantLabel =
-    getTenantLabel(user?.tenantName, user?.tenantCode) ?? "Painel administrativo";
+    getTenantLabel(user?.tenantName, user?.tenantCode) ?? "Painel da igreja";
   const tenantTitle = user?.tenantName?.trim() || "Church ERP";
   const tenantSubtitle = user?.tenantCode?.trim()
-    ? `Banco ${user.tenantCode}`
+    ? `Acesso ${user.tenantCode}`
     : tenantLabel;
 
   return (
@@ -35,7 +33,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
           className="flex items-center gap-3"
         >
           <BrandLogo
-            alt={`Logo do banco ${tenantLabel}`}
+            alt={`Logo do ambiente ${tenantLabel}`}
             logoUrl={user?.tenantLogoUrl}
             icon={Building2}
             className="flex size-14 items-center justify-center rounded-[1.35rem] bg-white/10 ring-1 ring-white/10"
@@ -59,7 +57,8 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
         </p>
         <nav className="mt-4 space-y-1.5">
           {navigationItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
 
             return (
@@ -70,7 +69,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
                 className={cn(
                   "group flex items-center gap-3 rounded-2xl px-3 py-3 transition-colors",
                   isActive
-                    ? "bg-white text-sidebar shadow-sm"
+                    ? "bg-white/14 text-white shadow-sm ring-1 ring-white/10"
                     : "text-sidebar-foreground/80 hover:bg-white/10 hover:text-sidebar-foreground",
                 )}
               >
@@ -78,7 +77,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
                   className={cn(
                     "flex size-10 items-center justify-center rounded-2xl transition-colors",
                     isActive
-                      ? "bg-secondary text-primary"
+                      ? "bg-white/16 text-white"
                       : "bg-white/8 text-sidebar-foreground/80 group-hover:bg-white/10",
                   )}
                 >
@@ -90,48 +89,23 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
                     className={cn(
                       "mt-1 text-xs leading-5",
                       isActive
-                        ? "text-foreground/60"
+                        ? "text-white/72"
                         : "text-sidebar-foreground/55",
                     )}
                   >
                     {item.description}
                   </p>
                 </div>
-                <ChevronRight className="size-4 opacity-60" />
+                <ChevronRight
+                  className={cn(
+                    "size-4",
+                    isActive ? "text-white opacity-100" : "opacity-60",
+                  )}
+                />
               </Link>
             );
           })}
         </nav>
-      </div>
-
-      <div className="border-t border-sidebar-border px-4 py-4">
-        <div className="rounded-3xl bg-white/8 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-sidebar-foreground">
-                API REST
-              </p>
-              <p className="text-xs text-sidebar-foreground/60">
-                Configuracao do frontend
-              </p>
-            </div>
-            <Badge
-              variant={apiConfig.isConfigured ? "secondary" : "outline"}
-              className={cn(
-                "border-white/10",
-                apiConfig.isConfigured
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-transparent text-sidebar-foreground",
-              )}
-            >
-              {apiConfig.isConfigured ? "OK" : "Pendente"}
-            </Badge>
-          </div>
-
-          <p className="mt-3 break-all font-mono text-xs leading-6 text-sidebar-foreground/70">
-            {apiConfig.baseUrl}
-          </p>
-        </div>
       </div>
     </div>
   );

@@ -73,7 +73,6 @@ export async function getDashboardOverviewData(): Promise<DashboardOverviewData>
   const financeSeries = buildFinanceSeries(financeResponse.data);
   const membersGrowthSeries = buildMembersGrowthSeries(membersResponse.data);
   const financeMonths = financeResponse.data.map((row) => row.month);
-  const membersMonths = membersResponse.data.map((row) => row.month);
   const currentMonth = financeSeries[financeSeries.length - 1];
 
   return {
@@ -89,6 +88,5 @@ export async function getDashboardOverviewData(): Promise<DashboardOverviewData>
     membersGrowthSeries,
     currentMonthLabel: currentMonth?.label ?? "",
     financePeriodLabel: buildPeriodLabel(financeMonths),
-    membersPeriodLabel: buildPeriodLabel(membersMonths),
   };
 }

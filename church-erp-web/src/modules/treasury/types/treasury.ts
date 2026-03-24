@@ -29,7 +29,7 @@ export interface TreasuryCategoryItem {
 export interface TreasuryFilters {
   startDate: string;
   endDate: string;
-  type: string;
+  type: TreasuryType | "";
   categoryId: string;
   churchId: string;
 }

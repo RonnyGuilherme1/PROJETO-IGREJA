@@ -9,5 +9,5 @@ export function canAccessMasterArea(user?: AuthUser | null) {
 }
 
 export function getMasterAccessLabel() {
-  return "Area master";
+  return "Plataforma";
 }

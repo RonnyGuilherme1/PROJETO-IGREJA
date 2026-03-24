@@ -39,7 +39,7 @@ export function MasterDashboardPage() {
       setError(
         getApiErrorMessage(
           loadError,
-          "Nao foi possivel carregar os indicadores da area master.",
+          "Nao foi possivel carregar os indicadores da plataforma.",
         ),
       );
     } finally {
@@ -70,7 +70,7 @@ export function MasterDashboardPage() {
   if (error && tenants.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Falha ao carregar dashboard master"
+        title="Nao foi possivel abrir a visao da plataforma"
         description={error}
         onAction={() => void loadDashboard()}
       />
@@ -80,14 +80,14 @@ export function MasterDashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Dashboard master"
-        description="Visao geral da plataforma com indicadores rapidos dos bancos cadastrados."
-        badge="Area master"
+        title="Dashboard da plataforma"
+        description="Acompanhe os principais indicadores dos ambientes cadastrados."
+        badge="Plataforma"
         action={
           <Button asChild>
             <Link href="/master/tenants/novo">
               <Plus className="size-4" />
-              Novo banco
+              Novo ambiente
             </Link>
           </Button>
         }
@@ -103,7 +103,7 @@ export function MasterDashboardPage() {
         <Card className="bg-white/85">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Bancos totais</p>
+              <p className="text-sm font-medium text-muted-foreground">Ambientes totais</p>
               <p className="text-3xl font-semibold tracking-tight text-foreground">
                 {summary.total}
               </p>
@@ -117,7 +117,7 @@ export function MasterDashboardPage() {
         <Card className="bg-white/85">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Bancos ativos</p>
+              <p className="text-sm font-medium text-muted-foreground">Ambientes ativos</p>
               <p className="text-3xl font-semibold tracking-tight text-foreground">
                 {summary.active}
               </p>
@@ -131,7 +131,7 @@ export function MasterDashboardPage() {
         <Card className="bg-white/85">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Bancos inativos</p>
+              <p className="text-sm font-medium text-muted-foreground">Ambientes inativos</p>
               <p className="text-3xl font-semibold tracking-tight text-foreground">
                 {summary.inactive}
               </p>
@@ -160,14 +160,14 @@ export function MasterDashboardPage() {
       <Card className="bg-white/85">
         <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
-            <CardTitle>Bancos recentes</CardTitle>
+            <CardTitle>Ambientes recentes</CardTitle>
             <CardDescription>
-              Ultimos bancos identificados na area master da plataforma.
+              Ultimos ambientes cadastrados na plataforma.
             </CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/master/tenants">
-              Ver bancos
+              Ver ambientes
               <ArrowRight className="size-4" />
             </Link>
           </Button>
@@ -179,7 +179,7 @@ export function MasterDashboardPage() {
                 <thead className="bg-secondary/35">
                   <tr className="text-left">
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Banco
+                      Ambiente
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                       Codigo
@@ -209,7 +209,7 @@ export function MasterDashboardPage() {
                         colSpan={4}
                         className="px-4 py-14 text-center text-sm text-muted-foreground"
                       >
-                        Nenhum banco cadastrado ainda.
+                        Nenhum ambiente cadastrado ainda.
                       </td>
                     </tr>
                   ) : null}

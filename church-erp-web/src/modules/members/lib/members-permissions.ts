@@ -8,5 +8,5 @@ export function canEditMembers(user?: AuthUser | null) {
 }
 
 export function getMembersAccessLabel(user?: AuthUser | null) {
-  return canEditMembers(user) ? "Edicao liberada" : "Modo consulta";
+  return canEditMembers(user) ? "Gerenciamento" : "Consulta";
 }

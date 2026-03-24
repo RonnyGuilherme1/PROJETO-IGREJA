@@ -26,13 +26,7 @@ export class UpdateFinanceTransactionDto {
       return value;
     }
 
-    const normalized = value.trim().toUpperCase();
-
-    if (normalized === 'INCOME') {
-      return FinanceType.ENTRY;
-    }
-
-    return normalized;
+    return value.trim().toUpperCase();
   })
   @IsEnum(FinanceType)
   type?: FinanceType;

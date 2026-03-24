@@ -22,11 +22,17 @@ export function AuthUserPanel({ user }: AuthUserPanelProps) {
   const tenantLabel = getTenantLabel(user.tenantName, user.tenantCode);
   const accessScope =
     user.accessType === "PLATFORM"
-      ? "Master"
+      ? "Plataforma"
       : tenantLabel
         ? tenantLabel
         : null;
-  const roleLabel = (user.platformRole ?? user.role)
+  const rawRole =
+  user.platformRole ??
+  user.role ??
+  (user as { profile?: string }).profile ??
+  "SEM_PERFIL";
+
+  const roleLabel = rawRole
     .replace(/^PLATFORM_/i, "")
     .replace(/_/g, " ")
     .toLowerCase()

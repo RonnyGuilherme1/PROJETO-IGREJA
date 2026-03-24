@@ -192,7 +192,7 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
   if (loadError) {
     return (
       <ErrorView
-        title="Falha ao carregar usuario"
+        title="Nao foi possivel abrir este usuario"
         description={loadError}
         onAction={() => router.refresh()}
       />
@@ -208,7 +208,7 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
             ? "Preencha os dados para cadastrar um novo usuario na plataforma."
             : "Atualize os dados do usuario mantendo o mesmo padrao administrativo do painel."
         }
-        badge="Modulo de usuarios"
+        badge="Usuarios"
         action={
           <Button asChild variant="outline">
             <Link href="/usuarios">

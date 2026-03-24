@@ -20,7 +20,6 @@ import { getApiErrorMessage } from "@/lib/http";
 import {
   getTenantThemeLabel,
   normalizeTenantLogoUrl,
-  normalizeTenantTheme,
 } from "@/lib/tenant-branding";
 import {
   getCurrentTenantBranding,
@@ -52,16 +51,6 @@ const TENANT_LOGO_ALLOWED_MIME_TYPES = new Set([
 ]);
 const TENANT_LOGO_ALLOWED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp"];
 
-function buildTenantBrandingFromUser(user: AuthUser): TenantBrandingItem {
-  return {
-    id: user.tenantId?.trim() ?? "",
-    name: user.tenantName?.trim() ?? "",
-    code: user.tenantCode?.trim() ?? "",
-    logoUrl: normalizeTenantLogoUrl(user.tenantLogoUrl),
-    themeKey: normalizeTenantTheme(user.tenantThemeKey),
-  };
-}
-
 function buildFormValues(tenantBranding: TenantBrandingItem): TenantBrandingFormValues {
   return {
     logoUrl: tenantBranding.logoUrl ?? "",
@@ -69,22 +58,9 @@ function buildFormValues(tenantBranding: TenantBrandingItem): TenantBrandingForm
   };
 }
 
-function mergeTenantBranding(
-  current: TenantBrandingItem,
-  incoming: TenantBrandingItem,
-): TenantBrandingItem {
-  return {
-    id: incoming.id || current.id,
-    name: incoming.name || current.name,
-    code: incoming.code || current.code,
-    logoUrl: incoming.logoUrl,
-    themeKey: incoming.themeKey,
-  };
-}
-
 function validateTenantLogoFile(file: File): string | null {
   if (file.size > TENANT_LOGO_MAX_FILE_SIZE) {
-    return "A logo do banco deve ter no maximo 1 MB.";
+    return "A logo do ambiente deve ter no maximo 1 MB.";
   }
 
   const normalizedMimeType = file.type.trim().toLowerCase();
@@ -110,12 +86,14 @@ function validateTenantLogoFile(file: File): string | null {
 export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
   const router = useRouter();
   const [isRedirecting, startTransition] = useTransition();
-  const [tenantBranding, setTenantBranding] = useState<TenantBrandingItem>(() =>
-    buildTenantBrandingFromUser(user),
+  const [tenantBranding, setTenantBranding] = useState<TenantBrandingItem | null>(
+    null,
   );
-  const [formValues, setFormValues] = useState<TenantBrandingFormValues>(() =>
-    buildFormValues(buildTenantBrandingFromUser(user)),
-  );
+  const [formValues, setFormValues] = useState<TenantBrandingFormValues>({
+    logoUrl: "",
+    themeKey: DEFAULT_TENANT_THEME_KEY,
+  });
+  const [isLoadingBranding, setIsLoadingBranding] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -129,6 +107,8 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
     let isActive = true;
 
     async function loadCurrentTenantBranding() {
+      setIsLoadingBranding(true);
+
       try {
         const currentTenantBranding = await getCurrentTenantBranding();
 
@@ -144,9 +124,13 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
           setLoadError(
             getApiErrorMessage(
               error,
-              "Nao foi possivel carregar a identidade visual atual do banco.",
+              "Nao foi possivel carregar a identidade visual deste ambiente.",
             ),
           );
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingBranding(false);
         }
       }
     }
@@ -156,7 +140,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
     return () => {
       isActive = false;
     };
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -226,6 +210,10 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
   }
 
   function handleDiscardChanges() {
+    if (!tenantBranding) {
+      return;
+    }
+
     setFormValues(buildFormValues(tenantBranding));
     resetSelectedLogoState();
     setSubmitError(null);
@@ -270,6 +258,12 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
     setIsSubmitting(true);
 
     try {
+      if (!tenantBranding) {
+        throw new Error(
+          "A identidade visual atual precisa ser carregada antes de salvar.",
+        );
+      }
+
       let nextLogoUrl = formValues.logoUrl;
 
       if (selectedLogoFile) {
@@ -281,10 +275,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
         logoUrl: nextLogoUrl,
         themeKey: formValues.themeKey,
       });
-      const nextTenantBranding = mergeTenantBranding(
-        tenantBranding,
-        updatedTenantBranding,
-      );
+      const nextTenantBranding = updatedTenantBranding;
 
       setTenantBranding(nextTenantBranding);
       setFormValues(buildFormValues(nextTenantBranding));
@@ -299,7 +290,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
       setSubmitError(
         getApiErrorMessage(
           error,
-          "Nao foi possivel salvar a identidade visual do banco.",
+          "Nao foi possivel salvar a identidade visual do ambiente.",
         ),
       );
     } finally {
@@ -312,29 +303,39 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
   const hasCustomLogo = Boolean(normalizeTenantLogoUrl(previewLogoUrl));
   const hasPersistedCustomLogo = Boolean(normalizeTenantLogoUrl(formValues.logoUrl));
   const previewLogoMessage = selectedLogoFile
-    ? "Preview pronto. Salve para enviar a nova logo deste banco."
+    ? "Preview pronto. Salve para enviar a nova logo deste ambiente."
     : hasPersistedCustomLogo
-      ? "Logo personalizada configurada para este banco."
+      ? "Logo personalizada configurada para este ambiente."
       : hasCustomLogo
-        ? "Logo personalizada pronta para este banco."
+        ? "Logo personalizada pronta para este ambiente."
         : "Sem logo configurada. O sistema exibira a logo padrao atual.";
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Configuracoes"
-        description="O admin do banco pode ajustar somente a identidade visual do proprio ambiente. Nome, codigo e status continuam exclusivos do fluxo master."
-        badge="Acesso ADMIN"
+        description="Ajuste o tema e a identidade visual do ambiente sem alterar as configuracoes de acesso."
+        badge="Administrador"
       />
 
       <Card className="bg-card/90">
         <CardHeader>
           <CardTitle>Identidade visual</CardTitle>
           <CardDescription>
-            Ajuste somente o tema e a logo do banco atual. Quando a logo nao for informada, o sistema continua exibindo a logo padrao atual.
+            Ajuste somente o tema e a logo do ambiente atual. Quando a logo nao for informada, o sistema continua exibindo a marca padrao.
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {isLoadingBranding && !tenantBranding ? (
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-16 animate-pulse rounded-2xl bg-secondary/60"
+                />
+              ))}
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             {loadError ? (
               <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -344,7 +345,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="tenant-theme">Tema do banco</Label>
+                <Label htmlFor="tenant-theme">Tema do ambiente</Label>
                 <Select
                   id="tenant-theme"
                   value={formValues.themeKey}
@@ -364,7 +365,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="tenant-logo-file">Logo do banco (opcional)</Label>
+                <Label htmlFor="tenant-logo-file">Logo do ambiente (opcional)</Label>
                 <Input
                   key={logoInputKey}
                   id="tenant-logo-file"
@@ -387,7 +388,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
                 </div>
                 {selectedLogoFile ? (
                   <p className="text-xs leading-5 text-primary">
-                    Arquivo selecionado: <strong>{selectedLogoFile.name}</strong>. Salve para aplicar ao banco.
+                    Arquivo selecionado: <strong>{selectedLogoFile.name}</strong>. Salve para aplicar ao ambiente.
                   </p>
                 ) : null}
                 {logoError ? (
@@ -433,7 +434,15 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
             ) : null}
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <Button type="submit" disabled={isSubmitting || isRedirecting}>
+              <Button
+                type="submit"
+                disabled={
+                  isSubmitting ||
+                  isRedirecting ||
+                  isLoadingBranding ||
+                  !tenantBranding
+                }
+              >
                 {isSubmitting || isRedirecting ? (
                   <LoaderCircle className="size-4 animate-spin" />
                 ) : (
@@ -445,12 +454,18 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
                 type="button"
                 variant="outline"
                 onClick={handleDiscardChanges}
-                disabled={isSubmitting || isRedirecting}
+                disabled={
+                  isSubmitting ||
+                  isRedirecting ||
+                  isLoadingBranding ||
+                  !tenantBranding
+                }
               >
                 Descartar alteracoes
               </Button>
             </div>
           </form>
+          )}
         </CardContent>
       </Card>
     </div>

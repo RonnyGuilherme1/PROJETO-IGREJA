@@ -39,7 +39,7 @@ function parseJsonCookie<T>(cookieValue: string | undefined) {
   }
 }
 
-export function normalizeAuthSession(response: unknown): AuthSession {
+export function parseAuthSession(response: unknown): AuthSession {
   if (typeof response !== "object" || response === null || Array.isArray(response)) {
     throw new Error("A resposta do login nao retornou um objeto valido.");
   }

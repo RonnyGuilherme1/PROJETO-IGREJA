@@ -172,7 +172,7 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
   if (loadError) {
     return (
       <ErrorView
-        title="Falha ao carregar igreja"
+        title="Nao foi possivel abrir esta igreja"
         description={loadError}
         onAction={() => router.refresh()}
       />
@@ -188,7 +188,7 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
             ? "Cadastre uma nova igreja com os dados principais para uso no painel administrativo."
             : "Atualize os dados da igreja mantendo o mesmo padrao visual do sistema."
         }
-        badge="Modulo de igrejas"
+        badge="Igrejas"
         action={
           <Button asChild variant="outline">
             <Link href="/igrejas">

@@ -15,16 +15,11 @@ interface MembersTableProps {
   onInactivate: (member: MemberItem) => void;
 }
 
-function isInactive(status: string) {
-  return status
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/\s+/g, "_")
-    .includes("INACTIVE");
+function isInactive(status: MemberItem["status"]) {
+  return status === "INACTIVE";
 }
 
-function getStatusLabel(status: string) {
+function getStatusLabel(status: MemberItem["status"]) {
   return isInactive(status) ? "Inativo" : "Ativo";
 }
 
@@ -176,7 +171,7 @@ export function MembersTable({
                         </>
                       ) : (
                         <span className="text-sm text-muted-foreground">
-                          Somente visualizacao
+                          Somente consulta
                         </span>
                       )}
                     </div>

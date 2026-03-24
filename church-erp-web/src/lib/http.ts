@@ -43,21 +43,51 @@ http.interceptors.request.use((config) => {
 
 export function ensureApiConfigured() {
   if (!http.defaults.baseURL) {
-    throw new Error(
-      "O proxy local da API nao esta configurado corretamente no frontend.",
-    );
+    throw new Error("Nao foi possivel preparar o sistema para esta operacao.");
   }
+}
+
+function sanitizeApiMessage(message: string) {
+  const normalizedMessage = message.trim();
+
+  if (!normalizedMessage) {
+    return null;
+  }
+
+  const technicalPatterns = [
+    /axios/i,
+    /timeout/i,
+    /\bstatus\b/i,
+    /\bproxy\b/i,
+    /\bfrontend\b/i,
+    /\bbackend\b/i,
+    /\bnetwork\b/i,
+    /\brequest\b/i,
+    /\bresponse\b/i,
+    /\bapi\b/i,
+    /\bECONN/i,
+    /\bETIMEDOUT/i,
+  ];
+
+  if (
+    normalizedMessage.length > 180 ||
+    technicalPatterns.some((pattern) => pattern.test(normalizedMessage))
+  ) {
+    return null;
+  }
+
+  return normalizedMessage;
 }
 
 export function getApiErrorMessage(
   error: unknown,
-  fallback = "Nao foi possivel concluir a solicitacao.",
+  fallback = "Nao foi possivel concluir sua solicitacao agora.",
 ) {
   if (axios.isAxiosError(error)) {
     const responseData = error.response?.data;
 
     if (typeof responseData === "string" && responseData.trim()) {
-      return responseData;
+      return sanitizeApiMessage(responseData) ?? fallback;
     }
 
     if (responseData && typeof responseData === "object") {
@@ -69,25 +99,39 @@ export function getApiErrorMessage(
             : null;
 
       if (typeof message === "string" && message.trim()) {
-        return message;
+        return sanitizeApiMessage(message) ?? fallback;
       }
 
       if (Array.isArray(message) && message.length > 0) {
-        return String(message[0]);
+        return sanitizeApiMessage(String(message[0])) ?? fallback;
       }
     }
 
     if (error.response) {
-      return `A API respondeu com status ${error.response.status}.`;
+      switch (error.response.status) {
+        case 400:
+        case 422:
+          return "Revise os dados informados e tente novamente.";
+        case 401:
+          return "Sua sessao expirou. Entre novamente para continuar.";
+        case 403:
+          return "Voce nao tem permissao para realizar esta acao.";
+        case 404:
+          return "Nao encontramos as informacoes solicitadas.";
+        case 409:
+          return "Ja existe um registro com esses dados ou a operacao entrou em conflito.";
+        default:
+          return fallback;
+      }
     }
 
     if (error.request) {
-      return "Nao foi possivel alcancar a API configurada.";
+      return "Nao conseguimos conectar ao sistema no momento.";
     }
   }
 
   if (error instanceof Error && error.message.trim()) {
-    return error.message;
+    return sanitizeApiMessage(error.message) ?? fallback;
   }
 
   return fallback;

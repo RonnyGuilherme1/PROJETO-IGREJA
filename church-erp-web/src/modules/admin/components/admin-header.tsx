@@ -2,10 +2,8 @@
 
 import type { ReactNode } from "react";
 import { Building2 } from "lucide-react";
-import { apiConfig } from "@/lib/env";
 import { getTenantLabel } from "@/lib/tenant-branding";
 import { BrandLogo } from "@/components/layout/brand-logo";
-import { Badge } from "@/components/ui/badge";
 import { AuthUserPanel } from "@/modules/auth/components/auth-user-panel";
 import type { AuthUser } from "@/modules/auth/types/auth";
 
@@ -35,7 +33,7 @@ export function AdminHeader({
         <div className="flex items-start gap-3">
           <div className="lg:hidden">{mobileNavigation}</div>
           <BrandLogo
-            alt={tenantLabel ? `Logo do banco ${tenantLabel}` : "Logo do Church ERP"}
+            alt={tenantLabel ? `Logo do ambiente ${tenantLabel}` : "Logo do Church ERP"}
             logoUrl={user.tenantLogoUrl}
             icon={Building2}
             className="flex size-14 shrink-0 items-center justify-center rounded-[1.35rem] border border-border bg-card shadow-xs"
@@ -56,14 +54,6 @@ export function AdminHeader({
         </div>
 
         <div className="flex items-center gap-3">
-          {tenantLabel ? (
-            <Badge variant="outline" className="bg-card/80 text-foreground">
-              {tenantLabel}
-            </Badge>
-          ) : null}
-          <Badge variant={apiConfig.isConfigured ? "secondary" : "outline"}>
-            {apiConfig.isConfigured ? "API pronta" : "API pendente"}
-          </Badge>
           <div className="hidden rounded-full border border-border bg-card/80 px-4 py-2 text-sm text-muted-foreground sm:block">
             {formattedDate}
           </div>

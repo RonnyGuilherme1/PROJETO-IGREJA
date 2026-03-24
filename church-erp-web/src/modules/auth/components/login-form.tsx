@@ -36,11 +36,10 @@ export function LoginForm({ mode }: LoginFormProps) {
   const isTenantMode = mode === "TENANT";
   const isLoading = isSubmitting || isRedirecting;
   const successRedirectPath = isTenantMode ? "/dashboard" : "/master/dashboard";
-  const targetLoginLabel = isTenantMode ? "acesso do banco" : "acesso master";
   const switchHref = isTenantMode ? "/master/login" : "/login";
   const switchLabel = isTenantMode
-    ? "Entrar como master"
-    : "Entrar no banco";
+    ? "Entrar na plataforma"
+    : "Entrar no painel";
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,7 +70,7 @@ export function LoginForm({ mode }: LoginFormProps) {
       setError(
         getApiErrorMessage(
           submitError,
-          "Nao foi possivel entrar. Verifique suas credenciais e a API.",
+          "Nao foi possivel entrar. Revise suas credenciais e tente novamente.",
         ),
       );
     } finally {
@@ -83,12 +82,12 @@ export function LoginForm({ mode }: LoginFormProps) {
     <form onSubmit={handleSubmit} className="space-y-5">
       {isTenantMode ? (
         <div className="space-y-2">
-          <Label htmlFor="tenantCode">Codigo do banco</Label>
+          <Label htmlFor="tenantCode">Codigo de acesso</Label>
           <Input
             id="tenantCode"
             type="text"
             autoComplete="organization"
-            placeholder="igreja-sede"
+            placeholder="1001"
             value={formData.tenantCode}
             onChange={(event) =>
               setFormData((current) => ({
@@ -160,9 +159,10 @@ export function LoginForm({ mode }: LoginFormProps) {
 
       <div className="space-y-3 text-sm leading-6 text-muted-foreground">
         <p>
-          O formulario envia as credenciais para o endpoint correspondente ao{" "}
-          <strong>{targetLoginLabel}</strong>, armazena o token da sessao e
-          libera o acesso ao painel interno.
+          O formulario envia as credenciais para o endpoint de autenticacao
+          correspondente, armazena o token da sessao e libera o acesso ao
+          painel interno. No acesso ao ambiente, informe o codigo liberado para
+          sua operacao.
         </p>
 
         <p>

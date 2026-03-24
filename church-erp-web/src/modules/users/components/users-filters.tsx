@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { USER_STATUS_OPTIONS, type UserFilters } from "@/modules/users/types/user";
+import {
+  USER_ROLE_OPTIONS,
+  USER_STATUS_OPTIONS,
+  type UserFilters,
+} from "@/modules/users/types/user";
 
 interface UsersFiltersProps {
   filters: UserFilters;
@@ -64,12 +68,18 @@ export function UsersFilters({
 
         <div className="space-y-2">
           <Label htmlFor="filter-role">Perfil</Label>
-          <Input
+          <Select
             id="filter-role"
-            placeholder="Ex.: ADMIN"
             value={filters.role}
             onChange={(event) => onChange("role", event.target.value)}
-          />
+          >
+            <option value="">Todos</option>
+            {USER_ROLE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
         </div>
       </div>
 

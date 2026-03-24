@@ -7,6 +7,7 @@ import { getApiErrorMessage } from "@/lib/http";
 import { DEFAULT_TENANT_THEME_KEY } from "@/lib/tenant-branding";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
+import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,8 @@ export function TenantsListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [tenantPendingStatusChange, setTenantPendingStatusChange] =
+    useState<MasterTenantItem | null>(null);
   const customLogoCount = tenants.filter((tenant) => Boolean(tenant.logoUrl)).length;
   const customThemeCount = tenants.filter(
     (tenant) => tenant.themeKey !== DEFAULT_TENANT_THEME_KEY,
@@ -48,7 +51,7 @@ export function TenantsListPage() {
       setError(
         getApiErrorMessage(
           loadError,
-          "Nao foi possivel carregar a listagem de bancos.",
+          "Nao foi possivel carregar a lista de ambientes.",
         ),
       );
     } finally {
@@ -61,33 +64,33 @@ export function TenantsListPage() {
   }, [loadTenants]);
 
   async function handleToggleStatus(tenant: MasterTenantItem) {
-    const isInactive = tenant.status.toUpperCase() === "INACTIVE";
-    const confirmed = window.confirm(
-      isInactive
-        ? `Deseja ativar o banco ${tenant.name}?`
-        : `Deseja inativar o banco ${tenant.name}?`,
-    );
+    setTenantPendingStatusChange(tenant);
+  }
 
-    if (!confirmed) {
+  async function confirmToggleStatus() {
+    if (!tenantPendingStatusChange) {
       return;
     }
 
-    setTogglingId(tenant.id);
+    const isInactive = tenantPendingStatusChange.status.toUpperCase() === "INACTIVE";
+
+    setTogglingId(tenantPendingStatusChange.id);
     setError(null);
 
     try {
       if (isInactive) {
-        await activateMasterTenant(tenant.id);
+        await activateMasterTenant(tenantPendingStatusChange.id);
       } else {
-        await inactivateMasterTenant(tenant.id);
+        await inactivateMasterTenant(tenantPendingStatusChange.id);
       }
 
       await loadTenants();
+      setTenantPendingStatusChange(null);
     } catch (actionError) {
       setError(
         getApiErrorMessage(
           actionError,
-          `Nao foi possivel ${isInactive ? "ativar" : "inativar"} o banco selecionado.`,
+          `Nao foi possivel ${isInactive ? "ativar" : "inativar"} o ambiente selecionado.`,
         ),
       );
     } finally {
@@ -98,7 +101,7 @@ export function TenantsListPage() {
   if (error && tenants.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Falha ao carregar bancos"
+        title="Nao foi possivel abrir os ambientes"
         description={error}
         onAction={() => void loadTenants()}
       />
@@ -108,14 +111,14 @@ export function TenantsListPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Bancos"
-        description="Gerencie os bancos da plataforma, atualize dados cadastrais e controle a ativacao dos ambientes."
+        title="Ambientes"
+        description="Gerencie os ambientes da plataforma, atualize dados cadastrais e controle a ativacao."
         badge={getMasterAccessLabel()}
         action={
           <Button asChild>
             <Link href="/master/tenants/novo">
               <Plus className="size-4" />
-              Novo banco
+              Novo ambiente
             </Link>
           </Button>
         }
@@ -126,11 +129,11 @@ export function TenantsListPage() {
           <div className="space-y-2">
             <CardTitle>Listagem</CardTitle>
             <CardDescription>
-              Bancos cadastrados com acoes de edicao, ativacao e identidade visual por ambiente.
+              Ambientes cadastrados com acoes de edicao, ativacao e identidade visual.
             </CardDescription>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Badge variant="secondary">{total} banco(s)</Badge>
+            <Badge variant="secondary">Total: {total}</Badge>
             <Badge variant="outline">{customLogoCount} com logo propria</Badge>
             <Badge variant="outline">{customThemeCount} com tema customizado</Badge>
           </div>
@@ -150,6 +153,40 @@ export function TenantsListPage() {
           />
         </CardContent>
       </Card>
+
+      <ConfirmActionDialog
+        open={Boolean(tenantPendingStatusChange)}
+        title={
+          tenantPendingStatusChange?.status === "INACTIVE"
+            ? "Ativar ambiente"
+            : "Inativar ambiente"
+        }
+        description={
+          tenantPendingStatusChange
+            ? tenantPendingStatusChange.status === "INACTIVE"
+              ? `O ambiente ${tenantPendingStatusChange.name} voltara a ficar disponivel para acesso.`
+              : `O ambiente ${tenantPendingStatusChange.name} deixara de ficar disponivel para acesso ate nova ativacao.`
+            : ""
+        }
+        confirmLabel={
+          tenantPendingStatusChange?.status === "INACTIVE" ? "Ativar" : "Inativar"
+        }
+        confirmVariant={
+          tenantPendingStatusChange?.status === "INACTIVE"
+            ? "secondary"
+            : "destructive"
+        }
+        isLoading={Boolean(
+          tenantPendingStatusChange &&
+            togglingId === tenantPendingStatusChange.id,
+        )}
+        onConfirm={() => void confirmToggleStatus()}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTenantPendingStatusChange(null);
+          }
+        }}
+      />
     </div>
   );
 }

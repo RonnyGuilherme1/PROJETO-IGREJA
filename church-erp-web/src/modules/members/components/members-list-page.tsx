@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { getApiErrorMessage } from "@/lib/http";
+import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,8 @@ export function MembersListPage({
   const [churchesError, setChurchesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inactivatingId, setInactivatingId] = useState<string | null>(null);
+  const [memberPendingInactivation, setMemberPendingInactivation] =
+    useState<MemberItem | null>(null);
   const churchNamesById = Object.fromEntries(
     churchOptions.map((church) => [church.id, church.name]),
   );
@@ -134,20 +137,21 @@ export function MembersListPage({
   }
 
   async function handleInactivate(member: MemberItem) {
-    const confirmed = window.confirm(
-      `Deseja inativar o membro ${member.fullName}?`,
-    );
+    setMemberPendingInactivation(member);
+  }
 
-    if (!confirmed) {
+  async function confirmInactivateMember() {
+    if (!memberPendingInactivation) {
       return;
     }
 
-    setInactivatingId(member.id);
+    setInactivatingId(memberPendingInactivation.id);
     setError(null);
 
     try {
-      await inactivateMember(member.id);
+      await inactivateMember(memberPendingInactivation.id);
       await loadMembers(appliedFilters);
+      setMemberPendingInactivation(null);
     } catch (actionError) {
       setError(
         getApiErrorMessage(
@@ -163,7 +167,7 @@ export function MembersListPage({
   if (error && members.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Falha ao carregar membros"
+        title="Nao foi possivel abrir os membros"
         description={error}
         onAction={() => void loadMembers(appliedFilters)}
       />
@@ -174,7 +178,7 @@ export function MembersListPage({
     <div className="space-y-6">
       <PageHeader
         title="Membros"
-        description="Gerencie o cadastro de membros com filtros, listagem organizada e integracao com a API."
+        description="Acompanhe o cadastro de membros, a igreja vinculada e o status de cada registro."
         badge={getMembersAccessLabel(currentUser)}
         action={
           canEdit ? (
@@ -196,7 +200,7 @@ export function MembersListPage({
               Filtre por nome, status e igreja para localizar membros.
             </CardDescription>
           </div>
-          <Badge variant="secondary">{total} membro(s)</Badge>
+          <Badge variant="secondary">Total: {total}</Badge>
         </CardHeader>
         <CardContent className="space-y-4">
           {churchesError ? (
@@ -240,6 +244,28 @@ export function MembersListPage({
           />
         </CardContent>
       </Card>
+
+      <ConfirmActionDialog
+        open={Boolean(memberPendingInactivation)}
+        title="Inativar membro"
+        description={
+          memberPendingInactivation
+            ? `O cadastro de ${memberPendingInactivation.fullName} permanecera no historico, mas deixara de ficar ativo.`
+            : ""
+        }
+        confirmLabel="Inativar"
+        confirmVariant="destructive"
+        isLoading={Boolean(
+          memberPendingInactivation &&
+            inactivatingId === memberPendingInactivation.id,
+        )}
+        onConfirm={() => void confirmInactivateMember()}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMemberPendingInactivation(null);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -47,5 +47,4 @@ export interface DashboardOverviewData {
   membersGrowthSeries: DashboardMembersGrowthPoint[];
   currentMonthLabel: string;
   financePeriodLabel: string;
-  membersPeriodLabel: string;
 }

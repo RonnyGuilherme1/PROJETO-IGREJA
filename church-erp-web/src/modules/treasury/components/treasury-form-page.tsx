@@ -223,7 +223,7 @@ export function TreasuryFormPage({
   if (loadError) {
     return (
       <ErrorView
-        title="Falha ao carregar movimentacao"
+        title="Nao foi possivel abrir esta movimentacao"
         description={loadError}
         onAction={() => router.refresh()}
       />
@@ -239,7 +239,7 @@ export function TreasuryFormPage({
             ? "Cadastre uma nova entrada ou saida financeira vinculando igreja e categoria."
             : "Atualize a movimentacao financeira mantendo o padrao administrativo do sistema."
         }
-        badge="Modulo de tesouraria"
+        badge="Tesouraria"
         action={
           <Button asChild variant="outline">
             <Link href="/tesouraria">

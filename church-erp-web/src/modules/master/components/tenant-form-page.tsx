@@ -98,7 +98,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
         setLoadError(
           getApiErrorMessage(
             error,
-            "Nao foi possivel carregar os dados do banco para edicao.",
+            "Nao foi possivel carregar os dados do ambiente para edicao.",
           ),
         );
       } finally {
@@ -162,8 +162,8 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
         getApiErrorMessage(
           error,
           mode === "create"
-            ? "Nao foi possivel criar o banco."
-            : "Nao foi possivel salvar as alteracoes do banco.",
+            ? "Nao foi possivel criar o ambiente."
+            : "Nao foi possivel salvar as alteracoes do ambiente.",
         ),
       );
     } finally {
@@ -174,7 +174,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
   if (loadError) {
     return (
       <ErrorView
-        title="Falha ao carregar banco"
+        title="Nao foi possivel abrir este ambiente"
         description={loadError}
         onAction={() => router.refresh()}
       />
@@ -188,13 +188,13 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={mode === "create" ? "Novo banco" : "Editar banco"}
+        title={mode === "create" ? "Novo ambiente" : "Editar ambiente"}
         description={
           mode === "create"
-            ? "Cadastre um novo banco da plataforma, escolha um tema pre-definido e defina o administrador inicial."
-            : "Atualize os dados principais do banco, incluindo logo opcional e tema exclusivo do ambiente."
+            ? "Cadastre um novo ambiente da plataforma, escolha um tema e defina o acesso inicial."
+            : "Atualize os dados principais do ambiente, incluindo logo opcional e tema exclusivo."
         }
-        badge="Area master"
+        badge="Plataforma"
         action={
           <Button asChild variant="outline">
             <Link href="/master/tenants">
@@ -207,9 +207,9 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
 
       <Card className="bg-white/85">
         <CardHeader>
-          <CardTitle>{mode === "create" ? "Cadastro" : "Edicao de banco"}</CardTitle>
+          <CardTitle>{mode === "create" ? "Cadastro" : "Edicao do ambiente"}</CardTitle>
           <CardDescription>
-            Dados organizados para criar e manter bancos da plataforma com consistencia.
+            Dados organizados para criar e manter ambientes com consistencia.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -226,7 +226,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="tenant-name">Nome do banco</Label>
+                  <Label htmlFor="tenant-name">Nome do ambiente</Label>
                   <Input
                     id="tenant-name"
                     value={formValues.name}
@@ -240,7 +240,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
 
                 {mode === "edit" ? (
                   <div className="space-y-2">
-                    <Label htmlFor="tenant-code">Codigo do banco</Label>
+                    <Label htmlFor="tenant-code">Codigo de acesso</Label>
                     <Input
                       id="tenant-code"
                       value={formValues.code}
@@ -250,7 +250,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                       required
                     />
                     <p className="text-xs leading-5 text-muted-foreground">
-                      Codigo usado no login do banco. A edicao permanece restrita ao fluxo master.
+                      Codigo usado no acesso ao ambiente. A edicao permanece restrita a plataforma.
                     </p>
                   </div>
                 ) : null}
@@ -288,7 +288,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                     ))}
                   </Select>
                   <p className="text-xs leading-5 text-muted-foreground">
-                    Tema aplicado somente ao banco logado. O padrao e Green.
+                    Tema aplicado ao ambiente. O padrao e Green.
                   </p>
                 </div>
 
@@ -303,7 +303,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                     placeholder="https://exemplo.com/logo.png"
                   />
                   <p className="text-xs leading-5 text-muted-foreground">
-                    Se nao houver logo configurada, o banco continuara usando a logo padrao atual do sistema.
+                    Se nao houver logo configurada, o ambiente continuara usando a marca padrao do sistema.
                   </p>
                 </div>
               </div>
@@ -311,7 +311,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
               <div className="rounded-3xl border border-border bg-secondary/25 p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   <BrandLogo
-                    alt={`Logo do banco ${previewTitle}`}
+                    alt={`Logo do ambiente ${previewTitle}`}
                     logoUrl={formValues.logoUrl}
                     className="flex size-[5.5rem] shrink-0 items-center justify-center rounded-[1.75rem] border border-border bg-card shadow-sm"
                     imageClassName="bg-card p-1.5"
@@ -325,7 +325,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                     </p>
                     <p className="text-xs leading-5 text-muted-foreground">
                       {hasCustomLogo
-                        ? "Logo personalizada pronta para este banco."
+                        ? "Logo personalizada pronta para este ambiente."
                         : "Sem logo informada. O layout usara a logo padrao do sistema."}
                     </p>
                   </div>
@@ -334,9 +334,9 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
 
               {mode === "create" ? (
                 <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
-                  O codigo do banco sera gerado automaticamente pelo sistema a
+                  O codigo de acesso sera gerado automaticamente pelo sistema a
                   partir de <strong>1001</strong> e sera usado no login do
-                  banco.
+                  ambiente.
                 </div>
               ) : null}
 
@@ -344,10 +344,10 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                 <div className="space-y-4 rounded-3xl border border-border bg-secondary/30 p-5">
                   <div className="space-y-1">
                     <h3 className="text-base font-semibold text-foreground">
-                      Admin inicial do banco
+                      Acesso inicial
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Este usuario sera criado junto com o banco para o primeiro acesso.
+                      Este usuario sera criado junto com o ambiente para o primeiro acesso.
                     </p>
                   </div>
 
@@ -421,7 +421,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                   ) : (
                     <Save className="size-4" />
                   )}
-                  {mode === "create" ? "Criar banco" : "Salvar alteracoes"}
+                  {mode === "create" ? "Criar ambiente" : "Salvar alteracoes"}
                 </Button>
                 <Button asChild variant="outline">
                   <Link href="/master/tenants">Cancelar</Link>

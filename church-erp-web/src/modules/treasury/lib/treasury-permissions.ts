@@ -8,5 +8,5 @@ export function canEditTreasury(user?: AuthUser | null) {
 }
 
 export function getTreasuryAccessLabel(user?: AuthUser | null) {
-  return canEditTreasury(user) ? "Edicao liberada" : "Modo consulta";
+  return canEditTreasury(user) ? "Gerenciamento" : "Consulta";
 }

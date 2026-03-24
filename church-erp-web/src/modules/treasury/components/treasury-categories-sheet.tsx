@@ -74,9 +74,6 @@ export function TreasuryCategoriesSheet({
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <p className="font-medium text-foreground">{category.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    ID: {category.id}
-                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge

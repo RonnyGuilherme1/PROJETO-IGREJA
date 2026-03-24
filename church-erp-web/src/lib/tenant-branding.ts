@@ -1,10 +1,10 @@
 import type { CSSProperties } from "react";
 
 export const TENANT_THEME_OPTIONS = [
-  { value: "green", label: "Green" },
-  { value: "blue", label: "Blue" },
-  { value: "gray", label: "Gray" },
-  { value: "dark", label: "Dark" },
+  { value: "green", label: "Verde" },
+  { value: "blue", label: "Azul" },
+  { value: "gray", label: "Grafite" },
+  { value: "dark", label: "Escuro" },
 ] as const;
 
 export type TenantThemeKey = (typeof TENANT_THEME_OPTIONS)[number]["value"];
@@ -204,7 +204,7 @@ export function getTenantThemeLabel(themeKey?: TenantThemeKey | string | null) {
 
   return (
     TENANT_THEME_OPTIONS.find((option) => option.value === normalizedTheme)?.label ??
-    "Green"
+    "Verde"
   );
 }
 
@@ -221,7 +221,7 @@ export function getTenantLabel(name?: string | null, code?: string | null) {
   }
 
   if (normalizedCode) {
-    return `Tenant ${normalizedCode}`;
+    return `Ambiente ${normalizedCode}`;
   }
 
   return null;

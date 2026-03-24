@@ -21,8 +21,8 @@ export interface UserItem {
 export interface UserFilters {
   name: string;
   email: string;
-  status: string;
-  role: string;
+  status: UserStatus | "";
+  role: UserRole | "";
 }
 
 export interface UserListResult {

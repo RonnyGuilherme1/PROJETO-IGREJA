@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
   Building2,
   CreditCard,
   Landmark,
@@ -13,6 +16,7 @@ import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { getApiErrorMessage } from "@/lib/http";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -20,7 +24,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DashboardFinanceChart } from "@/modules/dashboard/components/dashboard-finance-chart";
-import { DashboardMembersGrowthChart } from "@/modules/dashboard/components/dashboard-members-growth-chart";
 import { DashboardMetricCard } from "@/modules/dashboard/components/dashboard-metric-card";
 import { DashboardOverviewSkeleton } from "@/modules/dashboard/components/dashboard-overview-skeleton";
 import { getDashboardOverviewData } from "@/modules/dashboard/services/dashboard-service";
@@ -36,6 +39,43 @@ function formatCurrency(value: number) {
     currency: "BRL",
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+function getMembersTrendSummary(series: DashboardOverviewData["membersGrowthSeries"]) {
+  const currentPoint = series[series.length - 1];
+  const previousPoint = series[series.length - 2];
+
+  if (!currentPoint || !previousPoint) {
+    return {
+      icon: ArrowRight,
+      label: "Sem historico suficiente para comparar.",
+      className: "bg-secondary text-foreground",
+    };
+  }
+
+  const delta = currentPoint.newMembers - previousPoint.newMembers;
+
+  if (delta > 0) {
+    return {
+      icon: ArrowUpRight,
+      label: `Alta de ${formatInteger(delta)} em relacao ao mes anterior.`,
+      className: "bg-emerald-500/10 text-emerald-700",
+    };
+  }
+
+  if (delta < 0) {
+    return {
+      icon: ArrowDownRight,
+      label: `Queda de ${formatInteger(Math.abs(delta))} em relacao ao mes anterior.`,
+      className: "bg-rose-500/10 text-rose-700",
+    };
+  }
+
+  return {
+    icon: ArrowRight,
+    label: "Estavel em relacao ao mes anterior.",
+    className: "bg-secondary text-foreground",
+  };
 }
 
 export function DashboardOverview() {
@@ -69,7 +109,7 @@ export function DashboardOverview() {
   if (error && !data && !isLoading) {
     return (
       <ErrorView
-        title="Falha ao carregar dashboard"
+        title="Nao foi possivel abrir o dashboard"
         description={error}
         onAction={() => void loadDashboard()}
       />
@@ -97,17 +137,15 @@ export function DashboardOverview() {
       (sum, item) => sum + item.expense,
       0,
     ),
-    periodMembers: (data?.membersGrowthSeries ?? []).reduce(
-      (sum, item) => sum + item.newMembers,
-      0,
-    ),
   };
+  const membersTrend = getMembersTrendSummary(data?.membersGrowthSeries ?? []);
+  const MembersTrendIcon = membersTrend.icon;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Dashboard"
-        description="Acompanhe os principais indicadores do ERP com visao consolidada de membros, igrejas, tesouraria e usuarios."
+        description="Acompanhe os principais indicadores da operacao com visao consolidada de membros, igrejas, tesouraria e usuarios."
         badge="Visao geral"
       />
 
@@ -118,12 +156,36 @@ export function DashboardOverview() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <DashboardMetricCard
-          title="Total de membros"
-          value={formatInteger(metrics.totalMembers)}
-          description="Cadastros de membros retornados pela API."
-          icon={Users}
-        />
+        <Card className="bg-white/85">
+          <CardContent className="flex items-start justify-between gap-4 p-6">
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total de membros
+                </p>
+                <p className="text-3xl font-semibold tracking-tight text-foreground">
+                  {formatInteger(metrics.totalMembers)}
+                </p>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  Pessoas registradas e disponiveis para acompanhamento.
+                </p>
+              </div>
+              <div
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium",
+                  membersTrend.className,
+                )}
+              >
+                <MembersTrendIcon className="size-4" />
+                <span>{membersTrend.label}</span>
+              </div>
+            </div>
+
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Users className="size-5" />
+            </div>
+          </CardContent>
+        </Card>
         <DashboardMetricCard
           title="Total de igrejas"
           value={formatInteger(metrics.totalChurches)}
@@ -154,21 +216,15 @@ export function DashboardOverview() {
         <DashboardMetricCard
           title="Usuarios ativos"
           value={formatInteger(metrics.activeUsers)}
-          description="Usuarios com acesso interno ativo."
+          description="Pessoas com acesso ativo ao painel."
           icon={CreditCard}
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <DashboardFinanceChart
-          data={data?.financeSeries ?? []}
-          periodLabel={data?.financePeriodLabel ?? ""}
-        />
-        <DashboardMembersGrowthChart
-          data={data?.membersGrowthSeries ?? []}
-          periodLabel={data?.membersPeriodLabel ?? ""}
-        />
-      </div>
+      <DashboardFinanceChart
+        data={data?.financeSeries ?? []}
+        periodLabel={data?.financePeriodLabel ?? ""}
+      />
 
       <Card className="bg-white/85">
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -177,7 +233,7 @@ export function DashboardOverview() {
           </div>
           <Badge variant="secondary">{data?.financePeriodLabel}</Badge>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
+        <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl bg-secondary/50 p-4">
             <p className="text-sm font-medium text-muted-foreground">
               Entradas no periodo
@@ -192,14 +248,6 @@ export function DashboardOverview() {
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
               {formatCurrency(totals.periodExpense)}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-secondary/50 p-4">
-            <p className="text-sm font-medium text-muted-foreground">
-              Novos membros no periodo
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {formatInteger(totals.periodMembers)}
             </p>
           </div>
         </CardContent>

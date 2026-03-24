@@ -16,14 +16,12 @@ function normalizeSearchValue(value: string) {
 function matchesUserFilters(user: UserItem, filters: UserFilters) {
   const name = normalizeSearchValue(filters.name);
   const email = normalizeSearchValue(filters.email);
-  const status = normalizeSearchValue(filters.status);
-  const role = normalizeSearchValue(filters.role);
 
   return (
     (!name || normalizeSearchValue(user.name).includes(name)) &&
     (!email || normalizeSearchValue(user.email ?? "").includes(email)) &&
-    (!status || normalizeSearchValue(user.status).includes(status)) &&
-    (!role || normalizeSearchValue(user.role).includes(role))
+    (!filters.status || user.status === filters.status) &&
+    (!filters.role || user.role === filters.role)
   );
 }
 

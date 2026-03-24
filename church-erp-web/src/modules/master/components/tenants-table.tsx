@@ -15,20 +15,11 @@ interface TenantsTableProps {
   onToggleStatus: (tenant: MasterTenantItem) => void;
 }
 
-function normalizeStatusKey(status: string) {
-  return status
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/\s+/g, "_");
+function isInactive(status: MasterTenantItem["status"]) {
+  return status === "INACTIVE";
 }
 
-function isInactive(status: string) {
-  const key = normalizeStatusKey(status);
-  return key === "INACTIVE" || key === "INATIVO" || key === "DISABLED";
-}
-
-function getStatusLabel(status: string) {
+function getStatusLabel(status: MasterTenantItem["status"]) {
   return isInactive(status) ? "Inativo" : "Ativo";
 }
 
@@ -60,7 +51,7 @@ export function TenantsTable({
           <thead className="bg-secondary/35">
             <tr className="text-left">
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Banco
+                Ambiente
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 Codigo
@@ -96,7 +87,7 @@ export function TenantsTable({
                   colSpan={6}
                   className="px-4 py-14 text-center text-sm text-muted-foreground"
                 >
-                  Nenhum banco encontrado na plataforma.
+                  Nenhum ambiente encontrado na plataforma.
                 </td>
               </tr>
             ) : null}
@@ -109,7 +100,7 @@ export function TenantsTable({
                   <td className="px-4 py-4">
                     <div className="flex items-start gap-3">
                       <BrandLogo
-                        alt={`Logo do banco ${tenant.name}`}
+                        alt={`Logo do ambiente ${tenant.name}`}
                         logoUrl={tenant.logoUrl}
                         className="flex size-14 shrink-0 items-center justify-center rounded-[1.35rem] border border-border bg-card shadow-sm"
                         imageClassName="bg-card p-1.5"
@@ -118,7 +109,6 @@ export function TenantsTable({
 
                       <div className="space-y-1">
                         <p className="font-medium text-foreground">{tenant.name}</p>
-                        <p className="text-xs text-muted-foreground">ID: {tenant.id}</p>
                         <div className="flex flex-wrap gap-2 pt-1">
                           <Badge variant="secondary">
                             {getTenantThemeLabel(tenant.themeKey)}

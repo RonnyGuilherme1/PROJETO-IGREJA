@@ -213,7 +213,7 @@ export class TenantsService {
     });
 
     if (!tenant) {
-      throw new NotFoundException('Banco nao encontrado.');
+      throw new NotFoundException('Tenant nao encontrado.');
     }
 
     return tenant;
@@ -243,7 +243,7 @@ export class TenantsService {
     });
 
     if (tenant) {
-      throw new ConflictException('Ja existe um banco com este codigo.');
+      throw new ConflictException('Ja existe um tenant com este codigo.');
     }
   }
 
@@ -306,7 +306,7 @@ export class TenantsService {
     }
 
     throw new ConflictException(
-      'Nao foi possivel gerar um codigo unico para o banco.',
+      'Nao foi possivel gerar um codigo unico para o tenant.',
     );
   }
 
@@ -372,7 +372,7 @@ export class TenantsService {
     file?: UploadedTenantLogoFile,
   ): UploadedTenantLogoFile {
     if (!file) {
-      throw new BadRequestException('Envie o arquivo da logo do banco.');
+      throw new BadRequestException('Envie o arquivo da logo do tenant.');
     }
 
     if (!file.buffer || file.buffer.length === 0) {
@@ -381,7 +381,7 @@ export class TenantsService {
 
     if (file.size > TENANT_LOGO_MAX_FILE_SIZE) {
       throw new BadRequestException(
-        'A logo do banco deve ter no maximo 1 MB.',
+        'A logo do tenant deve ter no maximo 1 MB.',
       );
     }
 
@@ -403,7 +403,7 @@ export class TenantsService {
       (!normalizedMimeType && !hasAllowedExtension)
     ) {
       throw new BadRequestException(
-        'A logo do banco deve ser PNG, JPG, JPEG ou WEBP.',
+        'A logo do tenant deve ser PNG, JPG, JPEG ou WEBP.',
       );
     }
 

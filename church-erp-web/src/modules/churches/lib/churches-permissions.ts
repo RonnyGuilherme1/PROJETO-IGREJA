@@ -8,5 +8,5 @@ export function canEditChurches(user?: AuthUser | null) {
 }
 
 export function getChurchesAccessLabel(user?: AuthUser | null) {
-  return canEditChurches(user) ? "Edicao liberada" : "Modo consulta";
+  return canEditChurches(user) ? "Gerenciamento" : "Consulta";
 }

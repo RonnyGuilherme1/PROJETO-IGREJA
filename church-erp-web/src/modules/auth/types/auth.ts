@@ -7,6 +7,7 @@ export type UserStatus = "ACTIVE" | "INACTIVE";
 export type PlatformRole = "PLATFORM_ADMIN" | "PLATFORM_SUPPORT";
 
 export type AuthAccessType = "PLATFORM" | "TENANT";
+export type AuthMode = "TENANT" | "MASTER";
 
 export interface AuthUserTenant {
   id: string;

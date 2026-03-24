@@ -15,11 +15,10 @@ function normalizeSearchValue(value: string) {
 
 function matchesChurchFilters(church: ChurchItem, filters: ChurchFilters) {
   const name = normalizeSearchValue(filters.name);
-  const status = normalizeSearchValue(filters.status);
 
   return (
     (!name || normalizeSearchValue(church.name).includes(name)) &&
-    (!status || normalizeSearchValue(church.status).includes(status))
+    (!filters.status || church.status === filters.status)
   );
 }
 
@@ -109,4 +108,9 @@ export async function updateChurch(
   );
 
   return response.data;
+}
+
+export async function inactivateChurch(id: string): Promise<void> {
+  ensureApiConfigured();
+  await http.patch(`${CHURCHES_ENDPOINT}/${id}/inactivate`);
 }

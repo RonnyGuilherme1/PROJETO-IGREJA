@@ -4,50 +4,41 @@ import Link from "next/link";
 import { LoaderCircle, Pencil, UserX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { UserRole, UserStatus } from "@/modules/auth/types/auth";
 import type { UserItem } from "@/modules/users/types/user";
 
 interface UsersTableProps {
   users: UserItem[];
+  churchNamesById: Record<string, string>;
   isLoading: boolean;
   inactivatingId: string | null;
   onInactivate: (user: UserItem) => void;
 }
 
-function normalizeStatusKey(status: string) {
-  return status
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/\s+/g, "_");
+function isInactive(status: UserStatus) {
+  return status === "INACTIVE";
 }
 
-function isInactive(status: string) {
-  const key = normalizeStatusKey(status);
-  return key === "INACTIVE" || key === "INATIVO" || key === "DISABLED";
-}
-
-function getStatusLabel(status: string) {
+function getStatusLabel(status: UserStatus) {
   return isInactive(status) ? "Inativo" : "Ativo";
 }
 
-function getRoleLabel(role: string) {
-  if (role === "SECRETARIA") {
-    return "Secretaria";
+function getRoleLabel(role: UserRole) {
+  switch (role) {
+    case "SECRETARIA":
+      return "Secretaria";
+    case "TESOUREIRO":
+      return "Tesoureiro";
+    case "CONSULTA":
+      return "Consulta";
+    default:
+      return "Administrador";
   }
-
-  if (role === "TESOUREIRO") {
-    return "Tesoureiro";
-  }
-
-  if (role === "CONSULTA") {
-    return "Consulta";
-  }
-
-  return "Administrador";
 }
 
 export function UsersTable({
   users,
+  churchNamesById,
   isLoading,
   inactivatingId,
   onInactivate,
@@ -110,14 +101,13 @@ export function UsersTable({
                     <div className="space-y-1">
                       <p className="font-medium text-foreground">{user.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        Username: {user.username || "-"}
+                        Acesso: {user.username || "-"}
                       </p>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
                     <div className="space-y-1">
                       <p>{user.email || "-"}</p>
-                      <p className="text-xs text-muted-foreground">ID: {user.id}</p>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
@@ -129,7 +119,9 @@ export function UsersTable({
                     </Badge>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {user.churchId || "-"}
+                    {user.churchId
+                      ? churchNamesById[user.churchId] || user.churchId
+                      : "-"}
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex flex-col justify-end gap-2 sm:flex-row">

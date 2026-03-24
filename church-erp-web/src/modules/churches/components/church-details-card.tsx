@@ -21,12 +21,8 @@ interface ChurchDetailsCardProps {
   canEdit: boolean;
 }
 
-function isInactive(status: string) {
-  return status
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .includes("INACTIVE");
+function isInactive(status: ChurchItem["status"]) {
+  return status === "INACTIVE";
 }
 
 export function ChurchDetailsCard({
@@ -85,9 +81,9 @@ export function ChurchDetailsCard({
     return (
       <Card className="mt-6 bg-white/85">
         <CardHeader>
-          <CardTitle>Visualizacao</CardTitle>
+          <CardTitle>Detalhes da igreja</CardTitle>
           <CardDescription>
-            Selecione uma igreja na tabela para visualizar os detalhes.
+            Selecione uma igreja na tabela para visualizar os detalhes desta unidade.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -98,7 +94,7 @@ export function ChurchDetailsCard({
     return (
       <Card className="mt-6 bg-white/85">
         <CardHeader>
-          <CardTitle>Falha ao carregar detalhes</CardTitle>
+          <CardTitle>Nao foi possivel abrir os detalhes</CardTitle>
           <CardDescription>{error}</CardDescription>
         </CardHeader>
       </Card>

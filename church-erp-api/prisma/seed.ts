@@ -130,7 +130,7 @@ async function main() {
 
   const church = await upsertChurch(tenant.id);
 
-  const masterUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: {
       username: MASTER_USER.username,
     },
@@ -157,7 +157,7 @@ async function main() {
     },
   });
 
-  const tenantAdminUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: {
       username: TENANT_ADMIN_USER.username,
     },
@@ -188,20 +188,7 @@ async function main() {
     await upsertFinanceCategory(tenant.id, category);
   }
 
-  console.log('');
-  console.log('Seed executed successfully.');
-  console.log('');
-  console.log(`Tenant: ${tenant.name} (${tenant.slug})`);
-  console.log(`Church: ${church.name}`);
-  console.log('');
-  console.log('Access credentials:');
-  console.log(
-    `Platform master -> email: ${masterUser.email} | username: ${masterUser.username} | password: ${MASTER_USER.password}`,
-  );
-  console.log(
-    `Tenant admin -> email: ${tenantAdminUser.email} | username: ${tenantAdminUser.username} | password: ${TENANT_ADMIN_USER.password}`,
-  );
-  console.log('');
+  console.log(`Seed executada com sucesso para ${tenant.name} / ${church.name}.`);
 }
 
 main()

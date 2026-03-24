@@ -124,9 +124,6 @@ export function TreasuryTable({
                       <p className="font-medium text-foreground">
                         {item.description}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        ID: {item.id}
-                      </p>
                     </div>
                   </td>
                   <td className="px-4 py-4">
@@ -176,7 +173,7 @@ export function TreasuryTable({
                         </>
                       ) : (
                         <span className="text-sm text-muted-foreground">
-                          Somente visualizacao
+                          Somente consulta
                         </span>
                       )}
                     </div>

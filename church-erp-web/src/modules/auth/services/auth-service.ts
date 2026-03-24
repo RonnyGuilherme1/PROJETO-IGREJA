@@ -1,5 +1,5 @@
 import { ensureApiConfigured, http } from "@/lib/http";
-import { normalizeAuthSession } from "@/modules/auth/lib/auth-session";
+import { parseAuthSession } from "@/modules/auth/lib/auth-session";
 import type { AuthSession } from "@/modules/auth/types/auth";
 
 export interface TenantLoginPayload {
@@ -35,7 +35,7 @@ export async function loginTenant(
 
   const response = await http.post("/auth/login", sanitizeTenantPayload(payload));
 
-  return normalizeAuthSession(response.data);
+  return parseAuthSession(response.data);
 }
 
 export async function loginMaster(
@@ -48,5 +48,5 @@ export async function loginMaster(
     sanitizeMasterPayload(payload),
   );
 
-  return normalizeAuthSession(response.data);
+  return parseAuthSession(response.data);
 }

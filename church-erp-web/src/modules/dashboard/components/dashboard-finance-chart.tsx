@@ -36,6 +36,20 @@ export function DashboardFinanceChart({
   data,
   periodLabel,
 }: DashboardFinanceChartProps) {
+  if (data.length === 0) {
+    return (
+      <Card className="bg-white/85">
+        <CardHeader className="space-y-2">
+          <CardTitle>Entradas x saidas por mes</CardTitle>
+          <CardDescription>
+            Assim que houver movimentacoes registradas, este comparativo ficara
+            disponivel aqui.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
   const chartHeight = 220;
   const chartWidth = Math.max(data.length * 96, 540);
   const bottomPadding = 36;
@@ -59,7 +73,7 @@ export function DashboardFinanceChart({
               Consolidado financeiro do periodo {periodLabel}.
             </CardDescription>
           </div>
-          <Badge variant="secondary">6 meses</Badge>
+          <Badge variant="secondary">Panorama recente</Badge>
         </div>
 
         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">

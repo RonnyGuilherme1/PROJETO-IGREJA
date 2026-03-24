@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { getApiErrorMessage } from "@/lib/http";
+import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { listChurches } from "@/modules/churches/services/churches-service";
 import { UsersFilters } from "@/modules/users/components/users-filters";
 import { UsersTable } from "@/modules/users/components/users-table";
 import { inactivateUser, listUsers } from "@/modules/users/services/users-service";
@@ -31,10 +33,16 @@ export function UsersListPage() {
   const [filters, setFilters] = useState<UserFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<UserFilters>(initialFilters);
   const [users, setUsers] = useState<UserItem[]>([]);
+  const [churchNamesById, setChurchNamesById] = useState<Record<string, string>>(
+    {},
+  );
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [churchesError, setChurchesError] = useState<string | null>(null);
   const [inactivatingId, setInactivatingId] = useState<string | null>(null);
+  const [userPendingInactivation, setUserPendingInactivation] =
+    useState<UserItem | null>(null);
 
   const loadUsers = useCallback(async (currentFilters: UserFilters) => {
     setIsLoading(true);
@@ -60,6 +68,42 @@ export function UsersListPage() {
     void loadUsers(appliedFilters);
   }, [appliedFilters, loadUsers]);
 
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadChurchNames() {
+      try {
+        const response = await listChurches({ name: "", status: "" });
+
+        if (!isActive) {
+          return;
+        }
+
+        setChurchesError(null);
+        setChurchNamesById(
+          Object.fromEntries(
+            response.items.map((church) => [church.id, church.name]),
+          ),
+        );
+      } catch (loadError) {
+        if (isActive) {
+          setChurchesError(
+            getApiErrorMessage(
+              loadError,
+              "Nao foi possivel carregar a lista de igrejas para exibir os usuarios.",
+            ),
+          );
+        }
+      }
+    }
+
+    void loadChurchNames();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   function handleFilterChange(field: keyof UserFilters, value: string) {
     setFilters((current) => ({
       ...current,
@@ -78,20 +122,21 @@ export function UsersListPage() {
   }
 
   async function handleInactivate(user: UserItem) {
-    const confirmed = window.confirm(
-      `Deseja inativar o usuario ${user.name}?`,
-    );
+    setUserPendingInactivation(user);
+  }
 
-    if (!confirmed) {
+  async function confirmInactivateUser() {
+    if (!userPendingInactivation) {
       return;
     }
 
-    setInactivatingId(user.id);
+    setInactivatingId(userPendingInactivation.id);
     setError(null);
 
     try {
-      await inactivateUser(user.id);
+      await inactivateUser(userPendingInactivation.id);
       await loadUsers(appliedFilters);
+      setUserPendingInactivation(null);
     } catch (actionError) {
       setError(
         getApiErrorMessage(
@@ -107,7 +152,7 @@ export function UsersListPage() {
   if (error && users.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Falha ao carregar usuarios"
+        title="Nao foi possivel abrir os usuarios"
         description={error}
         onAction={() => void loadUsers(appliedFilters)}
       />
@@ -118,8 +163,8 @@ export function UsersListPage() {
     <div className="space-y-6">
       <PageHeader
         title="Usuarios"
-        description="Controle administrativo de usuarios com filtros simples, listagem organizada e acoes de manutencao."
-        badge="Acesso ADMIN"
+        description="Gerencie acessos, perfis e vinculacoes com clareza."
+        badge="Administrador"
         action={
           <Button asChild>
             <Link href="/usuarios/novo">
@@ -138,9 +183,15 @@ export function UsersListPage() {
               Filtre por nome, e-mail, status e perfil para localizar usuarios.
             </CardDescription>
           </div>
-          <Badge variant="secondary">{total} usuario(s)</Badge>
+          <Badge variant="secondary">Total: {total}</Badge>
         </CardHeader>
         <CardContent>
+          {churchesError ? (
+            <div className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {churchesError}
+            </div>
+          ) : null}
+
           <UsersFilters
             filters={filters}
             isLoading={isLoading}
@@ -155,7 +206,7 @@ export function UsersListPage() {
         <CardHeader className="space-y-2">
           <CardTitle>Listagem</CardTitle>
           <CardDescription>
-            Visualize usuarios cadastrados, edite registros e inative acessos.
+            Visualize usuarios cadastrados, ajuste perfis e acompanhe o status dos acessos.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -167,12 +218,35 @@ export function UsersListPage() {
 
           <UsersTable
             users={users}
+            churchNamesById={churchNamesById}
             isLoading={isLoading}
             inactivatingId={inactivatingId}
             onInactivate={handleInactivate}
           />
         </CardContent>
       </Card>
+
+      <ConfirmActionDialog
+        open={Boolean(userPendingInactivation)}
+        title="Inativar usuario"
+        description={
+          userPendingInactivation
+            ? `O acesso de ${userPendingInactivation.name} sera bloqueado ate uma nova ativacao.`
+            : ""
+        }
+        confirmLabel="Inativar"
+        confirmVariant="destructive"
+        isLoading={Boolean(
+          userPendingInactivation &&
+            inactivatingId === userPendingInactivation.id,
+        )}
+        onConfirm={() => void confirmInactivateUser()}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUserPendingInactivation(null);
+          }
+        }}
+      />
     </div>
   );
 }

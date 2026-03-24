@@ -27,7 +27,7 @@ export interface MemberItem {
 
 export interface MemberFilters {
   name: string;
-  status: string;
+  status: MemberStatus | "";
   churchId: string;
 }
 
@@ -42,11 +42,11 @@ export interface MemberListResult {
 export interface CreateMemberPayload {
   fullName: string;
   birthDate: string;
-  gender: string;
+  gender: MemberGender | "";
   phone: string;
   email: string;
   address: string;
-  maritalStatus: string;
+  maritalStatus: MemberMaritalStatus | "";
   joinedAt: string;
   status: MemberStatus;
   notes: string;
@@ -70,11 +70,11 @@ export interface UpdateMemberPayload {
 export interface MemberFormValues {
   fullName: string;
   birthDate: string;
-  gender: string;
+  gender: MemberGender | "";
   phone: string;
   email: string;
   address: string;
-  maritalStatus: string;
+  maritalStatus: MemberMaritalStatus | "";
   joinedAt: string;
   status: MemberStatus;
   notes: string;

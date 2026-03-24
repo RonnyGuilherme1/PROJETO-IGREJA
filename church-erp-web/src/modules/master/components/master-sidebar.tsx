@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight, ShieldUser } from "lucide-react";
-import { apiConfig } from "@/lib/env";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { masterNavItems } from "@/modules/master/config/navigation";
 
 interface MasterSidebarProps {
@@ -28,10 +26,10 @@ export function MasterSidebar({ onNavigate }: MasterSidebarProps) {
           </div>
           <div className="space-y-1">
             <p className="text-sm font-semibold tracking-wide text-sidebar-foreground">
-              Church ERP Platform
+              Plataforma Church ERP
             </p>
             <p className="text-xs text-sidebar-foreground/60">
-              Area master
+              Plataforma
             </p>
           </div>
         </Link>
@@ -55,7 +53,7 @@ export function MasterSidebar({ onNavigate }: MasterSidebarProps) {
                 className={cn(
                   "group flex items-center gap-3 rounded-2xl px-3 py-3 transition-colors",
                   isActive
-                    ? "bg-white text-sidebar shadow-sm"
+                    ? "bg-white/14 text-white shadow-sm ring-1 ring-white/10"
                     : "text-sidebar-foreground/80 hover:bg-white/10 hover:text-sidebar-foreground",
                 )}
               >
@@ -63,7 +61,7 @@ export function MasterSidebar({ onNavigate }: MasterSidebarProps) {
                   className={cn(
                     "flex size-10 items-center justify-center rounded-2xl transition-colors",
                     isActive
-                      ? "bg-secondary text-primary"
+                      ? "bg-white/16 text-white"
                       : "bg-white/8 text-sidebar-foreground/80 group-hover:bg-white/10",
                   )}
                 >
@@ -75,48 +73,23 @@ export function MasterSidebar({ onNavigate }: MasterSidebarProps) {
                     className={cn(
                       "mt-1 text-xs leading-5",
                       isActive
-                        ? "text-foreground/60"
+                        ? "text-white/72"
                         : "text-sidebar-foreground/55",
                     )}
                   >
                     {item.description}
                   </p>
                 </div>
-                <ChevronRight className="size-4 opacity-60" />
+                <ChevronRight
+                  className={cn(
+                    "size-4",
+                    isActive ? "text-white opacity-100" : "opacity-60",
+                  )}
+                />
               </Link>
             );
           })}
         </nav>
-      </div>
-
-      <div className="border-t border-sidebar-border px-4 py-4">
-        <div className="rounded-3xl bg-white/8 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-sidebar-foreground">
-                API REST
-              </p>
-              <p className="text-xs text-sidebar-foreground/60">
-                Configuracao da plataforma
-              </p>
-            </div>
-            <Badge
-              variant={apiConfig.isConfigured ? "secondary" : "outline"}
-              className={cn(
-                "border-white/10",
-                apiConfig.isConfigured
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-transparent text-sidebar-foreground",
-              )}
-            >
-              {apiConfig.isConfigured ? "OK" : "Pendente"}
-            </Badge>
-          </div>
-
-          <p className="mt-3 break-all font-mono text-xs leading-6 text-sidebar-foreground/70">
-            {apiConfig.baseUrl}
-          </p>
-        </div>
       </div>
     </div>
   );

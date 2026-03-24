@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { getApiErrorMessage } from "@/lib/http";
+import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +77,8 @@ export function TreasuryListPage({
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [churchesError, setChurchesError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [movementPendingCancellation, setMovementPendingCancellation] =
+    useState<TreasuryMovementItem | null>(null);
   const categoryNamesById = Object.fromEntries(
     categories.map((category) => [category.id, category.name]),
   );
@@ -176,20 +179,21 @@ export function TreasuryListPage({
   }
 
   async function handleCancelMovement(item: TreasuryMovementItem) {
-    const confirmed = window.confirm(
-      `Deseja cancelar a movimentacao ${item.description}?`,
-    );
+    setMovementPendingCancellation(item);
+  }
 
-    if (!confirmed) {
+  async function confirmCancelMovement() {
+    if (!movementPendingCancellation) {
       return;
     }
 
-    setCancellingId(item.id);
+    setCancellingId(movementPendingCancellation.id);
     setError(null);
 
     try {
-      await cancelTreasuryMovement(item.id);
+      await cancelTreasuryMovement(movementPendingCancellation.id);
       await loadMovements(appliedFilters);
+      setMovementPendingCancellation(null);
     } catch (actionError) {
       setError(
         getApiErrorMessage(
@@ -205,7 +209,7 @@ export function TreasuryListPage({
   if (error && items.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Falha ao carregar tesouraria"
+        title="Nao foi possivel abrir a tesouraria"
         description={error}
         onAction={() => void loadMovements(appliedFilters)}
       />
@@ -216,7 +220,7 @@ export function TreasuryListPage({
     <div className="space-y-6">
       <PageHeader
         title="Tesouraria"
-        description="Acompanhe entradas e saidas financeiras com filtros por periodo, categoria e igreja."
+        description="Acompanhe entradas e saidas financeiras com visao clara por periodo, categoria e igreja."
         badge={getTreasuryAccessLabel(currentUser)}
         action={
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -247,7 +251,7 @@ export function TreasuryListPage({
               Filtre as movimentacoes por periodo, tipo, categoria e igreja.
             </CardDescription>
           </div>
-          <Badge variant="secondary">{total} movimentacao(oes)</Badge>
+          <Badge variant="secondary">Total: {total}</Badge>
         </CardHeader>
         <CardContent className="space-y-4">
           {categoriesError ? (
@@ -298,6 +302,28 @@ export function TreasuryListPage({
           />
         </CardContent>
       </Card>
+
+      <ConfirmActionDialog
+        open={Boolean(movementPendingCancellation)}
+        title="Cancelar movimentacao"
+        description={
+          movementPendingCancellation
+            ? `A movimentacao "${movementPendingCancellation.description}" sera mantida no historico, mas passara a constar como cancelada.`
+            : ""
+        }
+        confirmLabel="Cancelar movimentacao"
+        confirmVariant="destructive"
+        isLoading={Boolean(
+          movementPendingCancellation &&
+            cancellingId === movementPendingCancellation.id,
+        )}
+        onConfirm={() => void confirmCancelMovement()}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMovementPendingCancellation(null);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -12,13 +12,13 @@ export const masterNavItems: MasterNavItem[] = [
   {
     title: "Dashboard",
     href: "/master/dashboard",
-    description: "Visao geral da plataforma",
+    description: "Resumo da plataforma",
     icon: LayoutDashboard,
   },
   {
-    title: "Tenants",
+    title: "Ambientes",
     href: "/master/tenants",
-    description: "Clientes e ambientes",
+    description: "Clientes e acessos",
     icon: Building2,
   },
 ];
