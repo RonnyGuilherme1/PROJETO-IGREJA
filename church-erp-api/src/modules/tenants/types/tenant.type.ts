@@ -5,6 +5,8 @@ export const tenantSelect = Prisma.validator<Prisma.TenantSelect>()({
   name: true,
   slug: true,
   status: true,
+  logoUrl: true,
+  themeKey: true,
   createdAt: true,
   updatedAt: true,
 });

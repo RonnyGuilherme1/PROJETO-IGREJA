@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { LoaderCircle, Pencil, ToggleLeft, ToggleRight } from "lucide-react";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getTenantThemeLabel } from "@/lib/tenant-branding";
 import type { MasterTenantItem } from "@/modules/master/types/tenant";
 
 interface TenantsTableProps {
@@ -107,9 +109,27 @@ export function TenantsTable({
               return (
                 <tr key={tenant.id} className="align-top">
                   <td className="px-4 py-4">
-                    <div className="space-y-1">
-                      <p className="font-medium text-foreground">{tenant.name}</p>
-                      <p className="text-xs text-muted-foreground">ID: {tenant.id}</p>
+                    <div className="flex items-start gap-3">
+                      <BrandLogo
+                        alt={`Logo do banco ${tenant.name}`}
+                        logoUrl={tenant.logoUrl}
+                        className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card shadow-sm"
+                        imageClassName="h-full w-full bg-card p-2.5"
+                        iconClassName="size-5 text-primary"
+                      />
+
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">{tenant.name}</p>
+                        <p className="text-xs text-muted-foreground">ID: {tenant.id}</p>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          <Badge variant="secondary">
+                            {getTenantThemeLabel(tenant.themeKey)}
+                          </Badge>
+                          <Badge variant="outline" className="bg-card">
+                            {tenant.logoUrl ? "Logo propria" : "Logo padrao"}
+                          </Badge>
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">

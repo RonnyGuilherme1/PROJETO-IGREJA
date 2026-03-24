@@ -54,6 +54,8 @@ model Tenant {
   name                String
   slug                String               @unique
   status              TenantStatus         @default(ACTIVE)
+  logoUrl             String?
+  themeKey            String               @default("green")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   users               User[]

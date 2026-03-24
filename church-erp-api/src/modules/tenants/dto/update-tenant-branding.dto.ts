@@ -1,36 +1,12 @@
-import { TenantStatus } from '@prisma/client';
 import { Transform } from 'class-transformer';
-import {
-  IsEnum,
-  IsIn,
-  IsOptional,
-  IsString,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
 import {
   TENANT_THEME_KEYS,
   TenantThemeKey,
 } from '../constants/tenant-theme.constants';
 
-export class UpdateTenantDto {
-  @IsOptional()
-  @IsString()
-  @MinLength(3)
-  @MaxLength(255)
-  name?: string;
-
-  @IsOptional()
-  @IsString()
-  @MinLength(2)
-  @MaxLength(100)
-  code?: string;
-
-  @IsOptional()
-  @IsEnum(TenantStatus)
-  status?: TenantStatus;
-
+export class UpdateTenantBrandingDto {
   @IsOptional()
   @Transform(({ value }) => {
     if (typeof value !== 'string') {

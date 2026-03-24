@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { getApiErrorMessage } from "@/lib/http";
+import { DEFAULT_TENANT_THEME_KEY } from "@/lib/tenant-branding";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,10 @@ export function TenantsListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const customLogoCount = tenants.filter((tenant) => Boolean(tenant.logoUrl)).length;
+  const customThemeCount = tenants.filter(
+    (tenant) => tenant.themeKey !== DEFAULT_TENANT_THEME_KEY,
+  ).length;
 
   const loadTenants = useCallback(async () => {
     setIsLoading(true);
@@ -121,10 +126,14 @@ export function TenantsListPage() {
           <div className="space-y-2">
             <CardTitle>Listagem</CardTitle>
             <CardDescription>
-              Bancos cadastrados com acoes de edicao e ativacao/inativacao.
+              Bancos cadastrados com acoes de edicao, ativacao e identidade visual por ambiente.
             </CardDescription>
           </div>
-          <Badge variant="secondary">{total} banco(s)</Badge>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Badge variant="secondary">{total} banco(s)</Badge>
+            <Badge variant="outline">{customLogoCount} com logo propria</Badge>
+            <Badge variant="outline">{customThemeCount} com tema customizado</Badge>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {error ? (

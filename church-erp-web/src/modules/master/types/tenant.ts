@@ -1,8 +1,16 @@
+import {
+  DEFAULT_TENANT_THEME_KEY,
+  TENANT_THEME_OPTIONS,
+  type TenantThemeKey,
+} from "@/lib/tenant-branding";
+
 export interface MasterTenantItem {
   id: string;
   name: string;
   code: string;
   status: string;
+  logoUrl: string | null;
+  themeKey: TenantThemeKey;
   adminName: string;
   adminUsername: string;
   adminEmail: string;
@@ -23,6 +31,8 @@ export interface MasterTenantsListResult {
 export interface CreateMasterTenantPayload {
   name: string;
   status: string;
+  logoUrl?: string | null;
+  themeKey: TenantThemeKey;
   adminName: string;
   adminUsername: string;
   adminEmail: string;
@@ -33,12 +43,16 @@ export interface UpdateMasterTenantPayload {
   name: string;
   code: string;
   status: string;
+  logoUrl?: string | null;
+  themeKey: TenantThemeKey;
 }
 
 export interface MasterTenantFormValues {
   name: string;
   code: string;
   status: string;
+  logoUrl: string;
+  themeKey: TenantThemeKey;
   adminName: string;
   adminUsername: string;
   adminEmail: string;
@@ -49,3 +63,7 @@ export const MASTER_TENANT_STATUS_OPTIONS = [
   { value: "ACTIVE", label: "Ativo" },
   { value: "INACTIVE", label: "Inativo" },
 ] as const;
+
+export const MASTER_TENANT_THEME_OPTIONS = TENANT_THEME_OPTIONS;
+
+export { DEFAULT_TENANT_THEME_KEY };

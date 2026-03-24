@@ -5,6 +5,8 @@ import { useEffect, useState, useTransition } from "react";
 import { ArrowLeft, LoaderCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
+import { getTenantThemeLabel } from "@/lib/tenant-branding";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -24,7 +26,9 @@ import {
   updateMasterTenant,
 } from "@/modules/master/services/master-tenants-service";
 import {
+  DEFAULT_TENANT_THEME_KEY,
   MASTER_TENANT_STATUS_OPTIONS,
+  MASTER_TENANT_THEME_OPTIONS,
   type CreateMasterTenantPayload,
   type MasterTenantFormValues,
   type UpdateMasterTenantPayload,
@@ -39,6 +43,8 @@ const initialFormValues: MasterTenantFormValues = {
   name: "",
   code: "",
   status: "ACTIVE",
+  logoUrl: "",
+  themeKey: DEFAULT_TENANT_THEME_KEY,
   adminName: "",
   adminUsername: "",
   adminEmail: "",
@@ -77,6 +83,8 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
           name: tenant.name,
           code: tenant.code,
           status: tenant.status || "ACTIVE",
+          logoUrl: tenant.logoUrl ?? "",
+          themeKey: tenant.themeKey,
           adminName: "",
           adminUsername: "",
           adminEmail: "",
@@ -124,6 +132,8 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
         const payload: CreateMasterTenantPayload = {
           name: formValues.name,
           status: formValues.status,
+          logoUrl: formValues.logoUrl,
+          themeKey: formValues.themeKey,
           adminName: formValues.adminName,
           adminUsername: formValues.adminUsername,
           adminEmail: formValues.adminEmail,
@@ -136,6 +146,8 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
           name: formValues.name,
           code: formValues.code,
           status: formValues.status,
+          logoUrl: formValues.logoUrl,
+          themeKey: formValues.themeKey,
         };
 
         await updateMasterTenant(tenantId, payload);
@@ -169,14 +181,18 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
     );
   }
 
+  const selectedThemeLabel = getTenantThemeLabel(formValues.themeKey);
+  const previewTitle = formValues.name.trim() || "Preview da identidade";
+  const hasCustomLogo = formValues.logoUrl.trim().length > 0;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title={mode === "create" ? "Novo banco" : "Editar banco"}
         description={
           mode === "create"
-            ? "Cadastre um novo banco da plataforma e defina o administrador inicial do ambiente."
-            : "Atualize os dados principais do banco mantendo o mesmo padrao visual da area master."
+            ? "Cadastre um novo banco da plataforma, escolha um tema pre-definido e defina o administrador inicial."
+            : "Atualize os dados principais do banco, incluindo logo opcional e tema exclusivo do ambiente."
         }
         badge="Area master"
         action={
@@ -228,11 +244,13 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                     <Input
                       id="tenant-code"
                       value={formValues.code}
-                      readOnly
+                      onChange={(event) =>
+                        handleFieldChange("code", event.target.value)
+                      }
+                      required
                     />
                     <p className="text-xs leading-5 text-muted-foreground">
-                      Codigo usado no login do banco e gerado automaticamente na
-                      criacao.
+                      Codigo usado no login do banco. A edicao permanece restrita ao fluxo master.
                     </p>
                   </div>
                 ) : null}
@@ -252,6 +270,65 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                       </option>
                     ))}
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tenant-theme">Tema do layout</Label>
+                  <Select
+                    id="tenant-theme"
+                    value={formValues.themeKey}
+                    onChange={(event) =>
+                      handleFieldChange("themeKey", event.target.value)
+                    }
+                  >
+                    {MASTER_TENANT_THEME_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Tema aplicado somente ao banco logado. O padrao e Green.
+                  </p>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="tenant-logo-url">URL da logo (opcional)</Label>
+                  <Input
+                    id="tenant-logo-url"
+                    value={formValues.logoUrl}
+                    onChange={(event) =>
+                      handleFieldChange("logoUrl", event.target.value)
+                    }
+                    placeholder="https://exemplo.com/logo.png"
+                  />
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Se nao houver logo configurada, o banco continuara usando a logo padrao atual do sistema.
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-border bg-secondary/25 p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                  <BrandLogo
+                    alt={`Logo do banco ${previewTitle}`}
+                    logoUrl={formValues.logoUrl}
+                    className="flex size-[4.5rem] shrink-0 items-center justify-center rounded-3xl border border-border bg-card shadow-sm"
+                    imageClassName="h-full w-full bg-card p-3"
+                    iconClassName="size-7 text-primary"
+                  />
+
+                  <div className="space-y-1">
+                    <p className="font-semibold text-foreground">{previewTitle}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Tema selecionado: <strong>{selectedThemeLabel}</strong>
+                    </p>
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      {hasCustomLogo
+                        ? "Logo personalizada pronta para este banco."
+                        : "Sem logo informada. O layout usara a logo padrao do sistema."}
+                    </p>
+                  </div>
                 </div>
               </div>
 

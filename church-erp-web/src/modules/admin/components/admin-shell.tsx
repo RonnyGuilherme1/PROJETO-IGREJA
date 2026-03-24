@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { TenantThemeScope } from "@/components/layout/tenant-theme-scope";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { AdminHeader } from "@/modules/admin/components/admin-header";
 import { AdminSidebar } from "@/modules/admin/components/admin-sidebar";
-import { adminNavItems } from "@/modules/admin/config/navigation";
+import { adminNavItems, getAdminNavItems } from "@/modules/admin/config/navigation";
 import type { AuthUser } from "@/modules/auth/types/auth";
 
 interface AdminShellProps {
@@ -24,14 +25,15 @@ interface AdminShellProps {
 export function AdminShell({ children, user }: AdminShellProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const navigationItems = getAdminNavItems(user.profile);
 
   const currentPage =
-    adminNavItems.find(
+    navigationItems.find(
       (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-    ) ?? adminNavItems[0];
+    ) ?? navigationItems[0] ?? adminNavItems[0];
 
   return (
-    <div className="min-h-screen bg-background">
+    <TenantThemeScope themeKey={user.tenantThemeKey}>
       <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
         <aside className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
           <AdminSidebar user={user} />
@@ -48,7 +50,7 @@ export function AdminShell({ children, user }: AdminShellProps) {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="bg-white/70 lg:hidden"
+                    className="bg-card/80 lg:hidden"
                   >
                     <Menu className="size-5" />
                     <span className="sr-only">Abrir navegacao</span>
@@ -72,6 +74,6 @@ export function AdminShell({ children, user }: AdminShellProps) {
           </main>
         </div>
       </div>
-    </div>
+    </TenantThemeScope>
   );
 }

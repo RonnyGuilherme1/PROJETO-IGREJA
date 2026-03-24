@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { LoaderCircle, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { getTenantLabel } from "@/lib/tenant-branding";
 import { Button } from "@/components/ui/button";
 import {
   clearAuthSession,
@@ -18,13 +19,7 @@ interface AuthUserPanelProps {
 export function AuthUserPanel({ user }: AuthUserPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const tenantLabel = user.tenantName?.trim()
-    ? user.tenantCode?.trim()
-      ? `${user.tenantName} (${user.tenantCode})`
-      : user.tenantName
-    : user.tenantCode?.trim()
-      ? `Tenant ${user.tenantCode}`
-      : null;
+  const tenantLabel = getTenantLabel(user.tenantName, user.tenantCode);
   const accessScope =
     user.authMode === "MASTER"
       ? "Master"
@@ -33,7 +28,7 @@ export function AuthUserPanel({ user }: AuthUserPanelProps) {
         : null;
   const details = [user.email || user.username, user.profile, accessScope]
     .filter(Boolean)
-    .join(" • ");
+    .join(" | ");
 
   function handleLogout() {
     clearAuthSession();
@@ -44,7 +39,7 @@ export function AuthUserPanel({ user }: AuthUserPanelProps) {
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-2xl border border-border bg-white px-2 py-2 shadow-xs sm:gap-3 sm:px-3">
+    <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-2 py-2 shadow-xs sm:gap-3 sm:px-3">
       <div className="flex size-10 items-center justify-center rounded-2xl bg-primary text-sm font-semibold text-primary-foreground">
         {getInitials(user.name)}
       </div>

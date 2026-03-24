@@ -25,6 +25,13 @@
   --sidebar-foreground: #eef5f1;
   --sidebar-accent: #24483c;
   --sidebar-border: rgba(255, 255, 255, 0.1);
+  --surface-base: #ffffff;
+  --surface-soft: rgb(255 255 255 / 0.86);
+  --surface-muted: rgb(255 255 255 / 0.72);
+  --surface-strong: #ffffff;
+  --tenant-shell-glow: rgb(31 91 73 / 0.12);
+  --tenant-shell-start: #fbfcfa;
+  --tenant-shell-end: #f3f5f1;
 }
 
 @theme inline {
@@ -70,10 +77,63 @@ html {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgb(31 91 73 / 0.12), transparent 34%),
-    linear-gradient(180deg, #fbfcfa 0%, #f3f5f1 100%);
+    radial-gradient(circle at top, var(--tenant-shell-glow), transparent 34%),
+    linear-gradient(180deg, var(--tenant-shell-start) 0%, var(--tenant-shell-end) 100%);
   color: var(--foreground);
   font-family: var(--font-manrope), sans-serif;
+}
+
+.tenant-theme-shell {
+  background:
+    radial-gradient(circle at top, var(--tenant-shell-glow), transparent 34%),
+    linear-gradient(180deg, var(--tenant-shell-start) 0%, var(--tenant-shell-end) 100%);
+}
+
+[data-tenant-theme="dark"] input,
+[data-tenant-theme="dark"] select,
+[data-tenant-theme="dark"] textarea {
+  background-color: var(--surface-strong) !important;
+  color: var(--foreground);
+  caret-color: var(--foreground);
+  border-color: var(--border) !important;
+}
+
+[data-tenant-theme="dark"] option {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+}
+
+[data-tenant-theme="dark"] input::placeholder,
+[data-tenant-theme="dark"] textarea::placeholder {
+  color: var(--muted-foreground);
+}
+
+[data-tenant-theme="dark"] .bg-white {
+  background-color: var(--surface-base) !important;
+}
+
+[data-tenant-theme="dark"] .bg-white\/70 {
+  background-color: var(--surface-muted) !important;
+}
+
+[data-tenant-theme="dark"] .bg-white\/75 {
+  background-color: var(--surface-muted) !important;
+}
+
+[data-tenant-theme="dark"] .bg-white\/80 {
+  background-color: var(--surface-soft) !important;
+}
+
+[data-tenant-theme="dark"] .bg-white\/85 {
+  background-color: var(--surface-soft) !important;
+}
+
+[data-tenant-theme="dark"] .bg-white\/90 {
+  background-color: var(--surface-soft) !important;
+}
+
+[data-tenant-theme="dark"] .border-white\/60 {
+  border-color: color-mix(in srgb, var(--border) 60%, transparent) !important;
 }
 
 button,

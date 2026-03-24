@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building2, ChevronRight } from "lucide-react";
 import { apiConfig } from "@/lib/env";
+import { getTenantLabel } from "@/lib/tenant-branding";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { Badge } from "@/components/ui/badge";
-import { adminNavItems } from "@/modules/admin/config/navigation";
+import { getAdminNavItems } from "@/modules/admin/config/navigation";
 import type { AuthUser } from "@/modules/auth/types/auth";
 
 interface AdminSidebarProps {
@@ -16,13 +18,13 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
   const pathname = usePathname();
-  const tenantLabel = user?.tenantName?.trim()
-    ? user.tenantCode?.trim()
-      ? `${user.tenantName} (${user.tenantCode})`
-      : user.tenantName
-    : user?.tenantCode?.trim()
-      ? `Tenant ${user.tenantCode}`
-      : "Painel administrativo";
+  const navigationItems = getAdminNavItems(user?.profile);
+  const tenantLabel =
+    getTenantLabel(user?.tenantName, user?.tenantCode) ?? "Painel administrativo";
+  const tenantTitle = user?.tenantName?.trim() || "Church ERP";
+  const tenantSubtitle = user?.tenantCode?.trim()
+    ? `Banco ${user.tenantCode}`
+    : tenantLabel;
 
   return (
     <div className="flex h-full flex-col">
@@ -32,15 +34,20 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
           onClick={onNavigate}
           className="flex items-center gap-3"
         >
-          <div className="flex size-11 items-center justify-center rounded-2xl bg-white/10">
-            <Building2 className="size-5" />
-          </div>
+          <BrandLogo
+            alt={`Logo do banco ${tenantLabel}`}
+            logoUrl={user?.tenantLogoUrl}
+            icon={Building2}
+            className="flex size-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10"
+            imageClassName="h-full w-full bg-card p-2"
+            iconClassName="size-5"
+          />
           <div className="space-y-1">
             <p className="text-sm font-semibold tracking-wide text-sidebar-foreground">
-              Church ERP
+              {tenantTitle}
             </p>
             <p className="text-xs text-sidebar-foreground/60">
-              {tenantLabel}
+              {tenantSubtitle}
             </p>
           </div>
         </Link>
@@ -51,7 +58,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
           Navegacao
         </p>
         <nav className="mt-4 space-y-1.5">
-          {adminNavItems.map((item) => {
+          {navigationItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
 

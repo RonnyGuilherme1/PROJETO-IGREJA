@@ -2,16 +2,19 @@ import type { LucideIcon } from "lucide-react";
 import {
   Building2,
   LayoutDashboard,
+  Palette,
   ShieldUser,
   Users,
   Wallet,
 } from "lucide-react";
+import { isAdminProfile } from "@/modules/auth/lib/auth-session";
 
 export interface AdminNavItem {
   title: string;
   href: string;
   description: string;
   icon: LucideIcon;
+  adminOnly?: boolean;
 }
 
 export const adminNavItems: AdminNavItem[] = [
@@ -45,4 +48,17 @@ export const adminNavItems: AdminNavItem[] = [
     description: "Acesso e permissoes",
     icon: ShieldUser,
   },
+  {
+    title: "Configuracoes",
+    href: "/banco",
+    description: "Tema, logo e futuras preferencias do ambiente",
+    icon: Palette,
+    adminOnly: true,
+  },
 ];
+
+export function getAdminNavItems(profile?: string) {
+  return adminNavItems.filter(
+    (item) => !item.adminOnly || isAdminProfile(profile),
+  );
+}

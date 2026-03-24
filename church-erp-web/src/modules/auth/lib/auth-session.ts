@@ -4,6 +4,10 @@ import type {
   AuthSessionMeta,
   AuthUser,
 } from "@/modules/auth/types/auth";
+import {
+  normalizeTenantLogoUrl,
+  normalizeTenantTheme,
+} from "@/lib/tenant-branding";
 
 export const AUTH_TOKEN_COOKIE = "church-erp.access-token";
 export const AUTH_SESSION_COOKIE = "church-erp.session";
@@ -253,13 +257,51 @@ function buildAuthUser(records: JsonRecord[], token: string): AuthUser {
       ["company", "name"],
     ]) ?? undefined;
 
+  const tenantId =
+    findFirstString(sources, [
+      ["tenantId"],
+      ["tenant_id"],
+      ["tenant", "id"],
+      ["organization", "id"],
+    ]) ?? undefined;
+
+  const tenantLogoUrl = normalizeTenantLogoUrl(
+    findFirstValue(sources, [
+      ["tenantLogoUrl"],
+      ["tenant_logo_url"],
+      ["tenant", "logoUrl"],
+      ["tenant", "logo"],
+      ["tenantBranding", "logoUrl"],
+      ["organization", "logoUrl"],
+      ["logoUrl"],
+      ["logo"],
+    ]),
+  );
+
+  const tenantThemeKey = normalizeTenantTheme(
+    findFirstValue(sources, [
+      ["tenantThemeKey"],
+      ["tenant_theme_key"],
+      ["tenantTheme"],
+      ["themeKey"],
+      ["theme"],
+      ["tenant", "themeKey"],
+      ["tenant", "theme"],
+      ["tenantBranding", "themeKey"],
+      ["organization", "themeKey"],
+    ]),
+  );
+
   return {
     name,
     email,
     profile,
     username,
+    tenantId,
     tenantCode,
     tenantName,
+    tenantLogoUrl,
+    tenantThemeKey,
   };
 }
 
@@ -420,7 +462,12 @@ export function applyAuthSessionContext(
         context.mode === "TENANT"
           ? context.tenantCode?.trim() || session.user.tenantCode
           : undefined,
-      tenantName: session.user.tenantName,
+      tenantId: context.mode === "TENANT" ? session.user.tenantId : undefined,
+      tenantName: context.mode === "TENANT" ? session.user.tenantName : undefined,
+      tenantLogoUrl:
+        context.mode === "TENANT" ? session.user.tenantLogoUrl : undefined,
+      tenantThemeKey:
+        context.mode === "TENANT" ? session.user.tenantThemeKey : undefined,
       authMode: context.mode,
     },
   };

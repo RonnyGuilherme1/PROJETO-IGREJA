@@ -1,5 +1,9 @@
 import axios from "axios";
 import { ensureApiConfigured, http } from "@/lib/http";
+import {
+  normalizeTenantLogoUrl,
+  normalizeTenantTheme,
+} from "@/lib/tenant-branding";
 import type {
   CreateMasterTenantPayload,
   MasterTenantFilters,
@@ -132,6 +136,25 @@ function normalizeMasterTenant(source: unknown): MasterTenantItem {
     status: normalizeStatus(
       findFirstValue(source, [["status"], ["active"], ["enabled"]]),
     ),
+    logoUrl: normalizeTenantLogoUrl(
+      findFirstValue(source, [
+        ["logoUrl"],
+        ["logo_url"],
+        ["tenantLogoUrl"],
+        ["tenant", "logoUrl"],
+        ["branding", "logoUrl"],
+      ]),
+    ),
+    themeKey: normalizeTenantTheme(
+      findFirstValue(source, [
+        ["themeKey"],
+        ["theme_key"],
+        ["theme"],
+        ["tenantThemeKey"],
+        ["tenant", "themeKey"],
+        ["branding", "themeKey"],
+      ]),
+    ),
     adminName:
       toTrimmedString(
         findFirstValue(source, [
@@ -253,6 +276,8 @@ function sanitizeCreatePayload(payload: CreateMasterTenantPayload) {
   return {
     name: payload.name.trim(),
     status: payload.status.trim().toUpperCase(),
+    logoUrl: normalizeTenantLogoUrl(payload.logoUrl),
+    themeKey: normalizeTenantTheme(payload.themeKey),
     adminUser: {
       name: payload.adminName.trim(),
       username: payload.adminUsername.trim(),
@@ -265,8 +290,10 @@ function sanitizeCreatePayload(payload: CreateMasterTenantPayload) {
 function sanitizeUpdatePayload(payload: UpdateMasterTenantPayload) {
   return {
     name: payload.name.trim(),
-    tenantCode: payload.code.trim(),
+    code: payload.code.trim(),
     status: payload.status.trim().toUpperCase(),
+    logoUrl: normalizeTenantLogoUrl(payload.logoUrl),
+    themeKey: normalizeTenantTheme(payload.themeKey),
   };
 }
 
@@ -364,7 +391,18 @@ export async function updateMasterTenant(
   ensureApiConfigured();
 
   const data = await requestTenantsApi(async (basePath) => {
-    const response = await http.put(`${basePath}/${id}`, sanitizeUpdatePayload(payload));
+    const sanitizedPayload = sanitizeUpdatePayload(payload);
+
+    try {
+      const response = await http.patch(`${basePath}/${id}`, sanitizedPayload);
+      return response.data;
+    } catch (error) {
+      if (!shouldTryNextEndpoint(error)) {
+        throw error;
+      }
+    }
+
+    const response = await http.put(`${basePath}/${id}`, sanitizedPayload);
     return response.data;
   });
 

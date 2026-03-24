@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,9 +8,12 @@ import { Prisma, TenantStatus, UserRole, UserStatus } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
+import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { DEFAULT_FINANCE_CATEGORIES } from '../finance/finance.service';
+import { DEFAULT_TENANT_THEME_KEY } from './constants/tenant-theme.constants';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { UpdateTenantBrandingDto } from './dto/update-tenant-branding.dto';
 import { TenantResponseDto } from './dto/tenant-response.dto';
 import { TenantEntity, tenantSelect } from './types/tenant.type';
 
@@ -36,6 +40,15 @@ export class TenantsService {
 
   async findOne(id: string): Promise<TenantResponseDto> {
     const tenant = await this.findTenantByIdOrThrow(id);
+
+    return new TenantResponseDto(tenant);
+  }
+
+  async findCurrent(
+    currentUser: AuthenticatedUser,
+  ): Promise<TenantResponseDto> {
+    const tenantId = this.ensureTenantAdminAccess(currentUser);
+    const tenant = await this.findTenantByIdOrThrow(tenantId);
 
     return new TenantResponseDto(tenant);
   }
@@ -81,8 +94,46 @@ export class TenantsService {
       data.slug = updateTenantDto.code;
     }
 
+    if (updateTenantDto.status !== undefined) {
+      data.status = updateTenantDto.status;
+    }
+
+    if (updateTenantDto.logoUrl !== undefined) {
+      data.logoUrl = this.normalizeLogoUrl(updateTenantDto.logoUrl);
+    }
+
+    if (updateTenantDto.themeKey !== undefined) {
+      data.themeKey = updateTenantDto.themeKey;
+    }
+
     const tenant = await this.prisma.tenant.update({
       where: { id },
+      data,
+      select: tenantSelect,
+    });
+
+    return new TenantResponseDto(tenant);
+  }
+
+  async updateCurrentBranding(
+    currentUser: AuthenticatedUser,
+    updateTenantBrandingDto: UpdateTenantBrandingDto,
+  ): Promise<TenantResponseDto> {
+    const tenantId = this.ensureTenantAdminAccess(currentUser);
+    await this.findTenantByIdOrThrow(tenantId);
+
+    const data: Prisma.TenantUpdateInput = {};
+
+    if (updateTenantBrandingDto.logoUrl !== undefined) {
+      data.logoUrl = this.normalizeLogoUrl(updateTenantBrandingDto.logoUrl);
+    }
+
+    if (updateTenantBrandingDto.themeKey !== undefined) {
+      data.themeKey = updateTenantBrandingDto.themeKey;
+    }
+
+    const tenant = await this.prisma.tenant.update({
+      where: { id: tenantId },
       data,
       select: tenantSelect,
     });
@@ -177,6 +228,9 @@ export class TenantsService {
                 name: createTenantDto.name,
                 slug: generatedCode,
                 status: createTenantDto.status ?? TenantStatus.ACTIVE,
+                logoUrl: this.normalizeLogoUrl(createTenantDto.logoUrl),
+                themeKey:
+                  createTenantDto.themeKey ?? DEFAULT_TENANT_THEME_KEY,
               },
               select: tenantSelect,
             });
@@ -249,6 +303,32 @@ export class TenantsService {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       ['P2002', 'P2034'].includes(error.code)
     );
+  }
+
+  private ensureTenantAdminAccess(currentUser: AuthenticatedUser): string {
+    if (currentUser.role !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'Acesso permitido apenas para administradores.',
+      );
+    }
+
+    if (!currentUser.tenantId) {
+      throw new ForbiddenException(
+        'Acesso permitido apenas para usuarios vinculados a um tenant.',
+      );
+    }
+
+    return currentUser.tenantId;
+  }
+
+  private normalizeLogoUrl(logoUrl?: string | null): string | null {
+    if (typeof logoUrl !== 'string') {
+      return null;
+    }
+
+    const trimmedLogoUrl = logoUrl.trim();
+
+    return trimmedLogoUrl.length > 0 ? trimmedLogoUrl : null;
   }
 
   private async ensureDefaultFinanceCategories(

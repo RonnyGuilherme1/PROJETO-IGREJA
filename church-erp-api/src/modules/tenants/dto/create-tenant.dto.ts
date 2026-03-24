@@ -1,6 +1,7 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { TenantStatus } from '@prisma/client';
 import {
+  IsIn,
   IsEnum,
   IsOptional,
   IsString,
@@ -10,6 +11,10 @@ import {
 } from 'class-validator';
 
 import { CreateTenantAdminUserDto } from './create-tenant-admin-user.dto';
+import {
+  TENANT_THEME_KEYS,
+  TenantThemeKey,
+} from '../constants/tenant-theme.constants';
 
 export class CreateTenantDto {
   @IsString()
@@ -26,6 +31,25 @@ export class CreateTenantDto {
   @IsOptional()
   @IsEnum(TenantStatus)
   status?: TenantStatus;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const trimmedValue = value.trim();
+
+    return trimmedValue.length > 0 ? trimmedValue : null;
+  })
+  @IsString()
+  @MaxLength(2048)
+  logoUrl?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(TENANT_THEME_KEYS)
+  themeKey?: TenantThemeKey;
 
   @IsOptional()
   @ValidateNested()
