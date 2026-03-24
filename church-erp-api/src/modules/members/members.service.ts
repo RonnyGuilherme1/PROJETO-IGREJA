@@ -25,8 +25,8 @@ export class MembersService {
     this.ensureCanView(currentUser);
     const tenantId = this.ensureTenantAccess(currentUser);
 
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
+    const page = query.page && query.page > 0 ? query.page : 1;
+    const limit = query.limit ?? query.perPage ?? query.size ?? 10;
     const skip = (page - 1) * limit;
     const where = this.buildWhere(query, tenantId);
 

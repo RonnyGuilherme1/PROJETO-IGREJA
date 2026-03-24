@@ -1,8 +1,43 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { FinanceType } from '@prisma/client';
-import { IsDate, IsEnum, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsDate,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class FindFinanceTransactionsQueryDto {
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  page?: number;
+
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5000)
+  size?: number;
+
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5000)
+  limit?: number;
+
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5000)
+  perPage?: number;
+
   @IsOptional()
   @Type(() => Date)
   @IsDate()
