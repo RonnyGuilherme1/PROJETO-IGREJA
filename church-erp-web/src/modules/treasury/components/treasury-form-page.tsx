@@ -26,6 +26,7 @@ import {
   updateTreasuryMovement,
 } from "@/modules/treasury/services/treasury-service";
 import {
+  TREASURY_STATUS_OPTIONS,
   TREASURY_TYPE_OPTIONS,
   type CreateTreasuryPayload,
   type TreasuryCategoryItem,
@@ -46,12 +47,12 @@ interface ChurchOption {
 const initialFormValues: TreasuryFormValues = {
   churchId: "",
   categoryId: "",
-  type: "INCOME",
+  type: "ENTRY",
   description: "",
   amount: "",
   transactionDate: "",
   notes: "",
-  status: "",
+  status: "ACTIVE",
 };
 
 const textareaClassName =
@@ -70,6 +71,12 @@ export function TreasuryFormPage({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isRedirecting, startTransition] = useTransition();
+  const selectedCategory = categories.find(
+    (category) => category.id === formValues.categoryId,
+  );
+  const selectedTypeOption = TREASURY_TYPE_OPTIONS.find(
+    (option) => option.value === formValues.type,
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -104,12 +111,12 @@ export function TreasuryFormPage({
           setFormValues({
             churchId: movementResponse.churchId,
             categoryId: movementResponse.categoryId,
-            type: movementResponse.type || "INCOME",
+            type: movementResponse.type || "ENTRY",
             description: movementResponse.description,
             amount: String(movementResponse.amount),
             transactionDate: movementResponse.transactionDate,
             notes: movementResponse.notes,
-            status: movementResponse.status,
+            status: movementResponse.status || "ACTIVE",
           });
         }
       } catch (error) {
@@ -144,6 +151,33 @@ export function TreasuryFormPage({
     }));
   }
 
+  function handleCategoryChange(categoryId: string) {
+    const category = categories.find((item) => item.id === categoryId);
+
+    setFormValues((current) => ({
+      ...current,
+      categoryId,
+      type: category?.type ?? current.type,
+    }));
+  }
+
+  useEffect(() => {
+    if (!formValues.categoryId) {
+      return;
+    }
+
+    const category = categories.find((item) => item.id === formValues.categoryId);
+
+    if (!category || category.type === formValues.type) {
+      return;
+    }
+
+    setFormValues((current) => ({
+      ...current,
+      type: category.type,
+    }));
+  }, [categories, formValues.categoryId, formValues.type]);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
@@ -158,13 +192,15 @@ export function TreasuryFormPage({
         amount: Number(formValues.amount),
         transactionDate: formValues.transactionDate,
         notes: formValues.notes,
-        status: formValues.status,
       };
 
       if (mode === "create") {
         await createTreasuryMovement(payload as CreateTreasuryPayload);
       } else if (movementId) {
-        await updateTreasuryMovement(movementId, payload as UpdateTreasuryPayload);
+        await updateTreasuryMovement(movementId, {
+          ...(payload as UpdateTreasuryPayload),
+          status: formValues.status,
+        });
       }
 
       startTransition(() => {
@@ -261,9 +297,7 @@ export function TreasuryFormPage({
                   <Select
                     id="treasury-categoryId"
                     value={formValues.categoryId}
-                    onChange={(event) =>
-                      handleFieldChange("categoryId", event.target.value)
-                    }
+                    onChange={(event) => handleCategoryChange(event.target.value)}
                     required
                   >
                     <option value="">Selecione uma categoria</option>
@@ -277,19 +311,19 @@ export function TreasuryFormPage({
 
                 <div className="space-y-2">
                   <Label htmlFor="treasury-type">Tipo</Label>
-                  <Select
+                  <Input
                     id="treasury-type"
-                    value={formValues.type}
-                    onChange={(event) =>
-                      handleFieldChange("type", event.target.value)
+                    value={
+                      selectedCategory
+                        ? selectedTypeOption?.label || ""
+                        : "Selecione uma categoria"
                     }
-                  >
-                    {TREASURY_TYPE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </Select>
+                    readOnly
+                    disabled
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    O tipo e definido automaticamente pela categoria selecionada.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -334,17 +368,24 @@ export function TreasuryFormPage({
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="treasury-status">Status</Label>
-                  <Input
-                    id="treasury-status"
-                    value={formValues.status}
-                    onChange={(event) =>
-                      handleFieldChange("status", event.target.value)
-                    }
-                    placeholder="Ex.: CONFIRMADO"
-                  />
-                </div>
+                {mode === "edit" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="treasury-status">Status</Label>
+                    <Select
+                      id="treasury-status"
+                      value={formValues.status}
+                      onChange={(event) =>
+                        handleFieldChange("status", event.target.value)
+                      }
+                    >
+                      {TREASURY_STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                ) : null}
               </div>
 
               <div className="space-y-2">

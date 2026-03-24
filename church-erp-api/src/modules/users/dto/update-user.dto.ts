@@ -43,6 +43,9 @@ export class UpdateUserDto {
   @MaxLength(255)
   password?: string;
 
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
@@ -52,6 +55,9 @@ export class UpdateUserDto {
   status?: UserStatus;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() || null : value,
+  )
   @IsUUID('4')
   churchId?: string | null;
 }

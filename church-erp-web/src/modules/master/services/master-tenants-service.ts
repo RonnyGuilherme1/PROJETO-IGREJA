@@ -124,7 +124,7 @@ function normalizeMasterTenant(source: unknown): MasterTenantItem {
     name:
       toTrimmedString(
         findFirstValue(source, [["name"], ["displayName"], ["nome"]]),
-      ) ?? "Tenant sem nome",
+      ) ?? "Banco sem nome",
     code:
       toTrimmedString(
         findFirstValue(source, [["tenantCode"], ["code"], ["slug"], ["identifier"]]),
@@ -252,9 +252,8 @@ function extractTotal(data: unknown, itemsLength: number): number {
 function sanitizeCreatePayload(payload: CreateMasterTenantPayload) {
   return {
     name: payload.name.trim(),
-    tenantCode: payload.code.trim(),
     status: payload.status.trim().toUpperCase(),
-    admin: {
+    adminUser: {
       name: payload.adminName.trim(),
       username: payload.adminUsername.trim(),
       email: payload.adminEmail.trim(),
@@ -297,7 +296,7 @@ async function requestTenantsApi<T>(
     }
   }
 
-  throw lastError ?? new Error("Nao foi possivel acessar o endpoint de tenants.");
+  throw lastError ?? new Error("Nao foi possivel acessar o endpoint de bancos.");
 }
 
 export async function listMasterTenants(
@@ -339,7 +338,7 @@ export async function getMasterTenantById(id: string): Promise<MasterTenantItem>
   const tenant = normalizeMasterTenant(extractSingleRecord(data));
 
   if (!tenant.id) {
-    throw new Error("Nao foi possivel carregar os dados do tenant.");
+    throw new Error("Nao foi possivel carregar os dados do banco.");
   }
 
   return tenant;

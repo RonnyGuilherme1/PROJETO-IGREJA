@@ -82,13 +82,13 @@ export function MasterDashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title="Dashboard master"
-        description="Visao geral da plataforma com indicadores rapidos dos tenants cadastrados."
+        description="Visao geral da plataforma com indicadores rapidos dos bancos cadastrados."
         badge="Area master"
         action={
           <Button asChild>
             <Link href="/master/tenants/novo">
               <Plus className="size-4" />
-              Novo tenant
+              Novo banco
             </Link>
           </Button>
         }
@@ -104,7 +104,7 @@ export function MasterDashboardPage() {
         <Card className="bg-white/85">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Tenants totais</p>
+              <p className="text-sm font-medium text-muted-foreground">Bancos totais</p>
               <p className="text-3xl font-semibold tracking-tight text-foreground">
                 {summary.total}
               </p>
@@ -118,7 +118,7 @@ export function MasterDashboardPage() {
         <Card className="bg-white/85">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Tenants ativos</p>
+              <p className="text-sm font-medium text-muted-foreground">Bancos ativos</p>
               <p className="text-3xl font-semibold tracking-tight text-foreground">
                 {summary.active}
               </p>
@@ -132,7 +132,7 @@ export function MasterDashboardPage() {
         <Card className="bg-white/85">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Tenants inativos</p>
+              <p className="text-sm font-medium text-muted-foreground">Bancos inativos</p>
               <p className="text-3xl font-semibold tracking-tight text-foreground">
                 {summary.inactive}
               </p>
@@ -161,14 +161,14 @@ export function MasterDashboardPage() {
       <Card className="bg-white/85">
         <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
-            <CardTitle>Tenants recentes</CardTitle>
+            <CardTitle>Bancos recentes</CardTitle>
             <CardDescription>
-              Ultimos ambientes identificados na area master da plataforma.
+              Ultimos bancos identificados na area master da plataforma.
             </CardDescription>
           </div>
           <Button asChild variant="outline">
             <Link href="/master/tenants">
-              Ver tenants
+              Ver bancos
               <ArrowRight className="size-4" />
             </Link>
           </Button>
@@ -180,7 +180,7 @@ export function MasterDashboardPage() {
                 <thead className="bg-secondary/35">
                   <tr className="text-left">
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Tenant
+                      Banco
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                       Codigo
@@ -210,7 +210,7 @@ export function MasterDashboardPage() {
                         colSpan={4}
                         className="px-4 py-14 text-center text-sm text-muted-foreground"
                       >
-                        Nenhum tenant cadastrado ainda.
+                        Nenhum banco cadastrado ainda.
                       </td>
                     </tr>
                   ) : null}

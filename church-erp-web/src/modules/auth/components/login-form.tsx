@@ -36,11 +36,11 @@ export function LoginForm({ mode }: LoginFormProps) {
   const isTenantMode = mode === "TENANT";
   const isLoading = isSubmitting || isRedirecting;
   const successRedirectPath = isTenantMode ? "/dashboard" : "/master/dashboard";
-  const targetLoginLabel = isTenantMode ? "acesso do tenant" : "acesso master";
+  const targetLoginLabel = isTenantMode ? "acesso do banco" : "acesso master";
   const switchHref = isTenantMode ? "/master/login" : "/login";
   const switchLabel = isTenantMode
     ? "Entrar como master"
-    : "Entrar no tenant";
+    : "Entrar no banco";
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,7 +83,7 @@ export function LoginForm({ mode }: LoginFormProps) {
     <form onSubmit={handleSubmit} className="space-y-5">
       {isTenantMode ? (
         <div className="space-y-2">
-          <Label htmlFor="tenantCode">Codigo do tenant</Label>
+          <Label htmlFor="tenantCode">Codigo do banco</Label>
           <Input
             id="tenantCode"
             type="text"

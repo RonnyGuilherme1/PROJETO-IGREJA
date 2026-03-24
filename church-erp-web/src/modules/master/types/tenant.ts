@@ -22,7 +22,6 @@ export interface MasterTenantsListResult {
 
 export interface CreateMasterTenantPayload {
   name: string;
-  code: string;
   status: string;
   adminName: string;
   adminUsername: string;

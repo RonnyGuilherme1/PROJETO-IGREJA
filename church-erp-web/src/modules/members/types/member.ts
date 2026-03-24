@@ -71,3 +71,15 @@ export const MEMBER_STATUS_OPTIONS = [
   { value: "ACTIVE", label: "Ativo" },
   { value: "INACTIVE", label: "Inativo" },
 ] as const;
+
+export const MEMBER_GENDER_OPTIONS = [
+  { value: "MASCULINO", label: "Masculino" },
+  { value: "FEMININO", label: "Feminino" },
+] as const;
+
+export const MEMBER_MARITAL_STATUS_OPTIONS = [
+  { value: "SOLTEIRO", label: "Solteiro" },
+  { value: "CASADO", label: "Casado" },
+  { value: "DIVORCIADO", label: "Divorciado" },
+  { value: "VIUVO", label: "Viuvo" },
+] as const;

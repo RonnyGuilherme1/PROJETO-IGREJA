@@ -40,6 +40,9 @@ export class CreateUserDto {
   @MaxLength(255)
   password!: string;
 
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
   @IsEnum(UserRole)
   role!: UserRole;
 
@@ -48,6 +51,9 @@ export class CreateUserDto {
   status?: UserStatus;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() || null : value,
+  )
   @IsUUID('4')
   churchId?: string | null;
 }

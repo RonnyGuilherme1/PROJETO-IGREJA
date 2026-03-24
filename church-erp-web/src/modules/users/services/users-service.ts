@@ -223,9 +223,9 @@ function sanitizePayload<T extends CreateUserPayload | UpdateUserPayload>(payloa
     ...payload,
     name: payload.name.trim(),
     email: payload.email.trim(),
-    role: payload.role.trim(),
+    role: payload.role.trim().toUpperCase(),
     status: payload.status.trim().toUpperCase(),
-    churchId: payload.churchId?.trim() || undefined,
+    churchId: payload.churchId?.trim() || null,
   };
 }
 

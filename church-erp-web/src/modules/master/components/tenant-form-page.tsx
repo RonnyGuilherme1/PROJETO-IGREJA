@@ -90,7 +90,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
         setLoadError(
           getApiErrorMessage(
             error,
-            "Nao foi possivel carregar os dados do tenant para edicao.",
+            "Nao foi possivel carregar os dados do banco para edicao.",
           ),
         );
       } finally {
@@ -123,7 +123,6 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
       if (mode === "create") {
         const payload: CreateMasterTenantPayload = {
           name: formValues.name,
-          code: formValues.code,
           status: formValues.status,
           adminName: formValues.adminName,
           adminUsername: formValues.adminUsername,
@@ -151,8 +150,8 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
         getApiErrorMessage(
           error,
           mode === "create"
-            ? "Nao foi possivel criar o tenant."
-            : "Nao foi possivel salvar as alteracoes do tenant.",
+            ? "Nao foi possivel criar o banco."
+            : "Nao foi possivel salvar as alteracoes do banco.",
         ),
       );
     } finally {
@@ -163,7 +162,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
   if (loadError) {
     return (
       <ErrorView
-        title="Falha ao carregar tenant"
+        title="Falha ao carregar banco"
         description={loadError}
         onAction={() => router.refresh()}
       />
@@ -173,11 +172,11 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={mode === "create" ? "Novo tenant" : "Editar tenant"}
+        title={mode === "create" ? "Novo banco" : "Editar banco"}
         description={
           mode === "create"
-            ? "Cadastre um novo cliente da plataforma e defina o administrador inicial do ambiente."
-            : "Atualize os dados principais do tenant mantendo o mesmo padrao visual da area master."
+            ? "Cadastre um novo banco da plataforma e defina o administrador inicial do ambiente."
+            : "Atualize os dados principais do banco mantendo o mesmo padrao visual da area master."
         }
         badge="Area master"
         action={
@@ -192,9 +191,9 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
 
       <Card className="bg-white/85">
         <CardHeader>
-          <CardTitle>{mode === "create" ? "Cadastro" : "Edicao de tenant"}</CardTitle>
+          <CardTitle>{mode === "create" ? "Cadastro" : "Edicao de banco"}</CardTitle>
           <CardDescription>
-            Dados organizados para criar e manter clientes da plataforma com consistencia.
+            Dados organizados para criar e manter bancos da plataforma com consistencia.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -211,7 +210,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="tenant-name">Nome do tenant</Label>
+                  <Label htmlFor="tenant-name">Nome do banco</Label>
                   <Input
                     id="tenant-name"
                     value={formValues.name}
@@ -223,18 +222,20 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="tenant-code">Codigo do tenant</Label>
-                  <Input
-                    id="tenant-code"
-                    value={formValues.code}
-                    onChange={(event) =>
-                      handleFieldChange("code", event.target.value)
-                    }
-                    placeholder="igreja-sede"
-                    required
-                  />
-                </div>
+                {mode === "edit" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="tenant-code">Codigo do banco</Label>
+                    <Input
+                      id="tenant-code"
+                      value={formValues.code}
+                      readOnly
+                    />
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Codigo usado no login do banco e gerado automaticamente na
+                      criacao.
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="space-y-2">
                   <Label htmlFor="tenant-status">Status</Label>
@@ -255,13 +256,21 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
               </div>
 
               {mode === "create" ? (
+                <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                  O codigo do banco sera gerado automaticamente pelo sistema a
+                  partir de <strong>1001</strong> e sera usado no login do
+                  banco.
+                </div>
+              ) : null}
+
+              {mode === "create" ? (
                 <div className="space-y-4 rounded-3xl border border-border bg-secondary/30 p-5">
                   <div className="space-y-1">
                     <h3 className="text-base font-semibold text-foreground">
-                      Admin inicial do tenant
+                      Admin inicial do banco
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Este usuario sera criado junto com o tenant para o primeiro acesso.
+                      Este usuario sera criado junto com o banco para o primeiro acesso.
                     </p>
                   </div>
 
@@ -336,7 +345,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                   ) : (
                     <Save className="size-4" />
                   )}
-                  {mode === "create" ? "Criar tenant" : "Salvar alteracoes"}
+                  {mode === "create" ? "Criar banco" : "Salvar alteracoes"}
                 </Button>
                 <Button asChild variant="outline">
                   <Link href="/master/tenants">Cancelar</Link>

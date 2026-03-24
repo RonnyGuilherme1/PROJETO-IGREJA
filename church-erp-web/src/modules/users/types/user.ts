@@ -25,7 +25,7 @@ export interface CreateUserPayload {
   password: string;
   role: string;
   status: string;
-  churchId?: string;
+  churchId?: string | null;
 }
 
 export interface UpdateUserPayload {
@@ -33,7 +33,7 @@ export interface UpdateUserPayload {
   email: string;
   role: string;
   status: string;
-  churchId?: string;
+  churchId?: string | null;
 }
 
 export interface UserFormValues {
@@ -48,4 +48,11 @@ export interface UserFormValues {
 export const USER_STATUS_OPTIONS = [
   { value: "ACTIVE", label: "Ativo" },
   { value: "INACTIVE", label: "Inativo" },
+] as const;
+
+export const USER_ROLE_OPTIONS = [
+  { value: "ADMIN", label: "Administrador" },
+  { value: "SECRETARIA", label: "Secretaria" },
+  { value: "TESOUREIRO", label: "Tesoureiro" },
+  { value: "CONSULTA", label: "Consulta" },
 ] as const;

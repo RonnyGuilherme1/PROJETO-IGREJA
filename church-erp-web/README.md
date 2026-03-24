@@ -58,21 +58,9 @@ public/
 
 ## Configuracao da API
 
-Use `NEXT_PUBLIC_API_URL` no arquivo `.env.local`.
+O frontend usa o proxy do Next.js e encaminha `/api/:path*` para `http://127.0.0.1:3001/api/:path*`.
 
-Exemplo:
-
-```bash
-Copy-Item .env.example .env.local
-```
-
-Depois ajuste o valor conforme a URL real do backend:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
-```
-
-Se voce alterar `.env.local` com o `npm run dev` ja em execucao, reinicie o dev server para o Next.js recarregar a variavel corretamente.
+Nao e necessario criar nem editar `.env.local` para rodar localmente.
 
 ## Fluxo de login
 

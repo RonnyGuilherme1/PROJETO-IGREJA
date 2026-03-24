@@ -57,7 +57,7 @@ export function TenantsTable({
           <thead className="bg-secondary/35">
             <tr className="text-left">
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Tenant
+                Banco
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 Codigo
@@ -93,7 +93,7 @@ export function TenantsTable({
                   colSpan={6}
                   className="px-4 py-14 text-center text-sm text-muted-foreground"
                 >
-                  Nenhum tenant encontrado na plataforma.
+                  Nenhum banco encontrado na plataforma.
                 </td>
               </tr>
             ) : null}

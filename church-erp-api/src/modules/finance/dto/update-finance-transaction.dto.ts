@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { FinanceType } from '@prisma/client';
+import { FinanceTransactionStatus, FinanceType } from '@prisma/client';
 import {
   IsDate,
   IsEnum,
@@ -21,6 +21,19 @@ export class UpdateFinanceTransactionDto {
   categoryId?: string;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const normalized = value.trim().toUpperCase();
+
+    if (normalized === 'INCOME') {
+      return FinanceType.ENTRY;
+    }
+
+    return normalized;
+  })
   @IsEnum(FinanceType)
   type?: FinanceType;
 
@@ -56,4 +69,11 @@ export class UpdateFinanceTransactionDto {
   @IsString()
   @MaxLength(2000)
   notes?: string | null;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsEnum(FinanceTransactionStatus)
+  status?: FinanceTransactionStatus;
 }

@@ -58,10 +58,7 @@ export class UsersService {
     const tenantId = this.ensureTenantAccess(currentUser);
 
     await this.ensureUniqueEmail(createUserDto.email, tenantId);
-
-    if (createUserDto.churchId) {
-      await this.ensureChurchExists(createUserDto.churchId, tenantId);
-    }
+    const churchId = await this.resolveChurchId(createUserDto.churchId, tenantId);
 
     const passwordHash = await this.authService.hashPassword(
       createUserDto.password,
@@ -77,7 +74,7 @@ export class UsersService {
         status: createUserDto.status ?? UserStatus.ACTIVE,
         tenantId,
         platformRole: null,
-        churchId: createUserDto.churchId ?? null,
+        churchId,
       },
       select: userSelect,
     });
@@ -101,10 +98,6 @@ export class UsersService {
       updateUserDto.email.toLowerCase() !== existingUser.email?.toLowerCase()
     ) {
       await this.ensureUniqueEmail(updateUserDto.email, tenantId, id);
-    }
-
-    if (updateUserDto.churchId !== undefined && updateUserDto.churchId !== null) {
-      await this.ensureChurchExists(updateUserDto.churchId, tenantId);
     }
 
     const data: Prisma.UserUncheckedUpdateInput = {};
@@ -136,7 +129,7 @@ export class UsersService {
     }
 
     if ('churchId' in updateUserDto) {
-      data.churchId = updateUserDto.churchId ?? null;
+      data.churchId = await this.resolveChurchId(updateUserDto.churchId, tenantId);
     }
 
     const user = await this.prisma.user.update({
@@ -251,5 +244,30 @@ export class UsersService {
     if (!church) {
       throw new NotFoundException('Igreja vinculada nao encontrada.');
     }
+  }
+
+  private async resolveChurchId(
+    churchId: string | null | undefined,
+    tenantId: string,
+  ): Promise<string | null> {
+    if (churchId) {
+      await this.ensureChurchExists(churchId, tenantId);
+      return churchId;
+    }
+
+    const churches = await this.prisma.church.findMany({
+      where: {
+        tenantId,
+      },
+      select: {
+        id: true,
+      },
+      take: 2,
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    return churches.length === 1 ? churches[0].id : null;
   }
 }

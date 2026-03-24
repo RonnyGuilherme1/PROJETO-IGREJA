@@ -15,6 +15,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { ChurchDetailsCard } from "@/modules/churches/components/church-details-card";
 import { ChurchesFilters } from "@/modules/churches/components/churches-filters";
 import { ChurchesTable } from "@/modules/churches/components/churches-table";
@@ -40,6 +47,7 @@ export function ChurchesListPage({
   const [appliedFilters, setAppliedFilters] = useState<ChurchFilters>(initialFilters);
   const [churches, setChurches] = useState<ChurchItem[]>([]);
   const [selectedChurchId, setSelectedChurchId] = useState<string | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +60,9 @@ export function ChurchesListPage({
       const response = await listChurches(currentFilters);
       setChurches(response.items);
       setTotal(response.total);
+      if (response.items.length === 0) {
+        setIsDetailsOpen(false);
+      }
       setSelectedChurchId((current) => {
         if (response.items.length === 0) {
           return null;
@@ -91,6 +102,11 @@ export function ChurchesListPage({
   function handleResetFilters() {
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
+  }
+
+  function handleViewChurch(church: ChurchItem) {
+    setSelectedChurchId(church.id);
+    setIsDetailsOpen(true);
   }
 
   if (error && churches.length === 0 && !isLoading) {
@@ -142,33 +158,42 @@ export function ChurchesListPage({
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_380px]">
-        <Card className="bg-white/85">
-          <CardHeader className="space-y-2">
-            <CardTitle>Listagem</CardTitle>
-            <CardDescription>
-              Visualize as igrejas cadastradas e abra os detalhes em destaque.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {error ? (
-              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                {error}
-              </div>
-            ) : null}
+      <Card className="bg-white/85">
+        <CardHeader className="space-y-2">
+          <CardTitle>Listagem</CardTitle>
+          <CardDescription>
+            Visualize as igrejas cadastradas e abra os detalhes em um painel lateral.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {error ? (
+            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          ) : null}
 
-            <ChurchesTable
-              churches={churches}
-              isLoading={isLoading}
-              selectedChurchId={selectedChurchId}
-              canEdit={canEdit}
-              onView={(church) => setSelectedChurchId(church.id)}
-            />
-          </CardContent>
-        </Card>
+          <ChurchesTable
+            churches={churches}
+            isLoading={isLoading}
+            selectedChurchId={isDetailsOpen ? selectedChurchId : null}
+            canEdit={canEdit}
+            onView={handleViewChurch}
+          />
+        </CardContent>
+      </Card>
 
-        <ChurchDetailsCard churchId={selectedChurchId} canEdit={canEdit} />
-      </div>
+      <Sheet open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Detalhes da igreja</SheetTitle>
+            <SheetDescription>
+              Visualize as informacoes detalhadas da igreja selecionada.
+            </SheetDescription>
+          </SheetHeader>
+
+          <ChurchDetailsCard churchId={selectedChurchId} canEdit={canEdit} />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

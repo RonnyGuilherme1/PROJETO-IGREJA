@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { MemberStatus } from '@prisma/client';
 import {
   IsDate,
@@ -10,6 +10,28 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+
+export enum MemberGender {
+  MASCULINO = 'MASCULINO',
+  FEMININO = 'FEMININO',
+}
+
+export enum MemberMaritalStatus {
+  SOLTEIRO = 'SOLTEIRO',
+  CASADO = 'CASADO',
+  DIVORCIADO = 'DIVORCIADO',
+  VIUVO = 'VIUVO',
+}
+
+export function normalizeMemberEnumValue(value: unknown) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const normalized = value.trim().toUpperCase();
+
+  return normalized ? normalized : undefined;
+}
 
 export class CreateMemberDto {
   @IsString()
@@ -23,9 +45,9 @@ export class CreateMemberDto {
   birthDate?: Date | null;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  gender?: string | null;
+  @Transform(({ value }) => normalizeMemberEnumValue(value))
+  @IsEnum(MemberGender)
+  gender?: MemberGender | null;
 
   @IsOptional()
   @IsString()
@@ -43,9 +65,9 @@ export class CreateMemberDto {
   address?: string | null;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  maritalStatus?: string | null;
+  @Transform(({ value }) => normalizeMemberEnumValue(value))
+  @IsEnum(MemberMaritalStatus)
+  maritalStatus?: MemberMaritalStatus | null;
 
   @IsOptional()
   @Type(() => Date)

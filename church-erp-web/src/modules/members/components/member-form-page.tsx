@@ -25,6 +25,8 @@ import {
   updateMember,
 } from "@/modules/members/services/members-service";
 import {
+  MEMBER_GENDER_OPTIONS,
+  MEMBER_MARITAL_STATUS_OPTIONS,
   MEMBER_STATUS_OPTIONS,
   type CreateMemberPayload,
   type MemberFormValues,
@@ -39,6 +41,42 @@ interface MemberFormPageProps {
 interface ChurchOption {
   id: string;
   name: string;
+}
+
+function normalizeGender(value: string) {
+  const normalized = value.trim().toUpperCase();
+
+  if (normalized === "MASCULINO") {
+    return "MASCULINO";
+  }
+
+  if (normalized === "FEMININO") {
+    return "FEMININO";
+  }
+
+  return "";
+}
+
+function normalizeMaritalStatus(value: string) {
+  const normalized = value.trim().toUpperCase();
+
+  if (normalized === "SOLTEIRO") {
+    return "SOLTEIRO";
+  }
+
+  if (normalized === "CASADO") {
+    return "CASADO";
+  }
+
+  if (normalized === "DIVORCIADO") {
+    return "DIVORCIADO";
+  }
+
+  if (normalized === "VIUVO") {
+    return "VIUVO";
+  }
+
+  return "";
 }
 
 const initialFormValues: MemberFormValues = {
@@ -96,11 +134,11 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
           setFormValues({
             fullName: memberResponse.fullName,
             birthDate: memberResponse.birthDate,
-            gender: memberResponse.gender,
+            gender: normalizeGender(memberResponse.gender),
             phone: memberResponse.phone,
             email: memberResponse.email,
             address: memberResponse.address,
-            maritalStatus: memberResponse.maritalStatus,
+            maritalStatus: normalizeMaritalStatus(memberResponse.maritalStatus),
             joinedAt: memberResponse.joinedAt,
             status: memberResponse.status || "ACTIVE",
             notes: memberResponse.notes,
@@ -276,26 +314,38 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
 
                 <div className="space-y-2">
                   <Label htmlFor="member-gender">Genero</Label>
-                  <Input
+                  <Select
                     id="member-gender"
                     value={formValues.gender}
                     onChange={(event) =>
                       handleFieldChange("gender", event.target.value)
                     }
-                    placeholder="Ex.: MASCULINO"
-                  />
+                  >
+                    <option value="">Selecione o genero</option>
+                    {MEMBER_GENDER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="member-maritalStatus">Estado civil</Label>
-                  <Input
+                  <Select
                     id="member-maritalStatus"
                     value={formValues.maritalStatus}
                     onChange={(event) =>
                       handleFieldChange("maritalStatus", event.target.value)
                     }
-                    placeholder="Ex.: CASADO"
-                  />
+                  >
+                    <option value="">Selecione o estado civil</option>
+                    {MEMBER_MARITAL_STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

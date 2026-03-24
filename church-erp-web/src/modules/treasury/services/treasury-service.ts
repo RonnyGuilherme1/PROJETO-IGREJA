@@ -7,6 +7,8 @@ import type {
   TreasuryListResult,
   TreasuryMovementItem,
   TreasurySummary,
+  TreasuryTransactionStatus,
+  TreasuryType,
   UpdateTreasuryPayload,
 } from "@/modules/treasury/types/treasury";
 
@@ -129,22 +131,32 @@ function toDateInputValue(value: unknown): string {
   return "";
 }
 
-function normalizeType(value: unknown): string {
+function normalizeType(value: unknown): TreasuryType {
   if (typeof value === "string" && value.trim()) {
     const normalized = value.trim().toUpperCase();
 
-    if (["ENTRADA", "RECEITA", "CREDIT"].includes(normalized)) {
-      return "INCOME";
+    if (["ENTRY", "INCOME", "ENTRADA", "RECEITA", "CREDIT"].includes(normalized)) {
+      return "ENTRY";
     }
 
-    if (["SAIDA", "DESPESA", "DEBIT"].includes(normalized)) {
+    if (["EXPENSE", "SAIDA", "DESPESA", "DEBIT"].includes(normalized)) {
       return "EXPENSE";
     }
-
-    return normalized;
   }
 
-  return "INCOME";
+  return "ENTRY";
+}
+
+function normalizeStatus(value: unknown): TreasuryTransactionStatus {
+  if (typeof value === "string" && value.trim()) {
+    const normalized = value.trim().toUpperCase();
+
+    if (["CANCELLED", "CANCELADO", "CANCELADA"].includes(normalized)) {
+      return "CANCELLED";
+    }
+  }
+
+  return "ACTIVE";
 }
 
 function normalizeMovement(source: unknown): TreasuryMovementItem {
@@ -197,10 +209,9 @@ function normalizeMovement(source: unknown): TreasuryMovementItem {
       toTrimmedString(
         findFirstValue(source, [["notes"], ["observations"], ["obs"]]),
       ) ?? "",
-    status:
-      toTrimmedString(
-        findFirstValue(source, [["status"], ["situacao"], ["state"]]),
-      ) ?? "",
+    status: normalizeStatus(
+      findFirstValue(source, [["status"], ["situacao"], ["state"]]),
+    ),
   };
 }
 
@@ -289,7 +300,7 @@ function extractTotal(data: unknown, itemsLength: number): number {
 
 function computeSummary(items: TreasuryMovementItem[]): TreasurySummary {
   const income = items
-    .filter((item) => item.type === "INCOME")
+    .filter((item) => item.type === "ENTRY")
     .reduce((accumulator, item) => accumulator + item.amount, 0);
   const expense = items
     .filter((item) => item.type === "EXPENSE")
@@ -336,7 +347,7 @@ function extractSummary(data: unknown, items: TreasuryMovementItem[]): TreasuryS
 function sanitizePayload<T extends CreateTreasuryPayload | UpdateTreasuryPayload>(
   payload: T,
 ) {
-  return {
+  const sanitized = {
     ...payload,
     churchId: payload.churchId.trim(),
     categoryId: payload.categoryId.trim(),
@@ -345,8 +356,16 @@ function sanitizePayload<T extends CreateTreasuryPayload | UpdateTreasuryPayload
     amount: Number(payload.amount),
     transactionDate: payload.transactionDate.trim(),
     notes: payload.notes.trim(),
-    status: payload.status.trim(),
   };
+
+  if ("status" in payload && payload.status) {
+    return {
+      ...sanitized,
+      status: payload.status.trim().toUpperCase(),
+    };
+  }
+
+  return sanitized;
 }
 
 function shouldTryNextEndpoint(error: unknown) {

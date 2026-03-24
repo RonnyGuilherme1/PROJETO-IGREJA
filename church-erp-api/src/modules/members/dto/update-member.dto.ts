@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { MemberStatus } from '@prisma/client';
 import {
   IsDate,
@@ -10,6 +10,11 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import {
+  MemberGender,
+  MemberMaritalStatus,
+  normalizeMemberEnumValue,
+} from './create-member.dto';
 
 export class UpdateMemberDto {
   @IsOptional()
@@ -24,9 +29,9 @@ export class UpdateMemberDto {
   birthDate?: Date | null;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  gender?: string | null;
+  @Transform(({ value }) => normalizeMemberEnumValue(value))
+  @IsEnum(MemberGender)
+  gender?: MemberGender | null;
 
   @IsOptional()
   @IsString()
@@ -44,9 +49,9 @@ export class UpdateMemberDto {
   address?: string | null;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  maritalStatus?: string | null;
+  @Transform(({ value }) => normalizeMemberEnumValue(value))
+  @IsEnum(MemberMaritalStatus)
+  maritalStatus?: MemberMaritalStatus | null;
 
   @IsOptional()
   @Type(() => Date)

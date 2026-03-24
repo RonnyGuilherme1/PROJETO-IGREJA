@@ -61,8 +61,8 @@ export function ModulePlaceholder({
                   Integracao centralizada
                 </p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  O cliente HTTP ja esta configurado para consumir a API via
-                  variavel de ambiente.
+                  O cliente HTTP ja esta configurado para consumir a API pelo
+                  proxy interno em /api.
                 </p>
               </div>
             </div>
@@ -93,7 +93,7 @@ export function ModulePlaceholder({
             </div>
 
             <div className="rounded-2xl border bg-secondary/50 p-4 font-mono text-xs leading-6 text-muted-foreground break-all">
-              {apiConfig.baseUrl || "Defina NEXT_PUBLIC_API_URL em .env.local"}
+              {apiConfig.baseUrl}
             </div>
 
             <Button asChild className="w-full">

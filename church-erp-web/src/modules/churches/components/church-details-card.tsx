@@ -83,7 +83,7 @@ export function ChurchDetailsCard({
 
   if (!churchId) {
     return (
-      <Card className="bg-white/85">
+      <Card className="mt-6 bg-white/85">
         <CardHeader>
           <CardTitle>Visualizacao</CardTitle>
           <CardDescription>
@@ -96,7 +96,7 @@ export function ChurchDetailsCard({
 
   if (error) {
     return (
-      <Card className="bg-white/85">
+      <Card className="mt-6 bg-white/85">
         <CardHeader>
           <CardTitle>Falha ao carregar detalhes</CardTitle>
           <CardDescription>{error}</CardDescription>
@@ -107,7 +107,7 @@ export function ChurchDetailsCard({
 
   if (isLoading || !church) {
     return (
-      <Card className="bg-white/85">
+      <Card className="mt-6 bg-white/85">
         <CardHeader className="space-y-4">
           <div className="h-6 w-28 animate-pulse rounded-full bg-secondary/70" />
           <div className="h-9 w-52 animate-pulse rounded-2xl bg-secondary/70" />
@@ -125,7 +125,7 @@ export function ChurchDetailsCard({
   }
 
   return (
-    <Card className="bg-white/85">
+    <Card className="mt-6 bg-white/85">
       <CardHeader className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-2">

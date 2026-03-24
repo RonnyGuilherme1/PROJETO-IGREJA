@@ -1,12 +1,12 @@
 import * as bcrypt from 'bcrypt';
 import {
-  FinanceType,
   PlatformRole,
   PrismaClient,
   TenantStatus,
   UserRole,
   UserStatus,
 } from '@prisma/client';
+import { DEFAULT_FINANCE_CATEGORIES } from '../src/modules/finance/finance.service';
 
 const prisma = new PrismaClient();
 
@@ -34,17 +34,6 @@ const TENANT_ADMIN_USER = {
   email: 'admin@tenant-teste.test',
   password: 'Admin@123',
 };
-
-const FINANCE_CATEGORIES = [
-  {
-    name: 'Receitas Gerais',
-    type: FinanceType.ENTRY,
-  },
-  {
-    name: 'Despesas Gerais',
-    type: FinanceType.EXPENSE,
-  },
-] as const;
 
 async function upsertChurch(tenantId: string) {
   const existingChurch = await prisma.church.findFirst({
@@ -83,7 +72,7 @@ async function upsertChurch(tenantId: string) {
 
 async function upsertFinanceCategory(
   tenantId: string,
-  category: (typeof FINANCE_CATEGORIES)[number],
+  category: (typeof DEFAULT_FINANCE_CATEGORIES)[number],
 ) {
   const existingCategory = await prisma.financeCategory.findFirst({
     where: {
@@ -195,7 +184,7 @@ async function main() {
     },
   });
 
-  for (const category of FINANCE_CATEGORIES) {
+  for (const category of DEFAULT_FINANCE_CATEGORIES) {
     await upsertFinanceCategory(tenant.id, category);
   }
 

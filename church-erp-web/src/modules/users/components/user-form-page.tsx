@@ -18,12 +18,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { listChurches } from "@/modules/churches/services/churches-service";
 import {
   createUser,
   getUserById,
   updateUser,
 } from "@/modules/users/services/users-service";
 import {
+  USER_ROLE_OPTIONS,
   USER_STATUS_OPTIONS,
   type CreateUserPayload,
   type UpdateUserPayload,
@@ -33,6 +35,11 @@ import {
 interface UserFormPageProps {
   mode: "create" | "edit";
   userId?: string;
+}
+
+interface ChurchOption {
+  id: string;
+  name: string;
 }
 
 const initialFormValues: UserFormValues = {
@@ -47,50 +54,65 @@ const initialFormValues: UserFormValues = {
 export function UserFormPage({ mode, userId }: UserFormPageProps) {
   const router = useRouter();
   const [formValues, setFormValues] = useState<UserFormValues>(initialFormValues);
-  const [isLoading, setIsLoading] = useState(mode === "edit");
+  const [churchOptions, setChurchOptions] = useState<ChurchOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isRedirecting, startTransition] = useTransition();
 
   useEffect(() => {
-    if (mode !== "edit" || !userId) {
-      return;
-    }
-
-    const currentUserId = userId;
     let isActive = true;
 
-    async function loadUser() {
+    async function loadData() {
       setIsLoading(true);
       setLoadError(null);
 
       try {
-        const user = await getUserById(currentUserId);
+        const [churchesResponse, userResponse] = await Promise.all([
+          listChurches({ name: "", status: "" }),
+          mode === "edit" && userId ? getUserById(userId) : Promise.resolve(null),
+        ]);
 
         if (!isActive) {
           return;
         }
 
-        setFormValues({
-          name: user.name,
-          email: user.email,
-          password: "",
-          role: user.role,
-          status: user.status || "ACTIVE",
-          churchId: user.churchId ?? "",
-        });
+        const nextChurchOptions = churchesResponse.items.map((church) => ({
+          id: church.id,
+          name: church.name,
+        }));
+        const singleChurchId =
+          nextChurchOptions.length === 1 ? nextChurchOptions[0].id : "";
+
+        setChurchOptions(nextChurchOptions);
+
+        if (userResponse) {
+          setFormValues({
+            name: userResponse.name,
+            email: userResponse.email,
+            password: "",
+            role: userResponse.role,
+            status: userResponse.status || "ACTIVE",
+            churchId: userResponse.churchId ?? singleChurchId,
+          });
+        } else {
+          setFormValues((current) => ({
+            ...current,
+            churchId: singleChurchId,
+          }));
+        }
       } catch (error) {
-        if (!isActive) {
-          return;
+        if (isActive) {
+          setLoadError(
+            getApiErrorMessage(
+              error,
+              mode === "create"
+                ? "Nao foi possivel carregar os dados iniciais do formulario."
+                : "Nao foi possivel carregar os dados do usuario para edicao.",
+            ),
+          );
         }
-
-        setLoadError(
-          getApiErrorMessage(
-            error,
-            "Nao foi possivel carregar os dados do usuario para edicao.",
-          ),
-        );
       } finally {
         if (isActive) {
           setIsLoading(false);
@@ -98,12 +120,15 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
       }
     }
 
-    void loadUser();
+    void loadData();
 
     return () => {
       isActive = false;
     };
   }, [mode, userId]);
+
+  const hasSingleChurch = churchOptions.length === 1;
+  const hasMultipleChurches = churchOptions.length > 1;
 
   function handleFieldChange(field: keyof UserFormValues, value: string) {
     setFormValues((current) => ({
@@ -125,7 +150,7 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
           password: formValues.password,
           role: formValues.role,
           status: formValues.status,
-          churchId: formValues.churchId || undefined,
+          churchId: formValues.churchId || null,
         };
 
         await createUser(payload);
@@ -135,7 +160,7 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
           email: formValues.email,
           role: formValues.role,
           status: formValues.status,
-          churchId: formValues.churchId || undefined,
+          churchId: formValues.churchId || null,
         };
 
         await updateUser(userId, payload);
@@ -257,15 +282,23 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
 
                 <div className="space-y-2">
                   <Label htmlFor="user-role">Perfil</Label>
-                  <Input
+                  <Select
                     id="user-role"
                     value={formValues.role}
                     onChange={(event) =>
                       handleFieldChange("role", event.target.value)
                     }
-                    placeholder="Ex.: ADMIN"
                     required
-                  />
+                  >
+                    <option value="" disabled>
+                      Selecione um perfil
+                    </option>
+                    {USER_ROLE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -285,18 +318,33 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="user-churchId">Church ID</Label>
-                  <Input
-                    id="user-churchId"
-                    value={formValues.churchId}
-                    onChange={(event) =>
-                      handleFieldChange("churchId", event.target.value)
-                    }
-                    placeholder="Opcional"
-                  />
-                </div>
+                {hasMultipleChurches ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="user-churchId">Igreja</Label>
+                    <Select
+                      id="user-churchId"
+                      value={formValues.churchId}
+                      onChange={(event) =>
+                        handleFieldChange("churchId", event.target.value)
+                      }
+                    >
+                      <option value="">Sem igreja vinculada</option>
+                      {churchOptions.map((church) => (
+                        <option key={church.id} value={church.id}>
+                          {church.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                ) : null}
               </div>
+
+              {hasSingleChurch ? (
+                <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                  Igreja vinculada automaticamente:{" "}
+                  <strong>{churchOptions[0]?.name}</strong>.
+                </div>
+              ) : null}
 
               {submitError ? (
                 <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">

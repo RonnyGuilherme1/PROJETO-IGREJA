@@ -28,6 +28,17 @@ import {
   financeTransactionSelect,
 } from './types/finance-transaction.type';
 
+export const DEFAULT_FINANCE_CATEGORIES = [
+  {
+    name: 'Receitas Gerais',
+    type: FinanceType.ENTRY,
+  },
+  {
+    name: 'Despesas Gerais',
+    type: FinanceType.EXPENSE,
+  },
+] as const;
+
 @Injectable()
 export class FinanceService {
   constructor(private readonly prisma: PrismaService) {}
@@ -118,7 +129,7 @@ export class FinanceService {
         tenantId,
         churchId: createFinanceTransactionDto.churchId,
         categoryId: category.id,
-        type: createFinanceTransactionDto.type,
+        type: category.type,
         description: createFinanceTransactionDto.description,
         amount: new Prisma.Decimal(createFinanceTransactionDto.amount),
         transactionDate: createFinanceTransactionDto.transactionDate,
@@ -142,20 +153,23 @@ export class FinanceService {
     const existingTransaction = await this.findTransactionByIdOrThrow(id, tenantId);
     const effectiveChurchId =
       updateFinanceTransactionDto.churchId ?? existingTransaction.churchId;
-    const effectiveType =
-      updateFinanceTransactionDto.type ?? existingTransaction.type;
     const effectiveCategoryId =
       updateFinanceTransactionDto.categoryId ?? existingTransaction.categoryId;
+    const shouldSyncCategoryType =
+      updateFinanceTransactionDto.categoryId !== undefined ||
+      updateFinanceTransactionDto.type !== undefined;
 
     if (updateFinanceTransactionDto.churchId !== undefined) {
       await this.ensureChurchExists(updateFinanceTransactionDto.churchId, tenantId);
     }
 
-    await this.ensureCategoryCanBeUsed(
-      effectiveCategoryId,
-      effectiveType,
-      tenantId,
-    );
+    const category = shouldSyncCategoryType
+      ? await this.ensureCategoryCanBeUsed(
+          effectiveCategoryId,
+          updateFinanceTransactionDto.type,
+          tenantId,
+        )
+      : null;
 
     const data: Prisma.FinanceTransactionUncheckedUpdateInput = {};
 
@@ -164,11 +178,11 @@ export class FinanceService {
     }
 
     if (updateFinanceTransactionDto.categoryId !== undefined) {
-      data.categoryId = effectiveCategoryId;
+      data.categoryId = category!.id;
     }
 
-    if (updateFinanceTransactionDto.type !== undefined) {
-      data.type = effectiveType;
+    if (shouldSyncCategoryType && category) {
+      data.type = category.type;
     }
 
     if (updateFinanceTransactionDto.description !== undefined) {
@@ -185,6 +199,10 @@ export class FinanceService {
 
     if ('notes' in updateFinanceTransactionDto) {
       data.notes = updateFinanceTransactionDto.notes ?? null;
+    }
+
+    if (updateFinanceTransactionDto.status !== undefined) {
+      data.status = updateFinanceTransactionDto.status;
     }
 
     const transaction = await this.prisma.financeTransaction.update({
@@ -296,7 +314,7 @@ export class FinanceService {
 
   private async ensureCategoryCanBeUsed(
     categoryId: string,
-    type: FinanceType,
+    type: FinanceType | undefined,
     tenantId: string,
   ): Promise<FinanceCategoryEntity> {
     const category = await this.prisma.financeCategory.findFirst({
@@ -315,7 +333,7 @@ export class FinanceService {
       throw new BadRequestException('Categoria financeira inativa.');
     }
 
-    if (category.type !== type) {
+    if (type !== undefined && category.type !== type) {
       throw new BadRequestException(
         'O tipo da movimentacao deve ser igual ao tipo da categoria.',
       );

@@ -1,5 +1,4 @@
 import axios from "axios";
-import { getApiConfig } from "@/lib/env";
 import {
   AUTH_SESSION_COOKIE,
   getAuthSessionMetaFromCookie,
@@ -9,6 +8,7 @@ import {
 } from "@/modules/auth/lib/auth-session";
 
 export const http = axios.create({
+  baseURL: "/api",
   timeout: 15000,
   headers: {
     Accept: "application/json",
@@ -31,12 +31,6 @@ function isAuthLoginRequest(url?: string) {
 }
 
 http.interceptors.request.use((config) => {
-  const apiConfig = getApiConfig();
-
-  if (!config.baseURL && apiConfig.baseUrl) {
-    config.baseURL = apiConfig.baseUrl;
-  }
-
   if (typeof window === "undefined") {
     return config;
   }
@@ -66,11 +60,9 @@ http.interceptors.request.use((config) => {
 });
 
 export function ensureApiConfigured() {
-  const apiConfig = getApiConfig();
-
-  if (!apiConfig.isConfigured) {
+  if (!http.defaults.baseURL) {
     throw new Error(
-      "Defina NEXT_PUBLIC_API_URL em .env.local e reinicie o dev server se acabou de alterar esse arquivo.",
+      "O proxy local da API nao esta configurado corretamente no frontend.",
     );
   }
 }

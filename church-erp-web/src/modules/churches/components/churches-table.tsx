@@ -144,12 +144,12 @@ export function ChurchesTable({
                     <div className="flex flex-col justify-end gap-2 sm:flex-row">
                       <Button
                         type="button"
-                        variant="outline"
+                        variant={isSelected ? "secondary" : "outline"}
                         size="sm"
                         onClick={() => onView(church)}
                       >
                         <Eye className="size-4" />
-                        Visualizar
+                        {isSelected ? "Visualizando" : "Visualizar"}
                       </Button>
                       {canEdit ? (
                         <Button asChild size="sm">

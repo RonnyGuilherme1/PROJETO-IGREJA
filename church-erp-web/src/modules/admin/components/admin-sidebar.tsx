@@ -122,7 +122,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
           </div>
 
           <p className="mt-3 break-all font-mono text-xs leading-6 text-sidebar-foreground/70">
-            {apiConfig.baseUrl || "Defina NEXT_PUBLIC_API_URL em .env.local"}
+            {apiConfig.baseUrl}
           </p>
         </div>
       </div>

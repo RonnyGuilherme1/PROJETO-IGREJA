@@ -18,6 +18,19 @@ export class CreateFinanceTransactionDto {
   @IsUUID('4')
   categoryId!: string;
 
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const normalized = value.trim().toUpperCase();
+
+    if (normalized === 'INCOME') {
+      return FinanceType.ENTRY;
+    }
+
+    return normalized;
+  })
   @IsEnum(FinanceType)
   type!: FinanceType;
 

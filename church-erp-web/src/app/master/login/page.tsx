@@ -78,11 +78,10 @@ export default async function MasterLoginPage() {
 
               <div className="rounded-3xl border bg-white/80 p-5 md:col-span-2">
                 <p className="text-sm font-semibold text-foreground">
-                  API configurada por ambiente
+                  Proxy local da API
                 </p>
                 <p className="mt-2 font-mono text-xs leading-6 text-muted-foreground break-all">
-                  {apiConfig.baseUrl ||
-                    "Defina NEXT_PUBLIC_API_URL em .env.local para conectar o frontend."}
+                  {apiConfig.baseUrl}
                 </p>
               </div>
             </div>
@@ -105,8 +104,9 @@ export default async function MasterLoginPage() {
               <LoginForm mode="MASTER" />
 
               <div className="rounded-2xl bg-secondary/50 p-4 text-sm leading-6 text-muted-foreground">
-                Configure a URL da API via <strong>NEXT_PUBLIC_API_URL</strong>
-                para conectar este frontend ao backend existente.
+                O frontend consome o backend pelo proxy interno em{" "}
+                <strong>/api</strong>, sem depender de IP fixo no{" "}
+                <strong>.env</strong>.
               </div>
             </CardContent>
           </Card>

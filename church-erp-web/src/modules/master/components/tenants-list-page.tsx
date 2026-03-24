@@ -43,7 +43,7 @@ export function TenantsListPage() {
       setError(
         getApiErrorMessage(
           loadError,
-          "Nao foi possivel carregar a listagem de tenants.",
+          "Nao foi possivel carregar a listagem de bancos.",
         ),
       );
     } finally {
@@ -59,8 +59,8 @@ export function TenantsListPage() {
     const isInactive = tenant.status.toUpperCase() === "INACTIVE";
     const confirmed = window.confirm(
       isInactive
-        ? `Deseja ativar o tenant ${tenant.name}?`
-        : `Deseja inativar o tenant ${tenant.name}?`,
+        ? `Deseja ativar o banco ${tenant.name}?`
+        : `Deseja inativar o banco ${tenant.name}?`,
     );
 
     if (!confirmed) {
@@ -82,7 +82,7 @@ export function TenantsListPage() {
       setError(
         getApiErrorMessage(
           actionError,
-          `Nao foi possivel ${isInactive ? "ativar" : "inativar"} o tenant selecionado.`,
+          `Nao foi possivel ${isInactive ? "ativar" : "inativar"} o banco selecionado.`,
         ),
       );
     } finally {
@@ -93,7 +93,7 @@ export function TenantsListPage() {
   if (error && tenants.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Falha ao carregar tenants"
+        title="Falha ao carregar bancos"
         description={error}
         onAction={() => void loadTenants()}
       />
@@ -103,14 +103,14 @@ export function TenantsListPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Tenants"
-        description="Gerencie os clientes da plataforma, atualize dados cadastrais e controle a ativacao dos ambientes."
+        title="Bancos"
+        description="Gerencie os bancos da plataforma, atualize dados cadastrais e controle a ativacao dos ambientes."
         badge={getMasterAccessLabel()}
         action={
           <Button asChild>
             <Link href="/master/tenants/novo">
               <Plus className="size-4" />
-              Novo tenant
+              Novo banco
             </Link>
           </Button>
         }
@@ -121,10 +121,10 @@ export function TenantsListPage() {
           <div className="space-y-2">
             <CardTitle>Listagem</CardTitle>
             <CardDescription>
-              Tenants cadastrados com acoes de edicao e ativacao/inativacao.
+              Bancos cadastrados com acoes de edicao e ativacao/inativacao.
             </CardDescription>
           </div>
-          <Badge variant="secondary">{total} tenant(s)</Badge>
+          <Badge variant="secondary">{total} banco(s)</Badge>
         </CardHeader>
         <CardContent className="space-y-4">
           {error ? (

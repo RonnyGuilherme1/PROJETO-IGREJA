@@ -1,21 +1,25 @@
+export type TreasuryType = "ENTRY" | "EXPENSE";
+
+export type TreasuryTransactionStatus = "ACTIVE" | "CANCELLED";
+
 export interface TreasuryMovementItem {
   id: string;
   churchId: string;
   churchName: string;
   categoryId: string;
   categoryName: string;
-  type: string;
+  type: TreasuryType;
   description: string;
   amount: number;
   transactionDate: string;
   notes: string;
-  status: string;
+  status: TreasuryTransactionStatus;
 }
 
 export interface TreasuryCategoryItem {
   id: string;
   name: string;
-  type: string;
+  type: TreasuryType;
   status: string;
   description: string;
 }
@@ -43,37 +47,41 @@ export interface TreasuryListResult {
 export interface CreateTreasuryPayload {
   churchId: string;
   categoryId: string;
-  type: string;
+  type: TreasuryType;
   description: string;
   amount: number;
   transactionDate: string;
   notes: string;
-  status: string;
 }
 
 export interface UpdateTreasuryPayload {
   churchId: string;
   categoryId: string;
-  type: string;
+  type: TreasuryType;
   description: string;
   amount: number;
   transactionDate: string;
   notes: string;
-  status: string;
+  status?: TreasuryTransactionStatus;
 }
 
 export interface TreasuryFormValues {
   churchId: string;
   categoryId: string;
-  type: string;
+  type: TreasuryType;
   description: string;
   amount: string;
   transactionDate: string;
   notes: string;
-  status: string;
+  status: TreasuryTransactionStatus;
 }
 
 export const TREASURY_TYPE_OPTIONS = [
-  { value: "INCOME", label: "Entrada" },
+  { value: "ENTRY", label: "Entrada" },
   { value: "EXPENSE", label: "Saida" },
+] as const;
+
+export const TREASURY_STATUS_OPTIONS = [
+  { value: "ACTIVE", label: "Ativa" },
+  { value: "CANCELLED", label: "Cancelada" },
 ] as const;
