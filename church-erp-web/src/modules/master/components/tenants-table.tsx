@@ -113,9 +113,9 @@ export function TenantsTable({
                       <BrandLogo
                         alt={`Logo do banco ${tenant.name}`}
                         logoUrl={tenant.logoUrl}
-                        className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-card shadow-sm"
-                        imageClassName="h-full w-full bg-card p-2.5"
-                        iconClassName="size-5 text-primary"
+                        className="flex size-14 shrink-0 items-center justify-center rounded-[1.35rem] border border-border bg-card shadow-sm"
+                        imageClassName="bg-card p-1.5"
+                        iconClassName="size-6 text-primary"
                       />
 
                       <div className="space-y-1">

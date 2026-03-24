@@ -389,9 +389,9 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
                 <BrandLogo
                   alt="Logo do ambiente atual"
                   logoUrl={previewLogoUrl}
-                  className="flex size-[4.5rem] shrink-0 items-center justify-center rounded-3xl border border-border bg-card shadow-sm"
-                  imageClassName="h-full w-full bg-card p-3"
-                  iconClassName="size-7 text-primary"
+                  className="flex size-[5.5rem] shrink-0 items-center justify-center rounded-[1.75rem] border border-border bg-card shadow-sm"
+                  imageClassName="bg-card p-1.5"
+                  iconClassName="size-8 text-primary"
                 />
 
                 <div className="space-y-1">

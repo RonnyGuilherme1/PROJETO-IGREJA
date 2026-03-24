@@ -38,9 +38,9 @@ export function AdminHeader({
             alt={tenantLabel ? `Logo do banco ${tenantLabel}` : "Logo do Church ERP"}
             logoUrl={user.tenantLogoUrl}
             icon={Building2}
-            className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-border bg-card shadow-xs"
-            imageClassName="h-full w-full bg-card p-2"
-            iconClassName="size-5 text-primary"
+            className="flex size-14 shrink-0 items-center justify-center rounded-[1.35rem] border border-border bg-card shadow-xs"
+            imageClassName="bg-card p-1.5"
+            iconClassName="size-6 text-primary"
           />
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">

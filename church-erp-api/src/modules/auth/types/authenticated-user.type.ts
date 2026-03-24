@@ -12,6 +12,15 @@ const baseAuthenticatedUserSelect = {
   churchId: true,
   createdAt: true,
   updatedAt: true,
+  tenant: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      logoUrl: true,
+      themeKey: true,
+    },
+  },
 } satisfies Prisma.UserSelect;
 
 export const authenticatedUserSelect =
