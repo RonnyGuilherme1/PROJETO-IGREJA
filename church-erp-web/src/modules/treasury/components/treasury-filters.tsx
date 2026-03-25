@@ -36,6 +36,7 @@ export function TreasuryFilters({
   onSubmit,
   onReset,
 }: TreasuryFiltersProps) {
+  const controlsDisabled = Boolean(isLoading);
   const filteredCategories = filters.type
     ? categories.filter((category) => category.type === filters.type)
     : categories;
@@ -129,11 +130,16 @@ export function TreasuryFilters({
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={controlsDisabled}>
           <Search className="size-4" />
           Filtrar
         </Button>
-        <Button type="button" variant="outline" onClick={onReset} disabled={isLoading}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onReset}
+          disabled={controlsDisabled}
+        >
           <X className="size-4" />
           Limpar filtros
         </Button>

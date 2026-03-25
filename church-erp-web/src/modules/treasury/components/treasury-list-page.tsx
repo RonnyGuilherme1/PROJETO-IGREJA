@@ -163,11 +163,9 @@ function downloadExportedFile(file: { blob: Blob; filename: string }) {
   window.URL.revokeObjectURL(objectUrl);
 }
 
-const currentMonthDateRange = getCurrentMonthDateRange();
-
-const initialFilters: TreasuryFiltersType = {
-  startDate: currentMonthDateRange.startDate,
-  endDate: currentMonthDateRange.endDate,
+const stableInitialFilters: TreasuryFiltersType = {
+  startDate: "",
+  endDate: "",
   type: "",
   categoryId: "",
   churchId: "",
@@ -194,16 +192,20 @@ export function TreasuryListPage({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [filters, setFilters] = useState<TreasuryFiltersType>(initialFilters);
+  const [filters, setFilters] =
+    useState<TreasuryFiltersType>(stableInitialFilters);
   const [appliedFilters, setAppliedFilters] =
-    useState<TreasuryFiltersType>(initialFilters);
+    useState<TreasuryFiltersType>(stableInitialFilters);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [defaultDateRange, setDefaultDateRange] =
+    useState<TreasuryFiltersType>(stableInitialFilters);
   const [items, setItems] = useState<TreasuryMovementItem[]>([]);
   const [categories, setCategories] = useState<TreasuryCategoryItem[]>([]);
   const [churches, setChurches] = useState<ChurchOption[]>([]);
   const [summary, setSummary] = useState<TreasurySummary>(emptySummary);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
   const [isMonthClosureLoading, setIsMonthClosureLoading] = useState(false);
   const [isClosingMonth, setIsClosingMonth] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -218,6 +220,7 @@ export function TreasuryListPage({
     useState<TreasuryMovementItem | null>(null);
   const [monthPendingClosure, setMonthPendingClosure] =
     useState<MonthReference | null>(null);
+  const filtersControlsLoading = Boolean(isLoading);
   const categoryNamesById = Object.fromEntries(
     categories.map((category) => [category.id, category.name]),
   );
@@ -225,8 +228,10 @@ export function TreasuryListPage({
     churches.map((church) => [church.id, church.name]),
   );
   const summaryPeriodLabel =
-    appliedFilters.startDate === currentMonthDateRange.startDate &&
-    appliedFilters.endDate === currentMonthDateRange.endDate
+    defaultDateRange.startDate &&
+    defaultDateRange.endDate &&
+    appliedFilters.startDate === defaultDateRange.startDate &&
+    appliedFilters.endDate === defaultDateRange.endDate
       ? "do mes"
       : "do periodo";
   const monthReference = getMonthReferenceFromFilters(appliedFilters);
@@ -288,8 +293,26 @@ export function TreasuryListPage({
   }, []);
 
   useEffect(() => {
+    const nextDateRange = getCurrentMonthDateRange();
+    const nextFilters = {
+      ...stableInitialFilters,
+      startDate: nextDateRange.startDate,
+      endDate: nextDateRange.endDate,
+    };
+
+    setDefaultDateRange(nextFilters);
+    setFilters(nextFilters);
+    setAppliedFilters(nextFilters);
+    setHasInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasInitialized || !appliedFilters.startDate || !appliedFilters.endDate) {
+      return;
+    }
+
     void loadMovements(appliedFilters);
-  }, [appliedFilters, loadMovements]);
+  }, [appliedFilters, hasInitialized, loadMovements]);
 
   useEffect(() => {
     const feedbackKey = searchParams.get("feedback");
@@ -358,6 +381,10 @@ export function TreasuryListPage({
   }, []);
 
   useEffect(() => {
+    if (!hasInitialized) {
+      return;
+    }
+
     let isActive = true;
     const reference = getMonthReferenceFromFilters(appliedFilters);
 
@@ -409,7 +436,7 @@ export function TreasuryListPage({
     return () => {
       isActive = false;
     };
-  }, [appliedFilters]);
+  }, [appliedFilters, hasInitialized]);
 
   function handleFilterChange(field: keyof TreasuryFiltersType, value: string) {
     setFilters((current) => ({
@@ -424,8 +451,13 @@ export function TreasuryListPage({
   }
 
   function handleResetFilters() {
-    setFilters(initialFilters);
-    setAppliedFilters(initialFilters);
+    const nextFilters =
+      defaultDateRange.startDate && defaultDateRange.endDate
+        ? defaultDateRange
+        : stableInitialFilters;
+
+    setFilters(nextFilters);
+    setAppliedFilters(nextFilters);
   }
 
   async function handleCancelMovement(item: TreasuryMovementItem) {
@@ -584,15 +616,24 @@ export function TreasuryListPage({
             />
           ) : null}
 
-          <TreasuryFilters
-            filters={filters}
-            categories={categories}
-            churches={churches}
-            isLoading={isLoading}
-            onChange={handleFilterChange}
-            onSubmit={handleFilterSubmit}
-            onReset={handleResetFilters}
-          />
+          {hasInitialized ? (
+            <TreasuryFilters
+              filters={filters}
+              categories={categories}
+              churches={churches}
+              isLoading={filtersControlsLoading}
+              onChange={handleFilterChange}
+              onSubmit={handleFilterSubmit}
+              onReset={handleResetFilters}
+            />
+          ) : (
+            <div
+              aria-hidden="true"
+              className="rounded-2xl border border-dashed border-border/80 bg-secondary/20 px-4 py-6 text-sm text-muted-foreground"
+            >
+              Preparando filtros...
+            </div>
+          )}
         </CardContent>
       </Card>
 
