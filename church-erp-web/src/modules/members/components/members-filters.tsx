@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { MEMBER_STATUS_OPTIONS, type MemberFilters } from "@/modules/members/types/member";
+import {
+  MEMBER_AGE_RANGE_OPTIONS,
+  MEMBER_STATUS_OPTIONS,
+  type MemberFilters,
+} from "@/modules/members/types/member";
 
 interface ChurchOption {
   id: string;
@@ -31,7 +35,7 @@ export function MembersFilters({
 }: MembersFiltersProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <div className="space-y-2">
           <Label htmlFor="filter-member-name">Nome</Label>
           <Input
@@ -59,6 +63,22 @@ export function MembersFilters({
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="filter-member-ageRange">Faixa etaria</Label>
+          <Select
+            id="filter-member-ageRange"
+            value={filters.ageRange}
+            onChange={(event) => onChange("ageRange", event.target.value)}
+          >
+            <option value="">Todas</option>
+            {MEMBER_AGE_RANGE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="filter-member-church">Igreja</Label>
           <Select
             id="filter-member-church"
@@ -72,6 +92,26 @@ export function MembersFilters({
               </option>
             ))}
           </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="filter-member-joinedFrom">Entrada de</Label>
+          <Input
+            id="filter-member-joinedFrom"
+            type="date"
+            value={filters.joinedFrom}
+            onChange={(event) => onChange("joinedFrom", event.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="filter-member-joinedTo">Entrada ate</Label>
+          <Input
+            id="filter-member-joinedTo"
+            type="date"
+            value={filters.joinedTo}
+            onChange={(event) => onChange("joinedTo", event.target.value)}
+          />
         </div>
       </div>
 

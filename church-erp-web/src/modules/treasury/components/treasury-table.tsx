@@ -12,6 +12,7 @@ interface TreasuryTableProps {
   churchesById: Record<string, string>;
   isLoading: boolean;
   canEdit: boolean;
+  isMonthClosed: boolean;
   cancellingId: string | null;
   onCancel: (item: TreasuryMovementItem) => void;
 }
@@ -52,6 +53,7 @@ export function TreasuryTable({
   churchesById,
   isLoading,
   canEdit,
+  isMonthClosed,
   cancellingId,
   onCancel,
 }: TreasuryTableProps) {
@@ -121,6 +123,21 @@ export function TreasuryTable({
                       <p className="font-medium text-foreground">
                         {item.description}
                       </p>
+                      {item.notes ? (
+                        <p className="max-w-md text-xs text-muted-foreground">
+                          {item.notes}
+                        </p>
+                      ) : null}
+                      {item.receiptUrl ? (
+                        <a
+                          href={item.receiptUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          Abrir comprovante
+                        </a>
+                      ) : null}
                     </div>
                   </td>
                   <td className="px-4 py-4">
@@ -148,28 +165,34 @@ export function TreasuryTable({
                   <td className="px-4 py-4">
                     <div className="flex flex-col justify-end gap-2 sm:flex-row">
                       {canEdit ? (
-                        <>
-                          <Button asChild variant="outline" size="sm">
-                            <Link href={`/tesouraria/${item.id}/editar`}>
-                              <Pencil className="size-4" />
-                              Editar
-                            </Link>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => onCancel(item)}
-                            disabled={isCancelled || rowLoading}
-                          >
-                            {rowLoading ? (
-                              <LoaderCircle className="size-4 animate-spin" />
-                            ) : (
-                              <XCircle className="size-4" />
-                            )}
-                            Cancelar
-                          </Button>
-                        </>
+                        isMonthClosed ? (
+                          <span className="text-sm text-muted-foreground">
+                            Mes fechado
+                          </span>
+                        ) : (
+                          <>
+                            <Button asChild variant="outline" size="sm">
+                              <Link href={`/tesouraria/${item.id}/editar`}>
+                                <Pencil className="size-4" />
+                                Editar
+                              </Link>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => onCancel(item)}
+                              disabled={isCancelled || rowLoading}
+                            >
+                              {rowLoading ? (
+                                <LoaderCircle className="size-4 animate-spin" />
+                              ) : (
+                                <XCircle className="size-4" />
+                              )}
+                              Cancelar
+                            </Button>
+                          </>
+                        )
                       ) : (
                         <span className="text-sm text-muted-foreground">
                           Somente consulta

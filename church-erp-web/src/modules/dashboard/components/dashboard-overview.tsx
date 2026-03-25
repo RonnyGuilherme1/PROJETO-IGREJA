@@ -2,15 +2,20 @@
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import {
+  AlertTriangle,
   ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
   Building2,
+  CheckCircle2,
   CreditCard,
   Landmark,
+  ShieldCheck,
   TrendingDown,
   TrendingUp,
+  UserPlus,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { ErrorView } from "@/components/shared/error-view";
@@ -25,8 +30,11 @@ import {
 } from "@/components/ui/card";
 import { DashboardFinanceChart } from "@/modules/dashboard/components/dashboard-finance-chart";
 import { DashboardOverviewSkeleton } from "@/modules/dashboard/components/dashboard-overview-skeleton";
-import { getDashboardOverviewData } from "@/modules/dashboard/services/dashboard-service";
-import type { DashboardOverviewData } from "@/modules/dashboard/types/dashboard";
+import {
+  getDashboardOverviewData,
+  type DashboardOperationalSummary,
+  type DashboardOverviewViewData,
+} from "@/modules/dashboard/services/dashboard-service";
 
 interface DashboardStatCardProps {
   title: string;
@@ -44,6 +52,29 @@ const statToneClasses: Record<
   success: "bg-emerald-500/10 text-emerald-700",
   danger: "bg-rose-500/10 text-rose-700",
 };
+
+const panelToneClasses: Record<
+  NonNullable<DashboardStatCardProps["tone"]>,
+  string
+> = {
+  default: "border-border/60 bg-secondary/50 text-foreground",
+  success: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  danger: "border-rose-200 bg-rose-50 text-rose-900",
+};
+
+interface OperationalAlertItem {
+  title: string;
+  description: string;
+  tone: NonNullable<DashboardStatCardProps["tone"]>;
+}
+
+interface OperationalStatusItem {
+  label: string;
+  value: string;
+  description: string;
+  tone: NonNullable<DashboardStatCardProps["tone"]>;
+  icon: LucideIcon;
+}
 
 function DashboardStatCard({
   title,
@@ -90,7 +121,9 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function getMembersTrendSummary(series: DashboardOverviewData["membersGrowthSeries"]) {
+function getMembersTrendSummary(
+  series: DashboardOverviewViewData["membersGrowthSeries"],
+) {
   const currentPoint = series[series.length - 1];
   const previousPoint = series[series.length - 2];
 
@@ -127,8 +160,182 @@ function getMembersTrendSummary(series: DashboardOverviewData["membersGrowthSeri
   };
 }
 
+function getCurrentMonthLabel(label?: string) {
+  return label || "mes atual";
+}
+
+function buildAttentionItems(
+  metrics: DashboardOverviewViewData["metrics"],
+  operational: DashboardOperationalSummary,
+  currentMonthLabel: string,
+): OperationalAlertItem[] {
+  const items: OperationalAlertItem[] = [];
+
+  if (
+    operational.currentMonthIncome === 0 &&
+    operational.currentMonthExpense === 0
+  ) {
+    items.push({
+      title: "Financeiro sem movimento",
+      description: `Nenhuma movimentacao foi registrada em ${currentMonthLabel}.`,
+      tone: "default",
+    });
+  } else if (operational.currentMonthExpense > operational.currentMonthIncome) {
+    items.push({
+      title: "Saidas acima das entradas",
+      description: `As despesas do mes superam as entradas em ${formatCurrency(
+        operational.currentMonthExpense - operational.currentMonthIncome,
+      )}.`,
+      tone: "danger",
+    });
+  }
+
+  if (operational.currentMonthMembers === 0) {
+    items.push({
+      title: "Sem novos membros no periodo",
+      description: `Nao houve novos cadastros em ${currentMonthLabel}.`,
+      tone: "default",
+    });
+  }
+
+  if (metrics.activeUsers === 0) {
+    items.push({
+      title: "Sem usuarios ativos",
+      description: "Nao ha usuarios ativos para sustentar a operacao do tenant.",
+      tone: "danger",
+    });
+  } else if (
+    metrics.totalChurches > 0 &&
+    metrics.activeUsers < metrics.totalChurches
+  ) {
+    items.push({
+      title: "Cobertura operacional enxuta",
+      description: `${formatInteger(metrics.activeUsers)} usuarios ativos para ${formatInteger(metrics.totalChurches)} igrejas ativas.`,
+      tone: "default",
+    });
+  }
+
+  return items;
+}
+
+function buildOperationalStatuses(
+  metrics: DashboardOverviewViewData["metrics"],
+  operational: DashboardOperationalSummary,
+  currentMonthLabel: string,
+): OperationalStatusItem[] {
+  const coverageGap = Math.max(metrics.totalChurches - metrics.activeUsers, 0);
+  const financeStatus: OperationalStatusItem =
+    operational.currentMonthIncome === 0 && operational.currentMonthExpense === 0
+      ? {
+          label: "Financeiro do mes",
+          value: "Sem movimento",
+          description: `Nenhuma movimentacao registrada em ${currentMonthLabel}.`,
+          tone: "default",
+          icon: Wallet,
+        }
+      : operational.currentMonthBalance < 0
+        ? {
+            label: "Financeiro do mes",
+            value: "Em atencao",
+            description: `Saldo de ${formatCurrency(operational.currentMonthBalance)} em ${currentMonthLabel}.`,
+            tone: "danger",
+            icon: Wallet,
+          }
+        : operational.currentMonthBalance === 0
+          ? {
+              label: "Financeiro do mes",
+              value: "Equilibrado",
+              description: "Entradas e saidas ficaram empatadas no mes.",
+              tone: "default",
+              icon: Wallet,
+            }
+          : {
+              label: "Financeiro do mes",
+              value: "Saudavel",
+              description: `Saldo positivo de ${formatCurrency(operational.currentMonthBalance)} em ${currentMonthLabel}.`,
+              tone: "success",
+              icon: Wallet,
+            };
+
+  const membersStatus: OperationalStatusItem =
+    operational.currentMonthMembers === 0
+      ? {
+          label: "Cadastros do mes",
+          value: "Sem entrada",
+          description: `Nenhum novo membro registrado em ${currentMonthLabel}.`,
+          tone: "default",
+          icon: UserPlus,
+        }
+      : operational.membersDelta > 0
+        ? {
+            label: "Cadastros do mes",
+            value: "Acima do anterior",
+            description: `+${formatInteger(operational.membersDelta)} vs. mes anterior.`,
+            tone: "success",
+            icon: UserPlus,
+          }
+        : operational.membersDelta < 0
+          ? {
+              label: "Cadastros do mes",
+              value: "Abaixo do anterior",
+              description: `${formatInteger(Math.abs(operational.membersDelta))} a menos vs. mes anterior.`,
+              tone: "default",
+              icon: UserPlus,
+            }
+          : {
+              label: "Cadastros do mes",
+              value: "Mesmo ritmo",
+              description: "Mesmo volume de entrada do mes anterior.",
+              tone: "default",
+              icon: UserPlus,
+            };
+
+  const accessStatus: OperationalStatusItem =
+    metrics.activeUsers === 0
+      ? {
+          label: "Cobertura de acesso",
+          value: "Sem operadores",
+          description: "Nao ha usuarios ativos no tenant.",
+          tone: "danger",
+          icon: ShieldCheck,
+        }
+      : metrics.totalChurches === 0
+        ? {
+            label: "Cobertura de acesso",
+            value: "Sem igrejas ativas",
+            description: "Nao ha igrejas ativas para comparar cobertura.",
+            tone: "default",
+            icon: ShieldCheck,
+          }
+        : metrics.activeUsers < metrics.totalChurches
+          ? {
+              label: "Cobertura de acesso",
+              value: "Enxuta",
+              description: `${formatInteger(coverageGap)} igreja(s) a mais do que usuarios ativos.`,
+              tone: "default",
+              icon: ShieldCheck,
+            }
+          : metrics.activeUsers === metrics.totalChurches
+            ? {
+                label: "Cobertura de acesso",
+                value: "Ajustada",
+                description: "Ha um usuario ativo por igreja ativa.",
+                tone: "success",
+                icon: ShieldCheck,
+              }
+            : {
+                label: "Cobertura de acesso",
+                value: "Confortavel",
+                description: `${formatInteger(metrics.activeUsers)} usuarios ativos para ${formatInteger(metrics.totalChurches)} igrejas ativas.`,
+                tone: "success",
+                icon: ShieldCheck,
+              };
+
+  return [financeStatus, membersStatus, accessStatus];
+}
+
 export function DashboardOverview() {
-  const [data, setData] = useState<DashboardOverviewData | null>(null);
+  const [data, setData] = useState<DashboardOverviewViewData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -177,18 +384,30 @@ export function DashboardOverview() {
     monthlyBalance: 0,
     activeUsers: 0,
   };
-  const totals = {
-    periodIncome: (data?.financeSeries ?? []).reduce(
-      (sum, item) => sum + item.income,
-      0,
-    ),
-    periodExpense: (data?.financeSeries ?? []).reduce(
-      (sum, item) => sum + item.expense,
-      0,
-    ),
+  const operational = data?.operational ?? {
+    currentMonthMembers: 0,
+    previousMonthMembers: 0,
+    membersDelta: 0,
+    currentMonthIncome: 0,
+    currentMonthExpense: 0,
+    currentMonthBalance: 0,
+    periodIncome: 0,
+    periodExpense: 0,
+    periodBalance: 0,
   };
+  const currentMonthLabel = getCurrentMonthLabel(data?.currentMonthLabel);
   const membersTrend = getMembersTrendSummary(data?.membersGrowthSeries ?? []);
   const MembersTrendIcon = membersTrend.icon;
+  const attentionItems = buildAttentionItems(
+    metrics,
+    operational,
+    currentMonthLabel,
+  );
+  const statuses = buildOperationalStatuses(
+    metrics,
+    operational,
+    currentMonthLabel,
+  );
 
   return (
     <div className="space-y-5">
@@ -250,32 +469,177 @@ export function DashboardOverview() {
         periodLabel={data?.financePeriodLabel ?? ""}
       />
 
-      <Card className="bg-white/85">
-        <CardHeader className="flex flex-col gap-2 pb-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <CardTitle>Resumo do periodo</CardTitle>
-          </div>
-          <Badge variant="secondary">{data?.financePeriodLabel}</Badge>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl bg-secondary/50 p-4">
-            <p className="text-sm font-medium text-muted-foreground">
-              Entradas
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {formatCurrency(totals.periodIncome)}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-secondary/50 p-4">
-            <p className="text-sm font-medium text-muted-foreground">
-              Saidas
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {formatCurrency(totals.periodExpense)}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 xl:grid-cols-5">
+        <Card className="bg-white/85 xl:col-span-3">
+          <CardHeader className="flex flex-col gap-2 pb-3 md:flex-row md:items-center md:justify-between">
+            <CardTitle>Itens que precisam de atencao</CardTitle>
+            <Badge variant="secondary">
+              {attentionItems.length === 0
+                ? "Sem pendencias"
+                : `${formatInteger(attentionItems.length)} alerta(s)`}
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {attentionItems.length > 0 ? (
+              attentionItems.map((item) => (
+                <div
+                  key={item.title}
+                  className={cn(
+                    "flex items-start gap-3 rounded-2xl border p-4",
+                    panelToneClasses[item.tone],
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex size-10 shrink-0 items-center justify-center rounded-2xl",
+                      statToneClasses[item.tone],
+                    )}
+                  >
+                    <AlertTriangle className="size-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold">{item.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {item.description}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-700">
+                    <CheckCircle2 className="size-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold">
+                      Operacao sem alertas imediatos
+                    </p>
+                    <p className="text-sm text-emerald-800/90">
+                      Os indicadores atuais nao mostram pendencias criticas para
+                      o tenant neste momento.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/85 xl:col-span-2">
+          <CardHeader className="flex flex-col gap-2 pb-3 md:flex-row md:items-center md:justify-between">
+            <CardTitle>Leitura operacional</CardTitle>
+            <Badge variant="secondary">{currentMonthLabel}</Badge>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-2xl bg-secondary/50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Membros novos no periodo
+                </p>
+                <Badge
+                  className={membersTrend.className}
+                  variant="secondary"
+                >
+                  <MembersTrendIcon className="mr-1 size-3.5" />
+                  {membersTrend.label}
+                </Badge>
+              </div>
+              <p className="mt-2 text-2xl font-semibold text-foreground">
+                {formatInteger(operational.currentMonthMembers)}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {operational.previousMonthMembers > 0
+                  ? `Mes anterior: ${formatInteger(operational.previousMonthMembers)}`
+                  : "Sem historico anterior relevante para comparacao."}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-secondary/50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Resumo financeiro do mes
+                </p>
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    operational.currentMonthBalance >= 0
+                      ? "bg-emerald-500/10 text-emerald-700"
+                      : "bg-rose-500/10 text-rose-700",
+                  )}
+                >
+                  Saldo {formatCurrency(operational.currentMonthBalance)}
+                </Badge>
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Entradas
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-emerald-700">
+                    {formatCurrency(operational.currentMonthIncome)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Saidas
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-rose-700">
+                    {formatCurrency(operational.currentMonthExpense)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Acumulado
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-foreground">
+                    {formatCurrency(operational.periodBalance)}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {data?.financePeriodLabel
+                  ? `Periodo ${data.financePeriodLabel}: ${formatCurrency(operational.periodIncome)} de entradas e ${formatCurrency(operational.periodExpense)} de saidas.`
+                  : "Resumo acumulado indisponivel no momento."}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {statuses.map((status) => {
+                const StatusIcon = status.icon;
+
+                return (
+                  <div
+                    key={status.label}
+                    className={cn(
+                      "flex items-start gap-3 rounded-2xl border p-4",
+                      panelToneClasses[status.tone],
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-2xl",
+                        statToneClasses[status.tone],
+                      )}
+                    >
+                      <StatusIcon className="size-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold">{status.label}</p>
+                        <Badge variant="secondary">{status.value}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {status.description}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -75,6 +75,22 @@ export class CreateMemberDto {
   joinedAt?: Date | null;
 
   @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  baptismDate?: Date | null;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  membershipDate?: Date | null;
+
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  conversionDate?: Date | null;
+
+  @IsOptional()
+  @Transform(({ value }) => normalizeMemberEnumValue(value))
   @IsEnum(MemberStatus)
   status?: MemberStatus;
 
@@ -82,6 +98,11 @@ export class CreateMemberDto {
   @IsString()
   @MaxLength(2000)
   notes?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  administrativeNotes?: string | null;
 
   @IsUUID('4')
   churchId!: string;

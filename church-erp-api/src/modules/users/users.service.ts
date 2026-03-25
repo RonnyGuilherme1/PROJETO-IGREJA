@@ -18,6 +18,11 @@ const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 5000;
 const USER_STATUS_VALUES = new Set<string>(Object.values(UserStatus));
 const USER_ROLE_VALUES = new Set<string>(Object.values(UserRole));
+const USER_MANAGE_ROLES = new Set<UserRole>([UserRole.ADMIN]);
+
+type CurrentUserWithPlatformRole = AuthenticatedUser & {
+  platformRole?: string | null;
+};
 
 interface FindUsersQuery {
   page?: number;
@@ -243,10 +248,24 @@ export class UsersService {
   }
 
   private ensureAdmin(currentUser: AuthenticatedUser): void {
-    if (currentUser.role !== UserRole.ADMIN) {
-      throw new ForbiddenException(
-        'Acesso permitido apenas para administradores.',
-      );
+    this.ensureTenantRole(
+      currentUser,
+      USER_MANAGE_ROLES,
+      'Acesso permitido apenas para administradores.',
+    );
+  }
+
+  private ensureTenantRole(
+    currentUser: AuthenticatedUser,
+    allowedRoles: ReadonlySet<UserRole>,
+    message: string,
+  ): void {
+    if (!currentUser) {
+      throw new ForbiddenException('Acesso nao autorizado.');
+    }
+
+    if (this.isPlatformUser(currentUser) || !allowedRoles.has(currentUser.role)) {
+      throw new ForbiddenException(message);
     }
   }
 
@@ -292,6 +311,12 @@ export class UsersService {
 
   private isUserRole(value: string): value is UserRole {
     return USER_ROLE_VALUES.has(value);
+  }
+
+  private isPlatformUser(currentUser: AuthenticatedUser): boolean {
+    return Boolean(
+      (currentUser as CurrentUserWithPlatformRole).platformRole,
+    );
   }
 
   private async ensureUniqueEmail(

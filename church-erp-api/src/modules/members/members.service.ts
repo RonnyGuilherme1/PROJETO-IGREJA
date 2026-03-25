@@ -8,11 +8,45 @@ import { MemberStatus, Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { CreateMemberDto } from './dto/create-member.dto';
-import { FindMembersQueryDto } from './dto/find-members-query.dto';
+import { FindMembersQueryDto, MemberAgeRange } from './dto/find-members-query.dto';
 import { MemberResponseDto } from './dto/member-response.dto';
 import { MembersListResponseDto } from './dto/members-list-response.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
-import { MemberEntity, memberSelect } from './types/member.type';
+
+const TENANT_VIEW_ROLES = new Set<UserRole>(Object.values(UserRole));
+const MEMBER_MANAGE_ROLES = new Set<UserRole>([
+  UserRole.ADMIN,
+  UserRole.SECRETARIA,
+]);
+
+const memberSelect = Prisma.validator<Prisma.MemberSelect>()({
+  id: true,
+  fullName: true,
+  birthDate: true,
+  gender: true,
+  phone: true,
+  email: true,
+  address: true,
+  maritalStatus: true,
+  joinedAt: true,
+  baptismDate: true,
+  membershipDate: true,
+  conversionDate: true,
+  status: true,
+  notes: true,
+  administrativeNotes: true,
+  churchId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+type MemberEntity = Prisma.MemberGetPayload<{
+  select: typeof memberSelect;
+}>;
+
+type CurrentUserWithPlatformRole = AuthenticatedUser & {
+  platformRole?: string | null;
+};
 
 @Injectable()
 export class MembersService {
@@ -83,8 +117,12 @@ export class MembersService {
         address: createMemberDto.address ?? null,
         maritalStatus: createMemberDto.maritalStatus ?? null,
         joinedAt: createMemberDto.joinedAt ?? null,
+        baptismDate: createMemberDto.baptismDate ?? null,
+        membershipDate: createMemberDto.membershipDate ?? null,
+        conversionDate: createMemberDto.conversionDate ?? null,
         status: createMemberDto.status ?? MemberStatus.ACTIVE,
         notes: createMemberDto.notes ?? null,
+        administrativeNotes: createMemberDto.administrativeNotes ?? null,
         churchId: createMemberDto.churchId,
       },
       select: memberSelect,
@@ -140,12 +178,28 @@ export class MembersService {
       data.joinedAt = updateMemberDto.joinedAt ?? null;
     }
 
+    if ('baptismDate' in updateMemberDto) {
+      data.baptismDate = updateMemberDto.baptismDate ?? null;
+    }
+
+    if ('membershipDate' in updateMemberDto) {
+      data.membershipDate = updateMemberDto.membershipDate ?? null;
+    }
+
+    if ('conversionDate' in updateMemberDto) {
+      data.conversionDate = updateMemberDto.conversionDate ?? null;
+    }
+
     if (updateMemberDto.status !== undefined) {
       data.status = updateMemberDto.status;
     }
 
     if ('notes' in updateMemberDto) {
       data.notes = updateMemberDto.notes ?? null;
+    }
+
+    if ('administrativeNotes' in updateMemberDto) {
+      data.administrativeNotes = updateMemberDto.administrativeNotes ?? null;
     }
 
     if (updateMemberDto.churchId !== undefined) {
@@ -187,6 +241,7 @@ export class MembersService {
     const where: Prisma.MemberWhereInput = {
       tenantId,
     };
+    const filters: Prisma.MemberWhereInput[] = [];
 
     if (query.name) {
       where.fullName = {
@@ -203,23 +258,142 @@ export class MembersService {
       where.churchId = query.churchId;
     }
 
+    const joinedRange = this.normalizeDateRange(query.joinedFrom, query.joinedTo);
+
+    if (joinedRange.from) {
+      filters.push({
+        joinedAt: {
+          gte: joinedRange.from,
+        },
+      });
+    }
+
+    if (joinedRange.to) {
+      filters.push({
+        joinedAt: {
+          lte: joinedRange.to,
+        },
+      });
+    }
+
+    if (query.ageRange) {
+      filters.push({
+        birthDate: this.buildBirthDateFilter(query.ageRange),
+      });
+    }
+
+    if (filters.length > 0) {
+      where.AND = filters;
+    }
+
     return where;
   }
 
-  private ensureCanView(currentUser: AuthenticatedUser): void {
-    if (!currentUser) {
-      throw new ForbiddenException('Acesso nao autorizado.');
+  private buildBirthDateFilter(
+    ageRange: MemberAgeRange,
+  ): Prisma.MemberWhereInput['birthDate'] {
+    const today = new Date();
+
+    switch (ageRange) {
+      case MemberAgeRange.CHILDREN:
+        return {
+          gte: this.startOfDay(this.addDays(this.subtractYears(today, 12), 1)),
+          lte: this.endOfDay(today),
+        };
+      case MemberAgeRange.TEENS:
+        return {
+          gte: this.startOfDay(this.addDays(this.subtractYears(today, 18), 1)),
+          lte: this.endOfDay(this.subtractYears(today, 12)),
+        };
+      case MemberAgeRange.ADULTS:
+        return {
+          gte: this.startOfDay(this.addDays(this.subtractYears(today, 60), 1)),
+          lte: this.endOfDay(this.subtractYears(today, 18)),
+        };
+      case MemberAgeRange.SENIORS:
+        return {
+          lte: this.endOfDay(this.subtractYears(today, 60)),
+        };
+      default:
+        return {};
     }
   }
 
+  private normalizeDateRange(
+    from?: Date,
+    to?: Date,
+  ): { from?: Date; to?: Date } {
+    if (!from && !to) {
+      return {};
+    }
+
+    const normalizedFrom = from ? this.startOfDay(from) : undefined;
+    const normalizedTo = to ? this.endOfDay(to) : undefined;
+
+    if (normalizedFrom && normalizedTo && normalizedFrom > normalizedTo) {
+      return {
+        from: this.startOfDay(normalizedTo),
+        to: this.endOfDay(normalizedFrom),
+      };
+    }
+
+    return {
+      from: normalizedFrom,
+      to: normalizedTo,
+    };
+  }
+
+  private startOfDay(value: Date): Date {
+    const date = new Date(value);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }
+
+  private endOfDay(value: Date): Date {
+    const date = new Date(value);
+    date.setHours(23, 59, 59, 999);
+    return date;
+  }
+
+  private addDays(value: Date, days: number): Date {
+    const date = new Date(value);
+    date.setDate(date.getDate() + days);
+    return date;
+  }
+
+  private subtractYears(value: Date, years: number): Date {
+    const date = new Date(value);
+    date.setFullYear(date.getFullYear() - years);
+    return date;
+  }
+
+  private ensureCanView(currentUser: AuthenticatedUser): void {
+    this.ensureTenantRole(
+      currentUser,
+      TENANT_VIEW_ROLES,
+      'Acesso permitido apenas para perfis do tenant.',
+    );
+  }
+
   private ensureCanManage(currentUser: AuthenticatedUser): void {
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.role !== UserRole.SECRETARIA
-    ) {
-      throw new ForbiddenException(
-        'Acesso permitido apenas para administradores e secretaria.',
-      );
+    this.ensureTenantRole(
+      currentUser,
+      MEMBER_MANAGE_ROLES,
+      'Acesso permitido apenas para administradores e secretaria.',
+    );
+  }
+
+  private ensureTenantRole(
+    currentUser: AuthenticatedUser,
+    allowedRoles: ReadonlySet<UserRole>,
+    message: string,
+  ): void {
+    if (!currentUser) {
+      throw new ForbiddenException('Acesso nao autorizado.');
+    }
+
+    if (this.isPlatformUser(currentUser) || !allowedRoles.has(currentUser.role)) {
+      throw new ForbiddenException(message);
     }
   }
 
@@ -269,5 +443,11 @@ export class MembersService {
     }
 
     return member;
+  }
+
+  private isPlatformUser(currentUser: AuthenticatedUser): boolean {
+    return Boolean(
+      (currentUser as CurrentUserWithPlatformRole).platformRole,
+    );
   }
 }

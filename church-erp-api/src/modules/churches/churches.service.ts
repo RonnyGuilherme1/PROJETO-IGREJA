@@ -15,6 +15,15 @@ import { ChurchEntity, churchSelect } from './types/church.type';
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 5000;
 const CHURCH_STATUS_VALUES = new Set<string>(Object.values(ChurchStatus));
+const TENANT_VIEW_ROLES = new Set<UserRole>(Object.values(UserRole));
+const CHURCH_MANAGE_ROLES = new Set<UserRole>([
+  UserRole.ADMIN,
+  UserRole.SECRETARIA,
+]);
+
+type CurrentUserWithPlatformRole = AuthenticatedUser & {
+  platformRole?: string | null;
+};
 
 interface FindChurchesQuery {
   page?: number;
@@ -210,19 +219,32 @@ export class ChurchesService {
   }
 
   private ensureCanView(currentUser: AuthenticatedUser): void {
-    if (!currentUser) {
-      throw new ForbiddenException('Acesso nao autorizado.');
-    }
+    this.ensureTenantRole(
+      currentUser,
+      TENANT_VIEW_ROLES,
+      'Acesso permitido apenas para perfis do tenant.',
+    );
   }
 
   private ensureCanManage(currentUser: AuthenticatedUser): void {
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.role !== UserRole.SECRETARIA
-    ) {
-      throw new ForbiddenException(
-        'Acesso permitido apenas para administradores e secretaria.',
-      );
+    this.ensureTenantRole(
+      currentUser,
+      CHURCH_MANAGE_ROLES,
+      'Acesso permitido apenas para administradores e secretaria.',
+    );
+  }
+
+  private ensureTenantRole(
+    currentUser: AuthenticatedUser,
+    allowedRoles: ReadonlySet<UserRole>,
+    message: string,
+  ): void {
+    if (!currentUser) {
+      throw new ForbiddenException('Acesso nao autorizado.');
+    }
+
+    if (this.isPlatformUser(currentUser) || !allowedRoles.has(currentUser.role)) {
+      throw new ForbiddenException(message);
     }
   }
 
@@ -257,5 +279,11 @@ export class ChurchesService {
 
   private isChurchStatus(value: string): value is ChurchStatus {
     return CHURCH_STATUS_VALUES.has(value);
+  }
+
+  private isPlatformUser(currentUser: AuthenticatedUser): boolean {
+    return Boolean(
+      (currentUser as CurrentUserWithPlatformRole).platformRole,
+    );
   }
 }

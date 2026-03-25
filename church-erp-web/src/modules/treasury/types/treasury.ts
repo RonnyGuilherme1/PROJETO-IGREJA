@@ -11,6 +11,7 @@ export interface TreasuryMovementItem {
   amount: string;
   transactionDate: string;
   notes: string | null;
+  receiptUrl: string | null;
   status: TreasuryTransactionStatus;
   createdByUserId: string;
   createdAt: string;
@@ -32,12 +33,14 @@ export interface TreasuryFilters {
   type: TreasuryType | "";
   categoryId: string;
   churchId: string;
+  status: TreasuryTransactionStatus | "";
 }
 
 export interface TreasurySummary {
   income: number;
   expense: number;
   balance: number;
+  transactionCount: number;
 }
 
 export interface TreasuryListResult {
@@ -54,6 +57,7 @@ export interface CreateTreasuryPayload {
   amount: string;
   transactionDate: string;
   notes: string;
+  receiptUrl: string;
 }
 
 export interface UpdateTreasuryPayload {
@@ -64,6 +68,7 @@ export interface UpdateTreasuryPayload {
   amount?: string;
   transactionDate?: string;
   notes?: string | null;
+  receiptUrl?: string | null;
 }
 
 export interface TreasuryFormValues {
@@ -74,6 +79,7 @@ export interface TreasuryFormValues {
   amount: string;
   transactionDate: string;
   notes: string;
+  receiptUrl: string;
   status: TreasuryTransactionStatus;
 }
 

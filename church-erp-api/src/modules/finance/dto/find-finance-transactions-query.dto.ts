@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { FinanceType } from '@prisma/client';
+import { FinanceTransactionStatus, FinanceType } from '@prisma/client';
 import {
   IsDate,
   IsEnum,
@@ -51,6 +51,13 @@ export class FindFinanceTransactionsQueryDto {
   @IsOptional()
   @IsEnum(FinanceType)
   type?: FinanceType;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @IsEnum(FinanceTransactionStatus)
+  status?: FinanceTransactionStatus;
 
   @IsOptional()
   @IsUUID('4')

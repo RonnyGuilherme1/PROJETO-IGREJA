@@ -12,6 +12,22 @@ const DASHBOARD_CARDS_ENDPOINT = "/dashboard/cards";
 const DASHBOARD_FINANCE_BY_MONTH_ENDPOINT = "/dashboard/finance-by-month";
 const DASHBOARD_MEMBERS_BY_MONTH_ENDPOINT = "/dashboard/members-by-month";
 
+export interface DashboardOperationalSummary {
+  currentMonthMembers: number;
+  previousMonthMembers: number;
+  membersDelta: number;
+  currentMonthIncome: number;
+  currentMonthExpense: number;
+  currentMonthBalance: number;
+  periodIncome: number;
+  periodExpense: number;
+  periodBalance: number;
+}
+
+export interface DashboardOverviewViewData extends DashboardOverviewData {
+  operational: DashboardOperationalSummary;
+}
+
 function toAmountNumber(value: string) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -59,7 +75,36 @@ function buildMembersGrowthSeries(
   }));
 }
 
-export async function getDashboardOverviewData(): Promise<DashboardOverviewData> {
+function buildOperationalSummary(
+  data: DashboardOverviewData,
+): DashboardOperationalSummary {
+  const currentMembers =
+    data.membersGrowthSeries[data.membersGrowthSeries.length - 1]?.newMembers ?? 0;
+  const previousMembers =
+    data.membersGrowthSeries[data.membersGrowthSeries.length - 2]?.newMembers ?? 0;
+  const periodIncome = data.financeSeries.reduce(
+    (sum, item) => sum + item.income,
+    0,
+  );
+  const periodExpense = data.financeSeries.reduce(
+    (sum, item) => sum + item.expense,
+    0,
+  );
+
+  return {
+    currentMonthMembers: currentMembers,
+    previousMonthMembers: previousMembers,
+    membersDelta: currentMembers - previousMembers,
+    currentMonthIncome: data.metrics.monthlyIncome,
+    currentMonthExpense: data.metrics.monthlyExpense,
+    currentMonthBalance: data.metrics.monthlyBalance,
+    periodIncome,
+    periodExpense,
+    periodBalance: periodIncome - periodExpense,
+  };
+}
+
+export async function getDashboardOverviewData(): Promise<DashboardOverviewViewData> {
   ensureApiConfigured();
 
   const [cardsResponse, financeResponse, membersResponse] = await Promise.all([
@@ -74,8 +119,7 @@ export async function getDashboardOverviewData(): Promise<DashboardOverviewData>
   const membersGrowthSeries = buildMembersGrowthSeries(membersResponse.data);
   const financeMonths = financeResponse.data.map((row) => row.month);
   const currentMonth = financeSeries[financeSeries.length - 1];
-
-  return {
+  const overviewData: DashboardOverviewData = {
     metrics: {
       totalMembers: cardsResponse.data.totalMembers,
       totalChurches: cardsResponse.data.totalChurches,
@@ -88,5 +132,10 @@ export async function getDashboardOverviewData(): Promise<DashboardOverviewData>
     membersGrowthSeries,
     currentMonthLabel: currentMonth?.label ?? "",
     financePeriodLabel: buildPeriodLabel(financeMonths),
+  };
+
+  return {
+    ...overviewData,
+    operational: buildOperationalSummary(overviewData),
   };
 }

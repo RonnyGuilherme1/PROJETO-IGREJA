@@ -37,6 +37,8 @@ enum ChurchStatus {
 enum MemberStatus {
   ACTIVE
   INACTIVE
+  VISITOR
+  IN_PROCESS
 }
 
 enum FinanceType {
@@ -62,6 +64,7 @@ model Tenant {
   churches            Church[]
   members             Member[]
   financeCategories   FinanceCategory[]
+  financeMonthClosures FinanceMonthClosure[]
   financeTransactions FinanceTransaction[]
 }
 
@@ -108,27 +111,32 @@ model Church {
 }
 
 model Member {
-  id            String       @id @default(uuid()) @db.Uuid
-  tenantId      String?      @db.Uuid
-  tenant        Tenant?      @relation(fields: [tenantId], references: [id])
-  fullName      String
-  birthDate     DateTime?
-  gender        String?
-  phone         String?
-  email         String?
-  address       String?
-  maritalStatus String?
-  joinedAt      DateTime?
-  status        MemberStatus @default(ACTIVE)
-  notes         String?
-  churchId      String       @db.Uuid
-  church        Church       @relation(fields: [churchId], references: [id])
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id                  String       @id @default(uuid()) @db.Uuid
+  tenantId            String?      @db.Uuid
+  tenant              Tenant?      @relation(fields: [tenantId], references: [id])
+  fullName            String
+  birthDate           DateTime?
+  gender              String?
+  phone               String?
+  email               String?
+  address             String?
+  maritalStatus       String?
+  joinedAt            DateTime?
+  baptismDate         DateTime?
+  membershipDate      DateTime?
+  conversionDate      DateTime?
+  status              MemberStatus @default(ACTIVE)
+  notes               String?
+  administrativeNotes String?
+  churchId            String       @db.Uuid
+  church              Church       @relation(fields: [churchId], references: [id])
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
   @@index([tenantId])
   @@index([churchId])
   @@index([status])
+  @@index([joinedAt])
 }
 
 model FinanceCategory {
@@ -158,6 +166,7 @@ model FinanceTransaction {
   amount          Decimal                  @db.Decimal(14, 2)
   transactionDate DateTime
   notes           String?
+  receiptUrl      String?
   status          FinanceTransactionStatus @default(ACTIVE)
   createdByUserId String                   @db.Uuid
   createdAt       DateTime                 @default(now())
@@ -173,4 +182,24 @@ model FinanceTransaction {
   @@index([transactionDate])
   @@index([status])
   @@index([createdByUserId])
+}
+
+model FinanceMonthClosure {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @db.Uuid
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
+  year             Int
+  month            Int
+  incomeAmount     Decimal  @db.Decimal(14, 2)
+  expenseAmount    Decimal  @db.Decimal(14, 2)
+  balanceAmount    Decimal  @db.Decimal(14, 2)
+  transactionCount Int      @default(0)
+  closedAt         DateTime @default(now())
+  closedByUserId   String   @db.Uuid
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([tenantId, year, month])
+  @@index([tenantId])
+  @@index([year, month])
 }

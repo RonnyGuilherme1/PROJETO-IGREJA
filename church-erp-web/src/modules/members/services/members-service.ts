@@ -45,10 +45,27 @@ function sanitizeMemberPayload(
       "joinedAt" in payload && payload.joinedAt !== undefined
         ? payload.joinedAt?.trim() || null
         : undefined,
+    baptismDate:
+      "baptismDate" in payload && payload.baptismDate !== undefined
+        ? payload.baptismDate?.trim() || null
+        : undefined,
+    membershipDate:
+      "membershipDate" in payload && payload.membershipDate !== undefined
+        ? payload.membershipDate?.trim() || null
+        : undefined,
+    conversionDate:
+      "conversionDate" in payload && payload.conversionDate !== undefined
+        ? payload.conversionDate?.trim() || null
+        : undefined,
     status: payload.status,
     notes:
       "notes" in payload && payload.notes !== undefined
         ? payload.notes?.trim() || null
+        : undefined,
+    administrativeNotes:
+      "administrativeNotes" in payload &&
+      payload.administrativeNotes !== undefined
+        ? payload.administrativeNotes?.trim() || null
         : undefined,
     churchId:
       "churchId" in payload && payload.churchId !== undefined
@@ -73,6 +90,9 @@ export async function listMembers(
       name: filters.name || undefined,
       status: filters.status || undefined,
       churchId: filters.churchId || undefined,
+      ageRange: filters.ageRange || undefined,
+      joinedFrom: filters.joinedFrom || undefined,
+      joinedTo: filters.joinedTo || undefined,
     },
   });
 

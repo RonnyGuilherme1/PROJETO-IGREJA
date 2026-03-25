@@ -44,6 +44,22 @@ interface ChurchOption {
   name: string;
 }
 
+const TREASURY_RECEIPT_MAX_FILE_SIZE = 5 * 1024 * 1024;
+const TREASURY_RECEIPT_INPUT_ACCEPT = ".pdf,.png,.jpg,.jpeg,.webp";
+const TREASURY_RECEIPT_ALLOWED_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+const TREASURY_RECEIPT_ALLOWED_EXTENSIONS = [
+  ".pdf",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+];
+
 const initialFormValues: TreasuryFormValues = {
   churchId: "",
   categoryId: "",
@@ -52,6 +68,7 @@ const initialFormValues: TreasuryFormValues = {
   amount: "",
   transactionDate: "",
   notes: "",
+  receiptUrl: "",
   status: "ACTIVE",
 };
 
@@ -59,6 +76,31 @@ const textareaClassName =
   "flex min-h-28 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 const LIST_PATH = "/tesouraria";
+
+function validateTreasuryReceiptFile(file: File): string | null {
+  if (file.size > TREASURY_RECEIPT_MAX_FILE_SIZE) {
+    return "O comprovante deve ter no maximo 5 MB.";
+  }
+
+  const normalizedMimeType = file.type.trim().toLowerCase();
+  const normalizedName = file.name.trim().toLowerCase();
+  const hasAllowedMimeType =
+    normalizedMimeType.length > 0 &&
+    TREASURY_RECEIPT_ALLOWED_MIME_TYPES.has(normalizedMimeType);
+  const hasAllowedExtension = TREASURY_RECEIPT_ALLOWED_EXTENSIONS.some(
+    (extension) => normalizedName.endsWith(extension),
+  );
+
+  if (
+    (normalizedMimeType && !hasAllowedMimeType) ||
+    (!normalizedMimeType && !hasAllowedExtension) ||
+    !hasAllowedExtension
+  ) {
+    return "Selecione um PDF, PNG, JPG, JPEG ou WEBP.";
+  }
+
+  return null;
+}
 
 export function TreasuryFormPage({
   mode,
@@ -72,6 +114,9 @@ export function TreasuryFormPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [selectedReceiptFile, setSelectedReceiptFile] = useState<File | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [receiptInputKey, setReceiptInputKey] = useState(0);
   const [isRedirecting, startTransition] = useTransition();
   const availableCategories = categories.filter(
     (category) => category.active || category.id === formValues.categoryId,
@@ -121,6 +166,7 @@ export function TreasuryFormPage({
             amount: movementResponse.amount,
             transactionDate: movementResponse.transactionDate.slice(0, 10),
             notes: movementResponse.notes ?? "",
+            receiptUrl: movementResponse.receiptUrl ?? "",
             status: movementResponse.status || "ACTIVE",
           });
         }
@@ -170,6 +216,42 @@ export function TreasuryFormPage({
     }));
   }
 
+  function resetSelectedReceiptState() {
+    setSelectedReceiptFile(null);
+    setReceiptError(null);
+    setReceiptInputKey((current) => current + 1);
+  }
+
+  function handleReceiptFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setSubmitError(null);
+
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const validationMessage = validateTreasuryReceiptFile(file);
+
+    if (validationMessage) {
+      setSelectedReceiptFile(null);
+      setReceiptError(validationMessage);
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedReceiptFile(file);
+    setReceiptError(null);
+  }
+
+  function handleRemoveReceipt() {
+    resetSelectedReceiptState();
+    setFormValues((current) => ({
+      ...current,
+      receiptUrl: "",
+    }));
+  }
+
   useEffect(() => {
     if (!formValues.categoryId) {
       return;
@@ -193,7 +275,7 @@ export function TreasuryFormPage({
     setIsSubmitting(true);
 
     try {
-      const payload = {
+      const payload: CreateTreasuryPayload = {
         churchId: formValues.churchId,
         categoryId: formValues.categoryId,
         type: formValues.type,
@@ -201,12 +283,18 @@ export function TreasuryFormPage({
         amount: formValues.amount,
         transactionDate: formValues.transactionDate,
         notes: formValues.notes,
+        receiptUrl: formValues.receiptUrl,
       };
 
       if (mode === "create") {
-        await createTreasuryMovement(payload as CreateTreasuryPayload);
+        await createTreasuryMovement(payload, selectedReceiptFile);
       } else if (movementId) {
-        await updateTreasuryMovement(movementId, payload as UpdateTreasuryPayload);
+        const updatePayload: UpdateTreasuryPayload = payload;
+        await updateTreasuryMovement(
+          movementId,
+          updatePayload,
+          selectedReceiptFile,
+        );
       }
 
       startTransition(() => {
@@ -240,7 +328,7 @@ export function TreasuryFormPage({
     <div className="space-y-6">
       <PageHeader
         title={mode === "create" ? "Nova movimentacao" : "Editar movimentacao"}
-        description="Preencha os dados da movimentacao."
+        description="Preencha os dados essenciais da movimentacao financeira."
         badge="Tesouraria"
         action={
           <Button asChild variant="outline">
@@ -255,11 +343,14 @@ export function TreasuryFormPage({
       <Card className="bg-white/85">
         <CardHeader>
           <CardTitle>Dados principais</CardTitle>
-          <CardDescription>Revise os campos antes de salvar.</CardDescription>
+          <CardDescription>
+            Cadastre a movimentacao com categoria, periodo e comprovante quando
+            houver.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <PageLoading variant="form" fields={7} />
+            <PageLoading variant="form" fields={9} />
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
@@ -346,7 +437,9 @@ export function TreasuryFormPage({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="treasury-transactionDate">Data da movimentacao</Label>
+                  <Label htmlFor="treasury-transactionDate">
+                    Data da movimentacao
+                  </Label>
                   <Input
                     id="treasury-transactionDate"
                     type="date"
@@ -370,14 +463,59 @@ export function TreasuryFormPage({
               ) : null}
 
               <div className="space-y-2">
+                <Label htmlFor="treasury-receipt">Comprovante ou anexo</Label>
+                <Input
+                  key={receiptInputKey}
+                  id="treasury-receipt"
+                  type="file"
+                  accept={TREASURY_RECEIPT_INPUT_ACCEPT}
+                  onChange={handleReceiptFileChange}
+                  disabled={isBusy}
+                />
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Aceita PDF, PNG, JPG, JPEG ou WEBP com ate 5 MB.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleRemoveReceipt}
+                    disabled={isBusy}
+                  >
+                    Remover comprovante
+                  </Button>
+                </div>
+                {selectedReceiptFile ? (
+                  <p className="text-xs text-primary">
+                    Arquivo selecionado:{" "}
+                    <strong>{selectedReceiptFile.name}</strong>. Salve para
+                    substituir o comprovante atual.
+                  </p>
+                ) : null}
+                {!selectedReceiptFile && formValues.receiptUrl ? (
+                  <a
+                    href={formValues.receiptUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    Abrir comprovante atual
+                  </a>
+                ) : null}
+                {receiptError ? (
+                  <p className="text-sm text-destructive">{receiptError}</p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="treasury-notes">Observacoes</Label>
                 <textarea
                   id="treasury-notes"
                   className={textareaClassName}
                   value={formValues.notes}
-                    onChange={(event) =>
-                      handleFieldChange("notes", event.target.value)
-                    }
+                  onChange={(event) =>
+                    handleFieldChange("notes", event.target.value)
+                  }
                   placeholder="Observacoes internas"
                 />
               </div>

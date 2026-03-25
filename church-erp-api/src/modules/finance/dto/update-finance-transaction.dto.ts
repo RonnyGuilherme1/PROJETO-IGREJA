@@ -65,6 +65,20 @@ export class UpdateFinanceTransactionDto {
   notes?: string | null;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const trimmedValue = value.trim();
+
+    return trimmedValue.length > 0 ? trimmedValue : null;
+  })
+  @IsString()
+  @MaxLength(2048)
+  receiptUrl?: string | null;
+
+  @IsOptional()
   @Transform(({ value }) =>
     typeof value === 'string' ? value.trim().toUpperCase() : value,
   )

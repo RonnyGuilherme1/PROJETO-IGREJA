@@ -1,6 +1,20 @@
 import { FinanceTransactionStatus, FinanceType } from '@prisma/client';
 
-import { FinanceTransactionEntity } from '../types/finance-transaction.type';
+type FinanceTransactionResponseSource = {
+  id: string;
+  churchId: string;
+  categoryId: string;
+  type: FinanceType;
+  description: string;
+  amount: { toString(): string };
+  transactionDate: Date;
+  notes: string | null;
+  receiptUrl: string | null;
+  status: FinanceTransactionStatus;
+  createdByUserId: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export class FinanceTransactionResponseDto {
   id!: string;
@@ -11,12 +25,13 @@ export class FinanceTransactionResponseDto {
   amount!: string;
   transactionDate!: Date;
   notes!: string | null;
+  receiptUrl!: string | null;
   status!: FinanceTransactionStatus;
   createdByUserId!: string;
   createdAt!: Date;
   updatedAt!: Date;
 
-  constructor(transaction: FinanceTransactionEntity) {
+  constructor(transaction: FinanceTransactionResponseSource) {
     this.id = transaction.id;
     this.churchId = transaction.churchId;
     this.categoryId = transaction.categoryId;
@@ -25,6 +40,7 @@ export class FinanceTransactionResponseDto {
     this.amount = transaction.amount.toString();
     this.transactionDate = transaction.transactionDate;
     this.notes = transaction.notes;
+    this.receiptUrl = transaction.receiptUrl;
     this.status = transaction.status;
     this.createdByUserId = transaction.createdByUserId;
     this.createdAt = transaction.createdAt;

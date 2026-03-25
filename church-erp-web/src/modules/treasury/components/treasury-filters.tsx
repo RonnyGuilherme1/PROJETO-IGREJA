@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import {
+  TREASURY_STATUS_OPTIONS,
   TREASURY_TYPE_OPTIONS,
   type TreasuryCategoryItem,
   type TreasuryFilters,
@@ -35,9 +36,13 @@ export function TreasuryFilters({
   onSubmit,
   onReset,
 }: TreasuryFiltersProps) {
+  const filteredCategories = filters.type
+    ? categories.filter((category) => category.type === filters.type)
+    : categories;
+
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <div className="space-y-2">
           <Label htmlFor="treasury-startDate">Data inicial</Label>
           <Input
@@ -82,7 +87,7 @@ export function TreasuryFilters({
             onChange={(event) => onChange("categoryId", event.target.value)}
           >
             <option value="">Todas</option>
-            {categories.map((category) => (
+            {filteredCategories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>
@@ -101,6 +106,22 @@ export function TreasuryFilters({
             {churches.map((church) => (
               <option key={church.id} value={church.id}>
                 {church.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="treasury-status">Status</Label>
+          <Select
+            id="treasury-status"
+            value={filters.status}
+            onChange={(event) => onChange("status", event.target.value)}
+          >
+            <option value="">Todos</option>
+            {TREASURY_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </Select>

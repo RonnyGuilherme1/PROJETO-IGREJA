@@ -38,6 +38,9 @@ const initialFilters: MemberFilters = {
   name: "",
   status: "",
   churchId: "",
+  ageRange: "",
+  joinedFrom: "",
+  joinedTo: "",
 };
 
 const feedbackMessages = {

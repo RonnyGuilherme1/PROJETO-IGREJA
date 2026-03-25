@@ -19,8 +19,30 @@ function isInactive(status: MemberItem["status"]) {
   return status === "INACTIVE";
 }
 
-function getStatusLabel(status: MemberItem["status"]) {
-  return isInactive(status) ? "Inativo" : "Ativo";
+function getStatusMeta(status: MemberItem["status"]) {
+  switch (status) {
+    case "ACTIVE":
+      return {
+        label: "Ativo",
+        className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      };
+    case "VISITOR":
+      return {
+        label: "Visitante",
+        className: "border-sky-200 bg-sky-50 text-sky-700",
+      };
+    case "IN_PROCESS":
+      return {
+        label: "Em processo",
+        className: "border-amber-200 bg-amber-50 text-amber-700",
+      };
+    case "INACTIVE":
+    default:
+      return {
+        label: "Inativo",
+        className: "border-border bg-card text-muted-foreground",
+      };
+  }
 }
 
 function formatPhone(value: string) {
@@ -52,6 +74,53 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR").format(parsed);
 }
 
+function formatAge(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const birthDateValue = value.includes("T") ? value.slice(0, 10) : value;
+  const birthDate = new Date(`${birthDateValue}T00:00:00`);
+
+  if (Number.isNaN(birthDate.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const birthdayPassed =
+    today.getMonth() > birthDate.getMonth() ||
+    (today.getMonth() === birthDate.getMonth() &&
+      today.getDate() >= birthDate.getDate());
+
+  if (!birthdayPassed) {
+    age -= 1;
+  }
+
+  return age >= 0 ? `${age} anos` : null;
+}
+
+function getSecondaryProfileLine(member: MemberItem) {
+  const details = [formatAge(member.birthDate), member.gender].filter(Boolean);
+
+  if (details.length === 0) {
+    return "Dados pessoais nao informados";
+  }
+
+  return details.join(" | ");
+}
+
+function getKeyDates(member: MemberItem) {
+  return [
+    { label: "Entrada", value: member.joinedAt },
+    { label: "Membresia", value: member.membershipDate },
+    { label: "Batismo", value: member.baptismDate },
+    { label: "Conversao", value: member.conversionDate },
+  ]
+    .filter((item) => Boolean(item.value))
+    .slice(0, 2);
+}
+
 export function MembersTable({
   members,
   churchNamesById,
@@ -76,13 +145,10 @@ export function MembersTable({
                 Igreja
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Telefone
+                Contato
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                E-mail
-              </th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Ingresso
+                Datas-chave
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 Status
@@ -95,7 +161,7 @@ export function MembersTable({
           <tbody className="divide-y divide-border">
             {!isLoading && members.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-16">
+                <td colSpan={6} className="px-4 py-16">
                   <div className="space-y-1 text-center">
                     <p className="font-medium text-foreground">
                       Nenhum registro encontrado
@@ -111,6 +177,8 @@ export function MembersTable({
             {members.map((member) => {
               const inactive = isInactive(member.status);
               const rowLoading = inactivatingId === member.id;
+              const statusMeta = getStatusMeta(member.status);
+              const keyDates = getKeyDates(member);
 
               return (
                 <tr key={member.id} className="align-top">
@@ -120,7 +188,7 @@ export function MembersTable({
                         {member.fullName}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {member.gender || "Genero nao informado"}
+                        {getSecondaryProfileLine(member)}
                       </p>
                     </div>
                   </td>
@@ -128,18 +196,40 @@ export function MembersTable({
                     {churchNamesById[member.churchId] || member.churchId || "-"}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {formatPhone(member.phone || "")}
+                    <div className="space-y-1">
+                      <p>{formatPhone(member.phone || "")}</p>
+                      <p className="break-all text-xs">
+                        {member.email || "E-mail nao informado"}
+                      </p>
+                    </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {member.email || "-"}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {formatDate(member.joinedAt || "")}
+                    {keyDates.length > 0 ? (
+                      <div className="space-y-1">
+                        {keyDates.map((item) => (
+                          <p key={`${member.id}-${item.label}`}>
+                            <span className="font-medium text-foreground">
+                              {item.label}:
+                            </span>{" "}
+                            {formatDate(item.value || "")}
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      "-"
+                    )}
                   </td>
                   <td className="px-4 py-4">
-                    <Badge variant={inactive ? "outline" : "secondary"}>
-                      {getStatusLabel(member.status)}
-                    </Badge>
+                    <div className="space-y-1.5">
+                      <Badge variant="outline" className={statusMeta.className}>
+                        {statusMeta.label}
+                      </Badge>
+                      {member.administrativeNotes ? (
+                        <p className="max-w-48 text-xs text-muted-foreground">
+                          {member.administrativeNotes}
+                        </p>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex flex-col justify-end gap-2 sm:flex-row">

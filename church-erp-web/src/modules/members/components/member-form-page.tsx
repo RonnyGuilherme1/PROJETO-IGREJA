@@ -53,13 +53,19 @@ const initialFormValues: MemberFormValues = {
   address: "",
   maritalStatus: "",
   joinedAt: "",
+  baptismDate: "",
+  membershipDate: "",
+  conversionDate: "",
   status: "ACTIVE",
   notes: "",
+  administrativeNotes: "",
   churchId: "",
 };
 
 const textareaClassName =
   "flex min-h-28 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+const shortTextareaClassName =
+  "flex min-h-20 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 const LIST_PATH = "/membros";
 
@@ -83,7 +89,9 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
       try {
         const [churchesResponse, memberResponse] = await Promise.all([
           listChurches({ name: "", status: "" }),
-          mode === "edit" && memberId ? getMemberById(memberId) : Promise.resolve(null),
+          mode === "edit" && memberId
+            ? getMemberById(memberId)
+            : Promise.resolve(null),
         ]);
 
         if (!isActive) {
@@ -109,8 +117,12 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
             address: memberResponse.address ?? "",
             maritalStatus: memberResponse.maritalStatus ?? "",
             joinedAt: memberResponse.joinedAt ?? "",
+            baptismDate: memberResponse.baptismDate ?? "",
+            membershipDate: memberResponse.membershipDate ?? "",
+            conversionDate: memberResponse.conversionDate ?? "",
             status: memberResponse.status || "ACTIVE",
             notes: memberResponse.notes ?? "",
+            administrativeNotes: memberResponse.administrativeNotes ?? "",
             churchId: memberResponse.churchId,
           });
         } else {
@@ -171,8 +183,12 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
           address: formValues.address,
           maritalStatus: formValues.maritalStatus,
           joinedAt: formValues.joinedAt,
+          baptismDate: formValues.baptismDate,
+          membershipDate: formValues.membershipDate,
+          conversionDate: formValues.conversionDate,
           status: formValues.status,
           notes: formValues.notes,
+          administrativeNotes: formValues.administrativeNotes,
           churchId: formValues.churchId,
         };
 
@@ -187,8 +203,12 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
           address: formValues.address,
           maritalStatus: formValues.maritalStatus,
           joinedAt: formValues.joinedAt,
+          baptismDate: formValues.baptismDate,
+          membershipDate: formValues.membershipDate,
+          conversionDate: formValues.conversionDate,
           status: formValues.status,
           notes: formValues.notes,
+          administrativeNotes: formValues.administrativeNotes,
           churchId: formValues.churchId,
         };
 
@@ -241,11 +261,13 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
       <Card className="bg-white/85">
         <CardHeader>
           <CardTitle>Dados principais</CardTitle>
-          <CardDescription>Revise os campos antes de salvar.</CardDescription>
+          <CardDescription>
+            Cadastre os dados essenciais para a operacao da igreja.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <PageLoading variant="form" fields={8} />
+            <PageLoading variant="form" fields={12} />
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
@@ -363,6 +385,48 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
                     ))}
                   </Select>
                 </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="member-baptismDate">Data de batismo</Label>
+                  <Input
+                    id="member-baptismDate"
+                    type="date"
+                    value={formValues.baptismDate}
+                    onChange={(event) =>
+                      handleFieldChange("baptismDate", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="member-membershipDate">
+                    Data de membresia
+                  </Label>
+                  <Input
+                    id="member-membershipDate"
+                    type="date"
+                    value={formValues.membershipDate}
+                    onChange={(event) =>
+                      handleFieldChange("membershipDate", event.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="member-conversionDate">
+                    Data de conversao
+                  </Label>
+                  <Input
+                    id="member-conversionDate"
+                    type="date"
+                    value={formValues.conversionDate}
+                    onChange={(event) =>
+                      handleFieldChange("conversionDate", event.target.value)
+                    }
+                  />
+                </div>
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="member-churchId">Igreja</Label>
@@ -398,14 +462,29 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="member-administrativeNotes">
+                  Observacao administrativa
+                </Label>
+                <textarea
+                  id="member-administrativeNotes"
+                  className={shortTextareaClassName}
+                  value={formValues.administrativeNotes}
+                  onChange={(event) =>
+                    handleFieldChange("administrativeNotes", event.target.value)
+                  }
+                  placeholder="Ex.: aguardando carta de transferencia"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="member-notes">Observacoes</Label>
                 <textarea
                   id="member-notes"
                   className={textareaClassName}
                   value={formValues.notes}
-                    onChange={(event) =>
-                      handleFieldChange("notes", event.target.value)
-                    }
+                  onChange={(event) =>
+                    handleFieldChange("notes", event.target.value)
+                  }
                   placeholder="Observacoes internas"
                 />
               </div>

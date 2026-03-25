@@ -57,4 +57,18 @@ export class CreateFinanceTransactionDto {
   @IsString()
   @MaxLength(2000)
   notes?: string | null;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const trimmedValue = value.trim();
+
+    return trimmedValue.length > 0 ? trimmedValue : null;
+  })
+  @IsString()
+  @MaxLength(2048)
+  receiptUrl?: string | null;
 }
