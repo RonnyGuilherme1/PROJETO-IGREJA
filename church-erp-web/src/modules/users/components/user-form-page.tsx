@@ -113,7 +113,7 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
             getApiErrorMessage(
               error,
               mode === "create"
-                ? "Nao foi possivel carregar os dados para continuar."
+                ? "Nao foi possivel preparar o formulario."
                 : "Nao foi possivel carregar os dados do usuario.",
             ),
           );
@@ -187,10 +187,7 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
       });
     } catch (error) {
       setSubmitError(
-        getApiErrorMessage(
-          error,
-          "Nao foi possivel salvar os dados. Revise as informacoes e tente novamente.",
-        ),
+        getApiErrorMessage(error, "Nao foi possivel salvar os dados."),
       );
     } finally {
       setIsSubmitting(false);
@@ -211,11 +208,7 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
     <div className="space-y-6">
       <PageHeader
         title={mode === "create" ? "Novo usuario" : "Editar usuario"}
-        description={
-          mode === "create"
-            ? "Preencha os dados para cadastrar um novo usuario na plataforma."
-            : "Atualize os dados do usuario com o mesmo fluxo usado nos demais cadastros."
-        }
+        description="Preencha os dados do usuario."
         badge="Usuarios"
         action={
           <Button asChild variant="outline">
@@ -229,13 +222,8 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
 
       <Card className="bg-white/85">
         <CardHeader>
-          <CardTitle>
-            {mode === "create" ? "Cadastro" : "Edicao de usuario"}
-          </CardTitle>
-          <CardDescription>
-            Campos obrigatorios organizados para manter a manutencao de usuarios
-            simples e consistente.
-          </CardDescription>
+          <CardTitle>Dados principais</CardTitle>
+          <CardDescription>Revise os campos antes de salvar.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -265,28 +253,26 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
                     onChange={(event) =>
                       handleFieldChange("email", event.target.value)
                     }
-                    placeholder="usuario@igreja.org.br"
+                    placeholder="nome@igreja.org.br"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="user-username">Username</Label>
+                  <Label htmlFor="user-username">Login</Label>
                   <Input
                     id="user-username"
                     value={formValues.username}
                     onChange={(event) =>
                       handleFieldChange("username", event.target.value)
                     }
-                    placeholder="usuario.login"
+                    placeholder="login"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="user-password">
-                    {mode === "create" ? "Senha" : "Nova senha"}
-                  </Label>
+                  <Label htmlFor="user-password">Senha</Label>
                   <Input
                     id="user-password"
                     type="password"
@@ -296,8 +282,8 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
                     }
                     placeholder={
                       mode === "create"
-                        ? "Defina uma senha inicial"
-                        : "Preencha apenas para alterar"
+                        ? "Informe a senha"
+                        : "Deixe em branco para manter a atual"
                     }
                     required={mode === "create"}
                   />
@@ -351,7 +337,7 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
                         handleFieldChange("churchId", event.target.value)
                       }
                     >
-                      <option value="">Sem igreja vinculada</option>
+                      <option value="">Sem vinculacao</option>
                       {churchOptions.map((church) => (
                         <option key={church.id} value={church.id}>
                           {church.name}
@@ -370,9 +356,11 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
               ) : null}
 
               {submitError ? (
-                <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                  {submitError}
-                </div>
+                <ErrorView
+                  variant="inline"
+                  title="Nao foi possivel salvar"
+                  description={submitError}
+                />
               ) : null}
 
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -382,11 +370,7 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
                   ) : (
                     <Save className="size-4" />
                   )}
-                  {isBusy
-                    ? "Salvando..."
-                    : mode === "create"
-                      ? "Salvar cadastro"
-                      : "Salvar alteracoes"}
+                  {isBusy ? "Salvando..." : "Salvar"}
                 </Button>
                 <Button
                   type="button"

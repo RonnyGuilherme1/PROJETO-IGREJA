@@ -8,6 +8,7 @@ import { getApiErrorMessage } from "@/lib/http";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageLoading } from "@/components/shared/page-loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -80,10 +81,7 @@ export function MembersListPage({
       setTotal(response.total);
     } catch (loadError) {
       setError(
-        getApiErrorMessage(
-          loadError,
-          "Nao foi possivel carregar os membros agora.",
-        ),
+        getApiErrorMessage(loadError, "Nao foi possivel carregar os membros."),
       );
     } finally {
       setIsLoading(false);
@@ -133,7 +131,7 @@ export function MembersListPage({
           setChurchesError(
             getApiErrorMessage(
               loadError,
-              "Nao foi possivel carregar as igrejas para o filtro.",
+              "Nao foi possivel carregar as igrejas para os filtros.",
             ),
           );
         }
@@ -184,10 +182,7 @@ export function MembersListPage({
       setFeedback(feedbackMessages.inactivated);
     } catch (actionError) {
       setError(
-        getApiErrorMessage(
-          actionError,
-          "Nao foi possivel concluir a inativacao agora.",
-        ),
+        getApiErrorMessage(actionError, "Nao foi possivel inativar o membro."),
       );
     } finally {
       setInactivatingId(null);
@@ -208,7 +203,7 @@ export function MembersListPage({
     <div className="space-y-6">
       <PageHeader
         title="Membros"
-        description="Acompanhe o cadastro de membros, a igreja vinculada e o status de cada registro."
+        description="Acompanhe membros e vinculacoes."
         badge={getMembersAccessLabel(currentUser)}
         action={
           canEdit ? (
@@ -226,17 +221,17 @@ export function MembersListPage({
         <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <CardTitle>Filtros</CardTitle>
-            <CardDescription>
-              Filtre por nome, status e igreja para localizar membros.
-            </CardDescription>
+            <CardDescription>Aplique os filtros para localizar registros.</CardDescription>
           </div>
           <Badge variant="secondary">Total: {total}</Badge>
         </CardHeader>
         <CardContent className="space-y-4">
           {churchesError ? (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {churchesError}
-            </div>
+            <ErrorView
+              variant="inline"
+              title="Igrejas indisponiveis"
+              description={churchesError}
+            />
           ) : null}
 
           <MembersFilters
@@ -252,10 +247,8 @@ export function MembersListPage({
 
       <Card className="bg-white/85">
         <CardHeader className="space-y-2">
-          <CardTitle>Listagem</CardTitle>
-          <CardDescription>
-            Visualize membros cadastrados, acompanhe a igreja vinculada e gerencie o status.
-          </CardDescription>
+          <CardTitle>Resultados</CardTitle>
+          <CardDescription>Consulte os registros encontrados.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {feedback ? (
@@ -265,19 +258,27 @@ export function MembersListPage({
           ) : null}
 
           {error ? (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
+            <ErrorView
+              variant="inline"
+              title="Nao foi possivel atualizar a listagem"
+              description={error}
+              actionLabel="Recarregar listagem"
+              onAction={() => void loadMembers(appliedFilters)}
+            />
           ) : null}
 
-          <MembersTable
-            members={members}
-            churchNamesById={churchNamesById}
-            isLoading={isLoading}
-            canEdit={canEdit}
-            inactivatingId={inactivatingId}
-            onInactivate={handleInactivate}
-          />
+          {isLoading && members.length === 0 ? (
+            <PageLoading variant="list" />
+          ) : (
+            <MembersTable
+              members={members}
+              churchNamesById={churchNamesById}
+              isLoading={isLoading}
+              canEdit={canEdit}
+              inactivatingId={inactivatingId}
+              onInactivate={handleInactivate}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -286,7 +287,7 @@ export function MembersListPage({
         title="Inativar membro"
         description={
           memberPendingInactivation
-            ? `${memberPendingInactivation.fullName} deixara de aparecer como ativo e o cadastro permanecera no historico.`
+            ? `${memberPendingInactivation.fullName} sera inativado e continuara disponivel no historico.`
             : ""
         }
         confirmLabel="Inativar"

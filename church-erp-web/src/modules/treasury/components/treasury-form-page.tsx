@@ -130,7 +130,7 @@ export function TreasuryFormPage({
             getApiErrorMessage(
               error,
               mode === "create"
-                ? "Nao foi possivel carregar os dados para continuar."
+                ? "Nao foi possivel preparar o formulario."
                 : "Nao foi possivel carregar os dados da movimentacao.",
             ),
           );
@@ -217,10 +217,7 @@ export function TreasuryFormPage({
       });
     } catch (error) {
       setSubmitError(
-        getApiErrorMessage(
-          error,
-          "Nao foi possivel salvar os dados. Revise as informacoes e tente novamente.",
-        ),
+        getApiErrorMessage(error, "Nao foi possivel salvar os dados."),
       );
     } finally {
       setIsSubmitting(false);
@@ -243,11 +240,7 @@ export function TreasuryFormPage({
     <div className="space-y-6">
       <PageHeader
         title={mode === "create" ? "Nova movimentacao" : "Editar movimentacao"}
-        description={
-          mode === "create"
-            ? "Cadastre uma nova entrada ou saida financeira vinculando igreja e categoria."
-            : "Atualize a movimentacao com o mesmo fluxo usado nos demais cadastros."
-        }
+        description="Preencha os dados da movimentacao."
         badge="Tesouraria"
         action={
           <Button asChild variant="outline">
@@ -261,12 +254,8 @@ export function TreasuryFormPage({
 
       <Card className="bg-white/85">
         <CardHeader>
-          <CardTitle>
-            {mode === "create" ? "Cadastro financeiro" : "Edicao financeira"}
-          </CardTitle>
-          <CardDescription>
-            Preencha os dados da movimentacao para manter o controle financeiro organizado.
-          </CardDescription>
+          <CardTitle>Dados principais</CardTitle>
+          <CardDescription>Revise os campos antes de salvar.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -323,7 +312,7 @@ export function TreasuryFormPage({
                     disabled
                   />
                   <p className="text-xs text-muted-foreground">
-                    O tipo e definido automaticamente pela categoria selecionada.
+                    Definido pela categoria.
                   </p>
                 </div>
 
@@ -351,7 +340,7 @@ export function TreasuryFormPage({
                     onChange={(event) =>
                       handleFieldChange("description", event.target.value)
                     }
-                    placeholder="Descricao da movimentacao"
+                    placeholder="Ex.: Oferta de domingo"
                     required
                   />
                 </div>
@@ -376,7 +365,7 @@ export function TreasuryFormPage({
                   <strong>
                     {formValues.status === "CANCELLED" ? "Cancelada" : "Ativa"}
                   </strong>
-                  . O cancelamento definitivo deve ser feito pela acao de cancelar na listagem.
+                  . Para cancelar, use a listagem.
                 </div>
               ) : null}
 
@@ -386,17 +375,19 @@ export function TreasuryFormPage({
                   id="treasury-notes"
                   className={textareaClassName}
                   value={formValues.notes}
-                  onChange={(event) =>
-                    handleFieldChange("notes", event.target.value)
-                  }
-                  placeholder="Observacoes adicionais"
+                    onChange={(event) =>
+                      handleFieldChange("notes", event.target.value)
+                    }
+                  placeholder="Observacoes internas"
                 />
               </div>
 
               {submitError ? (
-                <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                  {submitError}
-                </div>
+                <ErrorView
+                  variant="inline"
+                  title="Nao foi possivel salvar"
+                  description={submitError}
+                />
               ) : null}
 
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -406,11 +397,7 @@ export function TreasuryFormPage({
                   ) : (
                     <Save className="size-4" />
                   )}
-                  {isBusy
-                    ? "Salvando..."
-                    : mode === "create"
-                      ? "Salvar cadastro"
-                      : "Salvar alteracoes"}
+                  {isBusy ? "Salvando..." : "Salvar"}
                 </Button>
                 <Button
                   type="button"

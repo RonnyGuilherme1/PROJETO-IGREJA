@@ -166,10 +166,7 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
       });
     } catch (error) {
       setSubmitError(
-        getApiErrorMessage(
-          error,
-          "Nao foi possivel salvar os dados. Revise as informacoes e tente novamente.",
-        ),
+        getApiErrorMessage(error, "Nao foi possivel salvar os dados."),
       );
     } finally {
       setIsSubmitting(false);
@@ -192,11 +189,7 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
     <div className="space-y-6">
       <PageHeader
         title={mode === "create" ? "Nova igreja" : "Editar igreja"}
-        description={
-          mode === "create"
-            ? "Cadastre uma nova igreja com os dados principais para uso no painel administrativo."
-            : "Atualize os dados da igreja com o mesmo fluxo usado nos demais cadastros."
-        }
+        description="Preencha os dados da igreja."
         badge="Igrejas"
         action={
           <Button asChild variant="outline">
@@ -210,13 +203,8 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
 
       <Card className="bg-white/85">
         <CardHeader>
-          <CardTitle>
-            {mode === "create" ? "Cadastro de igreja" : "Edicao de igreja"}
-          </CardTitle>
-          <CardDescription>
-            Preencha os dados principais da igreja para manter o cadastro
-            administrativo organizado.
-          </CardDescription>
+          <CardTitle>Dados principais</CardTitle>
+          <CardDescription>Revise os campos antes de salvar.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -310,10 +298,10 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
                   id="church-address"
                   className={textareaClassName}
                   value={formValues.address}
-                  onChange={(event) =>
-                    handleFieldChange("address", event.target.value)
-                  }
-                  placeholder="Endereco completo"
+                    onChange={(event) =>
+                      handleFieldChange("address", event.target.value)
+                    }
+                  placeholder="Rua, numero e bairro"
                 />
               </div>
 
@@ -323,17 +311,19 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
                   id="church-notes"
                   className={textareaClassName}
                   value={formValues.notes}
-                  onChange={(event) =>
-                    handleFieldChange("notes", event.target.value)
-                  }
-                  placeholder="Observacoes adicionais"
+                    onChange={(event) =>
+                      handleFieldChange("notes", event.target.value)
+                    }
+                  placeholder="Observacoes internas"
                 />
               </div>
 
               {submitError ? (
-                <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                  {submitError}
-                </div>
+                <ErrorView
+                  variant="inline"
+                  title="Nao foi possivel salvar"
+                  description={submitError}
+                />
               ) : null}
 
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -343,11 +333,7 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
                   ) : (
                     <Save className="size-4" />
                   )}
-                  {isBusy
-                    ? "Salvando..."
-                    : mode === "create"
-                      ? "Salvar cadastro"
-                      : "Salvar alteracoes"}
+                  {isBusy ? "Salvando..." : "Salvar"}
                 </Button>
                 <Button
                   type="button"

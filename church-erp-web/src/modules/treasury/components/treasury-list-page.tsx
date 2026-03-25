@@ -8,6 +8,7 @@ import { getApiErrorMessage } from "@/lib/http";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageLoading } from "@/components/shared/page-loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -109,7 +110,7 @@ export function TreasuryListPage({
       setError(
         getApiErrorMessage(
           loadError,
-          "Nao foi possivel carregar as movimentacoes agora.",
+          "Nao foi possivel carregar as movimentacoes.",
         ),
       );
       setSummary(emptySummary);
@@ -170,7 +171,7 @@ export function TreasuryListPage({
 
         const message = getApiErrorMessage(
           loadError,
-          "Nao foi possivel carregar categorias e igrejas para os filtros.",
+          "Nao foi possivel carregar as opcoes de filtro.",
         );
 
         setDependenciesError(message);
@@ -227,7 +228,7 @@ export function TreasuryListPage({
       setError(
         getApiErrorMessage(
           actionError,
-          "Nao foi possivel concluir o cancelamento agora.",
+          "Nao foi possivel cancelar a movimentacao.",
         ),
       );
     } finally {
@@ -238,7 +239,7 @@ export function TreasuryListPage({
   if (error && items.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Nao foi possivel carregar a tesouraria"
+        title="Nao foi possivel carregar as movimentacoes"
         description={error}
         onAction={() => void loadMovements(appliedFilters)}
       />
@@ -249,7 +250,7 @@ export function TreasuryListPage({
     <div className="space-y-6">
       <PageHeader
         title="Tesouraria"
-        description="Acompanhe entradas e saidas financeiras com visao clara por periodo, categoria e igreja."
+        description="Acompanhe entradas e saidas."
         badge={getTreasuryAccessLabel(currentUser)}
         action={
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -276,17 +277,17 @@ export function TreasuryListPage({
         <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <CardTitle>Filtros</CardTitle>
-            <CardDescription>
-              Filtre as movimentacoes por periodo, tipo, categoria e igreja.
-            </CardDescription>
+            <CardDescription>Aplique os filtros para localizar registros.</CardDescription>
           </div>
           <Badge variant="secondary">Total: {total}</Badge>
         </CardHeader>
         <CardContent className="space-y-4">
           {dependenciesError ? (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {dependenciesError}
-            </div>
+            <ErrorView
+              variant="inline"
+              title="Filtros indisponiveis"
+              description={dependenciesError}
+            />
           ) : null}
 
           <TreasuryFilters
@@ -303,10 +304,8 @@ export function TreasuryListPage({
 
       <Card className="bg-white/85">
         <CardHeader className="space-y-2">
-          <CardTitle>Movimentacoes</CardTitle>
-          <CardDescription>
-            Visualize o historico financeiro e acompanhe categoria, igreja e saldo do periodo.
-          </CardDescription>
+          <CardTitle>Resultados</CardTitle>
+          <CardDescription>Consulte os registros encontrados.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {feedback ? (
@@ -316,20 +315,28 @@ export function TreasuryListPage({
           ) : null}
 
           {error ? (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
+            <ErrorView
+              variant="inline"
+              title="Nao foi possivel atualizar a listagem"
+              description={error}
+              actionLabel="Recarregar listagem"
+              onAction={() => void loadMovements(appliedFilters)}
+            />
           ) : null}
 
-          <TreasuryTable
-            items={items}
-            categoriesById={categoryNamesById}
-            churchesById={churchNamesById}
-            isLoading={isLoading}
-            canEdit={canEdit}
-            cancellingId={cancellingId}
-            onCancel={handleCancelMovement}
-          />
+          {isLoading && items.length === 0 ? (
+            <PageLoading variant="list" />
+          ) : (
+            <TreasuryTable
+              items={items}
+              categoriesById={categoryNamesById}
+              churchesById={churchNamesById}
+              isLoading={isLoading}
+              canEdit={canEdit}
+              cancellingId={cancellingId}
+              onCancel={handleCancelMovement}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -338,10 +345,10 @@ export function TreasuryListPage({
         title="Cancelar movimentacao"
         description={
           movementPendingCancellation
-            ? `A movimentacao "${movementPendingCancellation.description}" sera marcada como cancelada e permanecera no historico financeiro.`
+            ? `A movimentacao "${movementPendingCancellation.description}" sera cancelada e continuara no historico financeiro.`
             : ""
         }
-        confirmLabel="Cancelar movimentacao"
+        confirmLabel="Cancelar"
         cancelLabel="Voltar"
         confirmVariant="destructive"
         isLoading={Boolean(

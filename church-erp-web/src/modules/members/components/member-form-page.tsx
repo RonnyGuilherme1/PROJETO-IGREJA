@@ -125,7 +125,7 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
             getApiErrorMessage(
               error,
               mode === "create"
-                ? "Nao foi possivel carregar os dados para continuar."
+                ? "Nao foi possivel preparar o formulario."
                 : "Nao foi possivel carregar os dados do membro.",
             ),
           );
@@ -203,10 +203,7 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
       });
     } catch (error) {
       setSubmitError(
-        getApiErrorMessage(
-          error,
-          "Nao foi possivel salvar os dados. Revise as informacoes e tente novamente.",
-        ),
+        getApiErrorMessage(error, "Nao foi possivel salvar os dados."),
       );
     } finally {
       setIsSubmitting(false);
@@ -229,11 +226,7 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
     <div className="space-y-6">
       <PageHeader
         title={mode === "create" ? "Novo membro" : "Editar membro"}
-        description={
-          mode === "create"
-            ? "Cadastre um novo membro com os dados principais vinculando-o a uma igreja."
-            : "Atualize os dados do membro com o mesmo fluxo usado nos demais cadastros."
-        }
+        description="Preencha os dados do membro."
         badge="Membros"
         action={
           <Button asChild variant="outline">
@@ -247,12 +240,8 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
 
       <Card className="bg-white/85">
         <CardHeader>
-          <CardTitle>
-            {mode === "create" ? "Cadastro de membro" : "Edicao de membro"}
-          </CardTitle>
-          <CardDescription>
-            Preencha os dados do membro e selecione a igreja vinculada para manter o cadastro organizado.
-          </CardDescription>
+          <CardTitle>Dados principais</CardTitle>
+          <CardDescription>Revise os campos antes de salvar.</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -294,7 +283,7 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
                       handleFieldChange("gender", event.target.value)
                     }
                   >
-                    <option value="">Selecione o genero</option>
+                    <option value="">Selecione</option>
                     {MEMBER_GENDER_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
@@ -312,7 +301,7 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
                       handleFieldChange("maritalStatus", event.target.value)
                     }
                   >
-                    <option value="">Selecione o estado civil</option>
+                    <option value="">Selecione</option>
                     {MEMBER_MARITAL_STATUS_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
@@ -401,10 +390,10 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
                   id="member-address"
                   className={textareaClassName}
                   value={formValues.address}
-                  onChange={(event) =>
-                    handleFieldChange("address", event.target.value)
-                  }
-                  placeholder="Endereco completo"
+                    onChange={(event) =>
+                      handleFieldChange("address", event.target.value)
+                    }
+                  placeholder="Rua, numero e bairro"
                 />
               </div>
 
@@ -414,17 +403,19 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
                   id="member-notes"
                   className={textareaClassName}
                   value={formValues.notes}
-                  onChange={(event) =>
-                    handleFieldChange("notes", event.target.value)
-                  }
-                  placeholder="Observacoes adicionais"
+                    onChange={(event) =>
+                      handleFieldChange("notes", event.target.value)
+                    }
+                  placeholder="Observacoes internas"
                 />
               </div>
 
               {submitError ? (
-                <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                  {submitError}
-                </div>
+                <ErrorView
+                  variant="inline"
+                  title="Nao foi possivel salvar"
+                  description={submitError}
+                />
               ) : null}
 
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -434,11 +425,7 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
                   ) : (
                     <Save className="size-4" />
                   )}
-                  {isBusy
-                    ? "Salvando..."
-                    : mode === "create"
-                      ? "Salvar cadastro"
-                      : "Salvar alteracoes"}
+                  {isBusy ? "Salvando..." : "Salvar"}
                 </Button>
                 <Button
                   type="button"

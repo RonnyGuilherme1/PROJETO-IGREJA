@@ -8,6 +8,7 @@ import { getApiErrorMessage } from "@/lib/http";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageLoading } from "@/components/shared/page-loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -92,10 +93,7 @@ export function ChurchesListPage({
       });
     } catch (loadError) {
       setError(
-        getApiErrorMessage(
-          loadError,
-          "Nao foi possivel carregar as igrejas agora.",
-        ),
+        getApiErrorMessage(loadError, "Nao foi possivel carregar as igrejas."),
       );
     } finally {
       setIsLoading(false);
@@ -165,10 +163,7 @@ export function ChurchesListPage({
       setFeedback(feedbackMessages.inactivated);
     } catch (actionError) {
       setError(
-        getApiErrorMessage(
-          actionError,
-          "Nao foi possivel concluir a inativacao agora.",
-        ),
+        getApiErrorMessage(actionError, "Nao foi possivel inativar a igreja."),
       );
     } finally {
       setInactivatingId(null);
@@ -189,7 +184,7 @@ export function ChurchesListPage({
     <div className="space-y-6">
       <PageHeader
         title="Igrejas"
-        description="Cadastre, acompanhe e consulte as principais informacoes das igrejas."
+        description="Acompanhe as igrejas cadastradas."
         badge={getChurchesAccessLabel(currentUser)}
         action={
           canEdit ? (
@@ -207,9 +202,7 @@ export function ChurchesListPage({
         <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <CardTitle>Filtros</CardTitle>
-            <CardDescription>
-              Filtre por nome e status para localizar igrejas rapidamente.
-            </CardDescription>
+            <CardDescription>Aplique os filtros para localizar registros.</CardDescription>
           </div>
           <Badge variant="secondary">Total: {total}</Badge>
         </CardHeader>
@@ -226,10 +219,8 @@ export function ChurchesListPage({
 
       <Card className="bg-white/85">
         <CardHeader className="space-y-2">
-          <CardTitle>Listagem</CardTitle>
-          <CardDescription>
-            Visualize as igrejas cadastradas e acompanhe seus principais dados em um painel lateral.
-          </CardDescription>
+          <CardTitle>Resultados</CardTitle>
+          <CardDescription>Consulte os registros encontrados.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {feedback ? (
@@ -239,20 +230,28 @@ export function ChurchesListPage({
           ) : null}
 
           {error ? (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
+            <ErrorView
+              variant="inline"
+              title="Nao foi possivel atualizar a listagem"
+              description={error}
+              actionLabel="Recarregar listagem"
+              onAction={() => void loadChurches(appliedFilters)}
+            />
           ) : null}
 
-          <ChurchesTable
-            churches={churches}
-            isLoading={isLoading}
-            selectedChurchId={isDetailsOpen ? selectedChurchId : null}
-            canEdit={canEdit}
-            inactivatingId={inactivatingId}
-            onView={handleViewChurch}
-            onInactivate={handleInactivateChurch}
-          />
+          {isLoading && churches.length === 0 ? (
+            <PageLoading variant="list" />
+          ) : (
+            <ChurchesTable
+              churches={churches}
+              isLoading={isLoading}
+              selectedChurchId={isDetailsOpen ? selectedChurchId : null}
+              canEdit={canEdit}
+              inactivatingId={inactivatingId}
+              onView={handleViewChurch}
+              onInactivate={handleInactivateChurch}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -274,7 +273,7 @@ export function ChurchesListPage({
         title="Inativar igreja"
         description={
           churchPendingInactivation
-            ? `${churchPendingInactivation.name} deixara de aparecer como ativa e o cadastro permanecera disponivel para consulta.`
+            ? `${churchPendingInactivation.name} sera inativada e continuara disponivel para consulta.`
             : ""
         }
         confirmLabel="Inativar"

@@ -8,6 +8,7 @@ import { getApiErrorMessage } from "@/lib/http";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
+import { PageLoading } from "@/components/shared/page-loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,10 +66,7 @@ export function UsersListPage() {
       setTotal(response.total);
     } catch (loadError) {
       setError(
-        getApiErrorMessage(
-          loadError,
-          "Nao foi possivel carregar os usuarios agora.",
-        ),
+        getApiErrorMessage(loadError, "Nao foi possivel carregar os usuarios."),
       );
     } finally {
       setIsLoading(false);
@@ -118,7 +116,7 @@ export function UsersListPage() {
           setChurchesError(
             getApiErrorMessage(
               loadError,
-              "Nao foi possivel carregar as igrejas vinculadas.",
+              "Nao foi possivel carregar os nomes das igrejas.",
             ),
           );
         }
@@ -169,10 +167,7 @@ export function UsersListPage() {
       setFeedback(feedbackMessages.inactivated);
     } catch (actionError) {
       setError(
-        getApiErrorMessage(
-          actionError,
-          "Nao foi possivel concluir a inativacao agora.",
-        ),
+        getApiErrorMessage(actionError, "Nao foi possivel inativar o usuario."),
       );
     } finally {
       setInactivatingId(null);
@@ -193,7 +188,7 @@ export function UsersListPage() {
     <div className="space-y-6">
       <PageHeader
         title="Usuarios"
-        description="Gerencie acessos, perfis e vinculacoes com clareza."
+        description="Acompanhe acessos e perfis."
         badge="Administrador"
         action={
           <Button asChild>
@@ -209,19 +204,11 @@ export function UsersListPage() {
         <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <CardTitle>Filtros</CardTitle>
-            <CardDescription>
-              Filtre por nome, e-mail, status e perfil para localizar usuarios.
-            </CardDescription>
+            <CardDescription>Aplique os filtros para localizar registros.</CardDescription>
           </div>
           <Badge variant="secondary">Total: {total}</Badge>
         </CardHeader>
         <CardContent>
-          {churchesError ? (
-            <div className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {churchesError}
-            </div>
-          ) : null}
-
           <UsersFilters
             filters={filters}
             isLoading={isLoading}
@@ -234,10 +221,8 @@ export function UsersListPage() {
 
       <Card className="bg-white/85">
         <CardHeader className="space-y-2">
-          <CardTitle>Listagem</CardTitle>
-          <CardDescription>
-            Visualize usuarios cadastrados, ajuste perfis e acompanhe o status dos acessos.
-          </CardDescription>
+          <CardTitle>Resultados</CardTitle>
+          <CardDescription>Consulte os registros encontrados.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {feedback ? (
@@ -246,19 +231,35 @@ export function UsersListPage() {
             </div>
           ) : null}
 
-          {error ? (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
+          {churchesError ? (
+            <ErrorView
+              variant="inline"
+              title="Igrejas indisponiveis"
+              description={churchesError}
+            />
           ) : null}
 
-          <UsersTable
-            users={users}
-            churchNamesById={churchNamesById}
-            isLoading={isLoading}
-            inactivatingId={inactivatingId}
-            onInactivate={handleInactivate}
-          />
+          {error ? (
+            <ErrorView
+              variant="inline"
+              title="Nao foi possivel atualizar a listagem"
+              description={error}
+              actionLabel="Recarregar listagem"
+              onAction={() => void loadUsers(appliedFilters)}
+            />
+          ) : null}
+
+          {isLoading && users.length === 0 ? (
+            <PageLoading variant="list" />
+          ) : (
+            <UsersTable
+              users={users}
+              churchNamesById={churchNamesById}
+              isLoading={isLoading}
+              inactivatingId={inactivatingId}
+              onInactivate={handleInactivate}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -267,7 +268,7 @@ export function UsersListPage() {
         title="Inativar usuario"
         description={
           userPendingInactivation
-            ? `${userPendingInactivation.name} deixara de acessar o sistema e o cadastro permanecera disponivel para consulta.`
+            ? `${userPendingInactivation.name} sera inativado e perdera o acesso ao sistema. O cadastro continuara disponivel para consulta.`
             : ""
         }
         confirmLabel="Inativar"
