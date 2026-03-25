@@ -34,12 +34,12 @@ export default async function LoginPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.2),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(15,23,42,0.65),transparent_38%),linear-gradient(160deg,#040712_0%,#08111c_46%,#030712_100%)]" />
-      <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
+      <div className="absolute inset-x-0 top-0 h-px bg-white/5" />
 
       <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid w-full gap-10 lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center">
           <section className="mx-auto max-w-xl space-y-6 lg:mx-0">
-            <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 backdrop-blur">
+            <div className="inline-flex items-center gap-3 rounded-full border border-white/[0.04] bg-black/15 px-4 py-3 shadow-[0_14px_30px_rgba(0,0,0,0.16)] backdrop-blur">
               <div className="flex size-10 items-center justify-center rounded-full bg-emerald-400/12 text-emerald-200">
                 <Building2 className="size-5" />
               </div>
@@ -64,11 +64,12 @@ export default async function LoginPage() {
             </div>
           </section>
 
-          <Card className="relative overflow-hidden border-white/10 bg-[#0d131d]/86 text-white shadow-[0_28px_80px_rgba(3,7,18,0.45)] backdrop-blur">
-            <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/45 to-transparent" />
+          <Card className="relative overflow-hidden border-white/[0.04] bg-[#101719]/80 text-white shadow-[0_24px_72px_rgba(0,0,0,0.32)] backdrop-blur-xl">
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_32%)] pointer-events-none" />
+            <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/[0.08] to-transparent" />
 
             <CardHeader className="space-y-5 p-6 sm:p-8">
-              <Badge className="w-fit border border-emerald-400/15 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/10">
+              <Badge className="w-fit border border-emerald-400/[0.12] bg-emerald-500/[0.08] text-emerald-100 hover:bg-emerald-500/[0.08]">
                 Login
               </Badge>
               <div className="space-y-2">
