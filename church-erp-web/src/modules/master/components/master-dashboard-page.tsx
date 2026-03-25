@@ -100,7 +100,7 @@ export function MasterDashboardPage() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="bg-white/85">
+        <Card className="bg-[color:var(--surface-soft)]">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Ambientes totais</p>
@@ -114,7 +114,7 @@ export function MasterDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/85">
+        <Card className="bg-[color:var(--surface-soft)]">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Ambientes ativos</p>
@@ -122,13 +122,13 @@ export function MasterDashboardPage() {
                 {summary.active}
               </p>
             </div>
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-700">
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/12 text-primary">
               <ShieldCheck className="size-5" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/85">
+        <Card className="bg-[color:var(--surface-soft)]">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Ambientes inativos</p>
@@ -136,13 +136,13 @@ export function MasterDashboardPage() {
                 {summary.inactive}
               </p>
             </div>
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-700">
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-destructive/12 text-destructive">
               <CircleOff className="size-5" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-white/85">
+        <Card className="bg-[color:var(--surface-soft)]">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Logos customizadas</p>
@@ -150,14 +150,14 @@ export function MasterDashboardPage() {
                 {summary.withCustomLogo}
               </p>
             </div>
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-sky-500/10 text-sky-700">
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
               <ImageIcon className="size-5" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-white/85">
+      <Card className="bg-[color:var(--surface-soft)]">
         <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <CardTitle>Ambientes recentes</CardTitle>
@@ -173,7 +173,7 @@ export function MasterDashboardPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="overflow-hidden rounded-3xl border border-border bg-white">
+          <div className="overflow-hidden rounded-3xl border border-border bg-[color:var(--surface-base)]">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-border">
                 <thead className="bg-secondary/35">

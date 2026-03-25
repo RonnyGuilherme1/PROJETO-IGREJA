@@ -45,7 +45,7 @@ export function TenantsTable({
   onToggleStatus,
 }: TenantsTableProps) {
   return (
-    <div className="overflow-hidden rounded-3xl border border-border bg-white">
+    <div className="overflow-hidden rounded-3xl border border-border bg-[color:var(--surface-base)]">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-secondary/35">

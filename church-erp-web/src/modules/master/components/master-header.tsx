@@ -25,7 +25,7 @@ export function MasterHeader({
   }).format(new Date());
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 border-b border-border bg-[color:var(--surface-soft)] backdrop-blur-xl">
       <div className="mx-auto flex min-h-20 w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-start gap-3">
           <div className="lg:hidden">{mobileNavigation}</div>
@@ -42,7 +42,7 @@ export function MasterHeader({
 
         <div className="flex items-center gap-3">
           <MasterThemeToggle />
-          <div className="hidden rounded-full border border-border bg-card/80 px-4 py-2 text-sm text-muted-foreground sm:block">
+          <div className="hidden rounded-full border border-border bg-[color:var(--surface-base)] px-4 py-2 text-sm text-muted-foreground sm:block">
             {formattedDate}
           </div>
           <AuthUserPanel user={user} />

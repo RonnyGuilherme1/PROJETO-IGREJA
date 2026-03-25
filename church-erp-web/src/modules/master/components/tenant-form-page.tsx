@@ -329,7 +329,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
         }
       />
 
-      <Card className="bg-white/85">
+      <Card className="bg-[color:var(--surface-soft)]">
         <CardHeader>
           <CardTitle>{mode === "create" ? "Cadastro" : "Edicao do ambiente"}</CardTitle>
           <CardDescription>

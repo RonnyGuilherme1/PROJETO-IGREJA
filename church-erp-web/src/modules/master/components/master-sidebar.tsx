@@ -21,7 +21,7 @@ export function MasterSidebar({ onNavigate }: MasterSidebarProps) {
           onClick={onNavigate}
           className="flex items-center gap-3"
         >
-          <div className="flex size-11 items-center justify-center rounded-2xl bg-white/10">
+          <div className="flex size-11 items-center justify-center rounded-2xl bg-sidebar-foreground/10 text-sidebar-foreground">
             <ShieldUser className="size-5" />
           </div>
           <div className="space-y-1">
@@ -53,16 +53,16 @@ export function MasterSidebar({ onNavigate }: MasterSidebarProps) {
                 className={cn(
                   "group flex items-center gap-3 rounded-2xl px-3 py-3 transition-colors",
                   isActive
-                    ? "bg-white/14 text-white shadow-sm ring-1 ring-white/10"
-                    : "text-sidebar-foreground/80 hover:bg-white/10 hover:text-sidebar-foreground",
+                    ? "bg-sidebar-accent text-sidebar-foreground shadow-sm ring-1 ring-sidebar-border"
+                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground",
                 )}
               >
                 <div
                   className={cn(
                     "flex size-10 items-center justify-center rounded-2xl transition-colors",
                     isActive
-                      ? "bg-white/16 text-white"
-                      : "bg-white/8 text-sidebar-foreground/80 group-hover:bg-white/10",
+                      ? "bg-sidebar-foreground/12 text-sidebar-foreground"
+                      : "bg-sidebar-foreground/8 text-sidebar-foreground/80 group-hover:bg-sidebar-foreground/10",
                   )}
                 >
                   <Icon className="size-4" />
@@ -73,7 +73,7 @@ export function MasterSidebar({ onNavigate }: MasterSidebarProps) {
                     className={cn(
                       "mt-1 text-xs leading-5",
                       isActive
-                        ? "text-white/72"
+                        ? "text-sidebar-foreground/72"
                         : "text-sidebar-foreground/55",
                     )}
                   >
@@ -83,7 +83,9 @@ export function MasterSidebar({ onNavigate }: MasterSidebarProps) {
                 <ChevronRight
                   className={cn(
                     "size-4",
-                    isActive ? "text-white opacity-100" : "opacity-60",
+                    isActive
+                      ? "text-sidebar-foreground opacity-100"
+                      : "text-sidebar-foreground/60",
                   )}
                 />
               </Link>

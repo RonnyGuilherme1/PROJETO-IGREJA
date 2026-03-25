@@ -124,7 +124,7 @@ export function TenantsListPage() {
         }
       />
 
-      <Card className="bg-white/85">
+      <Card className="bg-[color:var(--surface-soft)]">
         <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <CardTitle>Listagem</CardTitle>

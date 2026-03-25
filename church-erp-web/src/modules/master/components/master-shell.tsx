@@ -49,7 +49,7 @@ export function MasterShell({ children, user }: MasterShellProps) {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="bg-card/80 lg:hidden"
+                    className="bg-[color:var(--surface-base)] lg:hidden"
                   >
                     <Menu className="size-5" />
                     <span className="sr-only">Abrir navegacao</span>
