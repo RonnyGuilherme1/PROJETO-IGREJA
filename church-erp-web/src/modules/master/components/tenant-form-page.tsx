@@ -313,8 +313,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                   <BrandLogo
                     alt={`Logo do ambiente ${previewTitle}`}
                     logoUrl={formValues.logoUrl}
-                    className="flex size-[5.5rem] shrink-0 items-center justify-center rounded-[1.75rem] border border-border bg-card shadow-sm"
-                    imageClassName="bg-card p-1.5"
+                    className="size-[5.5rem] shrink-0 rounded-2xl border border-border bg-card shadow-sm"
                     iconClassName="size-8 text-primary"
                   />
 

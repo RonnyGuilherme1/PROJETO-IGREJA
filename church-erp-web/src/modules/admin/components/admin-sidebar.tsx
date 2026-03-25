@@ -36,8 +36,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
             alt={`Logo do ambiente ${tenantLabel}`}
             logoUrl={user?.tenantLogoUrl}
             icon={Building2}
-            className="flex size-14 items-center justify-center rounded-[1.35rem] bg-white/10 ring-1 ring-white/10"
-            imageClassName="bg-card p-1.5"
+            className="size-14 shrink-0 rounded-2xl bg-white/10 ring-1 ring-white/10"
             iconClassName="size-6"
           />
           <div className="space-y-1">
