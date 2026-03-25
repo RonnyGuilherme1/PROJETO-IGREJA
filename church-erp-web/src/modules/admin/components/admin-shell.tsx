@@ -58,7 +58,7 @@ export function AdminShell({ children, user }: AdminShellProps) {
                 </SheetTrigger>
                 <SheetContent
                   side="left"
-                  className="w-[290px] border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
+                  className="w-[272px] border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
                 >
                   <SheetHeader className="sr-only">
                     <SheetTitle>Menu de navegacao</SheetTitle>
@@ -69,7 +69,7 @@ export function AdminShell({ children, user }: AdminShellProps) {
             }
           />
 
-          <main className="flex-1 px-4 pb-8 pt-6 sm:px-6 lg:px-8">
+          <main className="flex-1 px-4 pb-6 pt-4 sm:px-6 lg:px-8">
             <div className="mx-auto w-full max-w-7xl">{children}</div>
           </main>
         </div>

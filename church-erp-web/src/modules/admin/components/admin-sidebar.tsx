@@ -26,35 +26,32 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-sidebar-border px-6 py-6">
+      <div className="border-b border-sidebar-border px-4 py-4">
         <Link
           href="/dashboard"
           onClick={onNavigate}
-          className="flex items-center gap-3"
+          className="flex items-center gap-2.5"
         >
           <BrandLogo
             alt={`Logo do ambiente ${tenantLabel}`}
             logoUrl={user?.tenantLogoUrl}
             icon={Building2}
-            className="size-14 shrink-0 rounded-2xl bg-white/10 ring-1 ring-white/10"
-            iconClassName="size-6"
+            className="size-11 shrink-0 rounded-xl bg-white/10 ring-1 ring-white/10"
+            iconClassName="size-5"
           />
-          <div className="space-y-1">
-            <p className="text-sm font-semibold tracking-wide text-sidebar-foreground">
+          <div className="min-w-0 space-y-0.5">
+            <p className="truncate text-sm font-semibold leading-5 tracking-wide text-sidebar-foreground">
               {tenantTitle}
             </p>
-            <p className="text-xs text-sidebar-foreground/60">
+            <p className="truncate text-[11px] leading-4 text-sidebar-foreground/60">
               {tenantSubtitle}
             </p>
           </div>
         </Link>
       </div>
 
-      <div className="flex-1 px-4 py-6">
-        <p className="px-2 text-xs font-medium uppercase tracking-[0.24em] text-sidebar-foreground/45">
-          Navegacao
-        </p>
-        <nav className="mt-4 space-y-1.5">
+      <div className="flex-1 px-3 py-4">
+        <nav className="space-y-1">
           {navigationItems.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -66,7 +63,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
                 href={item.href}
                 onClick={onNavigate}
                 className={cn(
-                  "group flex items-center gap-3 rounded-2xl px-3 py-3 transition-colors",
+                  "group flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors",
                   isActive
                     ? "bg-white/14 text-white shadow-sm ring-1 ring-white/10"
                     : "text-sidebar-foreground/80 hover:bg-white/10 hover:text-sidebar-foreground",
@@ -74,7 +71,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
               >
                 <div
                   className={cn(
-                    "flex size-10 items-center justify-center rounded-2xl transition-colors",
+                    "flex size-8 items-center justify-center rounded-xl transition-colors",
                     isActive
                       ? "bg-white/16 text-white"
                       : "bg-white/8 text-sidebar-foreground/80 group-hover:bg-white/10",
@@ -82,22 +79,14 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
                 >
                   <Icon className="size-4" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold">{item.title}</p>
-                  <p
-                    className={cn(
-                      "mt-1 text-xs leading-5",
-                      isActive
-                        ? "text-white/72"
-                        : "text-sidebar-foreground/55",
-                    )}
-                  >
-                    {item.description}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium leading-5">
+                    {item.title}
                   </p>
                 </div>
                 <ChevronRight
                   className={cn(
-                    "size-4",
+                    "size-3.5 shrink-0",
                     isActive ? "text-white opacity-100" : "opacity-60",
                   )}
                 />

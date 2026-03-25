@@ -13,7 +13,6 @@ import {
   Users,
 } from "lucide-react";
 import { ErrorView } from "@/components/shared/error-view";
-import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { getApiErrorMessage } from "@/lib/http";
 import { cn } from "@/lib/utils";
@@ -48,7 +47,7 @@ function getMembersTrendSummary(series: DashboardOverviewData["membersGrowthSeri
   if (!currentPoint || !previousPoint) {
     return {
       icon: ArrowRight,
-      label: "Sem historico suficiente para comparar.",
+      label: "Sem comparativo",
       className: "bg-secondary text-foreground",
     };
   }
@@ -58,7 +57,7 @@ function getMembersTrendSummary(series: DashboardOverviewData["membersGrowthSeri
   if (delta > 0) {
     return {
       icon: ArrowUpRight,
-      label: `Alta de ${formatInteger(delta)} em relacao ao mes anterior.`,
+      label: `+${formatInteger(delta)} vs. mes anterior`,
       className: "bg-emerald-500/10 text-emerald-700",
     };
   }
@@ -66,14 +65,14 @@ function getMembersTrendSummary(series: DashboardOverviewData["membersGrowthSeri
   if (delta < 0) {
     return {
       icon: ArrowDownRight,
-      label: `Queda de ${formatInteger(Math.abs(delta))} em relacao ao mes anterior.`,
+      label: `-${formatInteger(Math.abs(delta))} vs. mes anterior`,
       className: "bg-rose-500/10 text-rose-700",
     };
   }
 
   return {
     icon: ArrowRight,
-    label: "Estavel em relacao ao mes anterior.",
+    label: "Mesmo nivel do mes anterior",
     className: "bg-secondary text-foreground",
   };
 }
@@ -142,12 +141,12 @@ export function DashboardOverview() {
   const MembersTrendIcon = membersTrend.icon;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Dashboard"
-        description="Acompanhe os principais indicadores da operacao com visao consolidada de membros, igrejas, tesouraria e usuarios."
-        badge="Visao geral"
-      />
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          Dashboard
+        </h1>
+      </div>
 
       {error ? (
         <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -157,22 +156,22 @@ export function DashboardOverview() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Card className="bg-white/85">
-          <CardContent className="flex items-start justify-between gap-4 p-6">
-            <div className="space-y-3">
-              <div className="space-y-2">
+          <CardContent className="flex items-start justify-between gap-4 p-5">
+            <div className="space-y-2.5">
+              <div className="space-y-1.5">
                 <p className="text-sm font-medium text-muted-foreground">
                   Total de membros
                 </p>
                 <p className="text-3xl font-semibold tracking-tight text-foreground">
                   {formatInteger(metrics.totalMembers)}
                 </p>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Pessoas registradas e disponiveis para acompanhamento.
+                <p className="text-xs text-muted-foreground">
+                  Base cadastrada
                 </p>
               </div>
               <div
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium",
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
                   membersTrend.className,
                 )}
               >
@@ -189,34 +188,34 @@ export function DashboardOverview() {
         <DashboardMetricCard
           title="Total de igrejas"
           value={formatInteger(metrics.totalChurches)}
-          description="Igrejas registradas para operacao no sistema."
+          description="Unidades cadastradas"
           icon={Building2}
         />
         <DashboardMetricCard
           title={`Entradas de ${data?.currentMonthLabel || "mes atual"}`}
           value={formatCurrency(metrics.monthlyIncome)}
-          description="Receitas consolidadas no mes corrente."
+          description="Receita do mes"
           icon={TrendingUp}
           tone="success"
         />
         <DashboardMetricCard
           title={`Saidas de ${data?.currentMonthLabel || "mes atual"}`}
           value={formatCurrency(metrics.monthlyExpense)}
-          description="Despesas consolidadas no mes corrente."
+          description="Despesa do mes"
           icon={TrendingDown}
           tone="danger"
         />
         <DashboardMetricCard
           title="Saldo do mes"
           value={formatCurrency(metrics.monthlyBalance)}
-          description="Resultado entre entradas e saidas no periodo atual."
+          description="Resultado atual"
           icon={Landmark}
           tone={metrics.monthlyBalance >= 0 ? "success" : "danger"}
         />
         <DashboardMetricCard
           title="Usuarios ativos"
           value={formatInteger(metrics.activeUsers)}
-          description="Pessoas com acesso ativo ao painel."
+          description="Acessos ativos"
           icon={CreditCard}
         />
       </div>
@@ -227,16 +226,16 @@ export function DashboardOverview() {
       />
 
       <Card className="bg-white/85">
-        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <CardTitle>Leitura rapida do periodo</CardTitle>
+        <CardHeader className="flex flex-col gap-2 pb-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle>Resumo do periodo</CardTitle>
           </div>
           <Badge variant="secondary">{data?.financePeriodLabel}</Badge>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-3 md:grid-cols-2">
           <div className="rounded-2xl bg-secondary/50 p-4">
             <p className="text-sm font-medium text-muted-foreground">
-              Entradas no periodo
+              Entradas
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
               {formatCurrency(totals.periodIncome)}
@@ -244,7 +243,7 @@ export function DashboardOverview() {
           </div>
           <div className="rounded-2xl bg-secondary/50 p-4">
             <p className="text-sm font-medium text-muted-foreground">
-              Saidas no periodo
+              Saidas
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
               {formatCurrency(totals.periodExpense)}
