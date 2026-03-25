@@ -1,5 +1,6 @@
 import axios from "axios";
 import {
+  getAccessTypeFromPathname,
   getClientAccessToken,
 } from "@/modules/auth/lib/auth-session";
 
@@ -20,6 +21,16 @@ function isAuthLoginRequest(url?: string) {
   );
 }
 
+function getRequestAccessType(url?: string, pathname?: string) {
+  const normalizedUrl = String(url ?? "");
+
+  if (normalizedUrl.includes("/master/")) {
+    return "PLATFORM" as const;
+  }
+
+  return getAccessTypeFromPathname(pathname);
+}
+
 http.interceptors.request.use((config) => {
   if (typeof window === "undefined") {
     return config;
@@ -29,7 +40,9 @@ http.interceptors.request.use((config) => {
     return config;
   }
 
-  const accessToken = getClientAccessToken();
+  const accessToken = getClientAccessToken(
+    getRequestAccessType(config.url, window.location.pathname),
+  );
 
   if (!accessToken) {
     return config;

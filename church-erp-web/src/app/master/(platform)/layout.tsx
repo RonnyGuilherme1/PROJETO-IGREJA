@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { MasterShell } from "@/modules/master/components/master-shell";
 import { canAccessMasterArea } from "@/modules/master/lib/master-access";
 import {
-  AUTH_SESSION_COOKIE,
-  AUTH_TOKEN_COOKIE,
+  MASTER_AUTH_SESSION_COOKIE,
+  MASTER_AUTH_TOKEN_COOKIE,
   getStoredAuthUser,
 } from "@/modules/auth/lib/auth-session";
 
@@ -14,7 +14,7 @@ export default async function MasterPlatformLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = await cookies();
-  const accessToken = cookieStore.get(AUTH_TOKEN_COOKIE)?.value;
+  const accessToken = cookieStore.get(MASTER_AUTH_TOKEN_COOKIE)?.value;
 
   if (!accessToken) {
     redirect("/master/login");
@@ -22,7 +22,7 @@ export default async function MasterPlatformLayout({
 
   const user = getStoredAuthUser(
     accessToken,
-    cookieStore.get(AUTH_SESSION_COOKIE)?.value,
+    cookieStore.get(MASTER_AUTH_SESSION_COOKIE)?.value,
   );
 
   if (!user) {

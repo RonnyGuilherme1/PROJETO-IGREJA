@@ -221,7 +221,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
   }
 
   function syncStoredSession(nextTenantBranding: TenantBrandingItem) {
-    const accessToken = getClientAccessToken();
+    const accessToken = getClientAccessToken(user.accessType);
 
     if (!accessToken) {
       return;

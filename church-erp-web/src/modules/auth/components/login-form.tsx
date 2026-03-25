@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { LoaderCircle, LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,10 +36,24 @@ export function LoginForm({ mode }: LoginFormProps) {
   const isTenantMode = mode === "TENANT";
   const isLoading = isSubmitting || isRedirecting;
   const successRedirectPath = isTenantMode ? "/dashboard" : "/master/dashboard";
-  const switchHref = isTenantMode ? "/master/login" : "/login";
-  const switchLabel = isTenantMode
-    ? "Entrar na plataforma"
-    : "Entrar no painel";
+  const labelClassName = isTenantMode
+    ? "text-sm font-medium text-slate-200"
+    : "text-sm font-medium text-slate-300";
+  const inputClassName = isTenantMode
+    ? "h-12 rounded-2xl border-white/10 bg-white/[0.04] px-4 text-base text-white placeholder:text-slate-500 focus-visible:ring-emerald-500/70"
+    : "h-12 rounded-2xl border-white/[0.06] bg-[#151c1c] px-4 text-base text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] placeholder:text-slate-500 focus-visible:border-emerald-500/20 focus-visible:ring-emerald-500/30";
+  const buttonClassName = isTenantMode
+    ? "h-12 rounded-2xl bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-950/30 hover:bg-emerald-400"
+    : "h-12 rounded-2xl bg-[#2d3535] text-slate-100 shadow-[0_16px_35px_rgba(0,0,0,0.22)] hover:bg-[#384141]";
+  const errorClassName = isTenantMode
+    ? "border-rose-400/20 bg-rose-500/10 text-rose-200"
+    : "border-rose-500/[0.15] bg-rose-500/[0.08] text-rose-100";
+  const successClassName = isTenantMode
+    ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+    : "border-emerald-500/[0.15] bg-emerald-500/[0.08] text-emerald-100";
+  const submitLabel = isTenantMode
+    ? "Entrar no painel"
+    : "Entrar como master";
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,12 +96,14 @@ export function LoginForm({ mode }: LoginFormProps) {
     <form onSubmit={handleSubmit} className="space-y-5">
       {isTenantMode ? (
         <div className="space-y-2">
-          <Label htmlFor="tenantCode">Codigo de acesso</Label>
+          <Label htmlFor="tenantCode" className={labelClassName}>
+            {"Banco"}
+          </Label>
           <Input
             id="tenantCode"
             type="text"
             autoComplete="organization"
-            placeholder="1001"
+            className={inputClassName}
             value={formData.tenantCode}
             onChange={(event) =>
               setFormData((current) => ({
@@ -101,12 +117,14 @@ export function LoginForm({ mode }: LoginFormProps) {
       ) : null}
 
       <div className="space-y-2">
-        <Label htmlFor="username">Usuario</Label>
+        <Label htmlFor="username" className={labelClassName}>
+          {"Usu\u00e1rio"}
+        </Label>
         <Input
           id="username"
           type="text"
           autoComplete="username"
-          placeholder={isTenantMode ? "admin.local" : "master.admin"}
+          className={inputClassName}
           value={formData.username}
           onChange={(event) =>
             setFormData((current) => ({
@@ -119,11 +137,14 @@ export function LoginForm({ mode }: LoginFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Senha</Label>
+        <Label htmlFor="password" className={labelClassName}>
+          {"Senha"}
+        </Label>
         <Input
           id="password"
           type="password"
           autoComplete="current-password"
+          className={inputClassName}
           placeholder="Digite sua senha"
           value={formData.password}
           onChange={(event) =>
@@ -137,41 +158,39 @@ export function LoginForm({ mode }: LoginFormProps) {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          className={cn(
+            "rounded-2xl border px-4 py-3 text-sm",
+            errorClassName,
+          )}
+        >
           {error}
         </div>
       ) : null}
 
       {success ? (
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+        <div
+          className={cn(
+            "rounded-2xl border px-4 py-3 text-sm",
+            successClassName,
+          )}
+        >
           {success}
         </div>
       ) : null}
 
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button
+        type="submit"
+        className={cn("w-full", buttonClassName)}
+        disabled={isLoading}
+      >
         {isLoading ? (
           <LoaderCircle className="size-4 animate-spin" />
         ) : (
           <LogIn className="size-4" />
         )}
-        Entrar
+        {submitLabel}
       </Button>
-
-      <div className="space-y-3 text-sm leading-6 text-muted-foreground">
-        <p>
-          O formulario envia as credenciais para o endpoint de autenticacao
-          correspondente, armazena o token da sessao e libera o acesso ao
-          painel interno. No acesso ao ambiente, informe o codigo liberado para
-          sua operacao.
-        </p>
-
-        <p>
-          Precisa trocar o tipo de acesso?{" "}
-          <Link href={switchHref} className="font-semibold text-primary hover:underline">
-            {switchLabel}
-          </Link>
-        </p>
-      </div>
     </form>
   );
 }

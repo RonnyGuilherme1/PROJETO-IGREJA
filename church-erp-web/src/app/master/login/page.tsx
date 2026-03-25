@@ -11,101 +11,76 @@ import {
 } from "@/components/ui/card";
 import { LoginForm } from "@/modules/auth/components/login-form";
 import {
-  AUTH_SESSION_COOKIE,
-  AUTH_TOKEN_COOKIE,
+  MASTER_AUTH_SESSION_COOKIE,
+  MASTER_AUTH_TOKEN_COOKIE,
   getStoredAuthUser,
 } from "@/modules/auth/lib/auth-session";
 
 export default async function MasterLoginPage() {
   const cookieStore = await cookies();
-  const accessToken = cookieStore.get(AUTH_TOKEN_COOKIE)?.value;
+  const accessToken = cookieStore.get(MASTER_AUTH_TOKEN_COOKIE)?.value;
 
   if (accessToken) {
     const user = getStoredAuthUser(
       accessToken,
-      cookieStore.get(AUTH_SESSION_COOKIE)?.value,
+      cookieStore.get(MASTER_AUTH_SESSION_COOKIE)?.value,
     );
 
-    redirect(user?.accessType === "PLATFORM" ? "/master/dashboard" : "/dashboard");
+    if (user?.accessType === "PLATFORM") {
+      redirect("/master/dashboard");
+    }
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(18,62,95,0.18),transparent_35%),linear-gradient(135deg,#f6f9fc_0%,#eef3f9_55%,#f9fbfd_100%)]" />
+    <div className="relative min-h-screen overflow-hidden bg-[#07110f] text-slate-50">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(31,91,73,0.18),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(7,17,15,0.72),transparent_42%),linear-gradient(160deg,#050816_0%,#08110f_48%,#050816_100%)]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-white/5" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1.08fr)_420px]">
-          <section className="hidden rounded-[32px] border border-white/60 bg-white/75 p-8 shadow-xl backdrop-blur xl:block">
-            <div className="flex size-14 items-center justify-center rounded-2xl bg-slate-900 text-white">
-              <ShieldUser className="size-6" />
+      <div className="relative mx-auto flex min-h-screen max-w-5xl items-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid w-full gap-10 lg:grid-cols-[minmax(0,0.9fr)_420px] lg:items-center">
+          <section className="hidden max-w-lg space-y-5 lg:block">
+            <div className="inline-flex items-center gap-3 rounded-full border border-white/[0.06] bg-black/15 px-4 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.18)] backdrop-blur">
+              <div className="flex size-10 items-center justify-center rounded-full bg-emerald-400/10 text-emerald-200">
+                <ShieldUser className="size-5" />
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-sm font-semibold text-white">
+                  Plataforma master
+                </p>
+                <p className="text-xs text-slate-500">Acesso restrito</p>
+              </div>
             </div>
 
-            <div className="mt-8 space-y-4">
-              <Badge className="w-fit bg-slate-900 text-white hover:bg-slate-900">
-                Plataforma Master
-              </Badge>
-              <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-foreground">
-                Acesso central para acompanhar a operacao da plataforma
-              </h1>
-              <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-                Este fluxo atende a autenticacao master da plataforma e
-                concentra a gestao global dos ambientes.
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-emerald-300/70">
+                Area reservada
               </p>
-            </div>
-
-            <div className="mt-10 grid gap-4 md:grid-cols-2">
-              <div className="rounded-3xl border bg-white/80 p-5">
-                <p className="text-sm font-semibold text-foreground">
-                  Gestao central
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  O login master usa rota dedicada e mantem a sessao separada
-                  do painel interno.
-                </p>
-              </div>
-
-              <div className="rounded-3xl border bg-white/80 p-5">
-                <p className="text-sm font-semibold text-foreground">
-                  Protecao de rotas
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  O painel continua exigindo autenticacao valida antes de liberar
-                  o acesso as paginas internas.
-                </p>
-              </div>
-
-              <div className="rounded-3xl border bg-white/80 p-5 md:col-span-2">
-                <p className="text-sm font-semibold text-foreground">
-                  Visao consolidada
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Monitore ambientes, identidade visual e status de operacao em
-                  um unico lugar.
-                </p>
-              </div>
+              <h1 className="max-w-md text-4xl font-semibold tracking-tight text-white">
+                Entrada dedicada para a administracao da plataforma.
+              </h1>
+              <p className="max-w-md text-base leading-7 text-slate-400">
+                Use suas credenciais master para acessar o painel global.
+              </p>
             </div>
           </section>
 
-          <Card className="border-white/60 bg-white/90 shadow-2xl backdrop-blur">
-            <CardHeader className="space-y-4">
-              <Badge className="w-fit bg-slate-900 text-white hover:bg-slate-900">
-                Plataforma
+          <Card className="relative overflow-hidden border-white/[0.06] bg-[#0f1515]/84 text-slate-50 shadow-[0_32px_90px_rgba(0,0,0,0.36)] backdrop-blur-xl">
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.025),transparent_30%)] pointer-events-none" />
+            <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/[0.12] to-transparent" />
+
+            <CardHeader className="space-y-5 p-6 sm:p-8">
+              <Badge className="w-fit border border-emerald-400/[0.12] bg-emerald-500/[0.08] text-emerald-100 hover:bg-emerald-500/[0.08]">
+                Master
               </Badge>
               <div className="space-y-2">
-                <CardTitle className="text-3xl">Entrar como master</CardTitle>
-                <CardDescription className="text-sm leading-6">
-                  Acesse a plataforma com usuario e senha para administrar os
-                  ambientes da operacao.
+                <CardTitle className="text-3xl text-white">Entrar como master</CardTitle>
+                <CardDescription className="text-sm leading-6 text-slate-400">
+                  Informe usuario e senha para continuar.
                 </CardDescription>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="p-6 pt-0 sm:p-8 sm:pt-0">
               <LoginForm mode="MASTER" />
-
-              <div className="rounded-2xl bg-secondary/50 p-4 text-sm leading-6 text-muted-foreground">
-                Este acesso concentra a administracao da plataforma em uma
-                experiencia unica e consistente.
-              </div>
             </CardContent>
           </Card>
         </div>

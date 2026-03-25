@@ -42,7 +42,7 @@ export function AuthUserPanel({ user }: AuthUserPanelProps) {
     .join(" | ");
 
   function handleLogout() {
-    clearAuthSession();
+    clearAuthSession(user.accessType);
     startTransition(() => {
       router.replace(getAuthLoginPath(user.accessType));
       router.refresh();

@@ -26,82 +26,62 @@ export default async function LoginPage() {
       cookieStore.get(AUTH_SESSION_COOKIE)?.value,
     );
 
-    redirect(user?.accessType === "PLATFORM" ? "/master/dashboard" : "/dashboard");
+    if (user?.accessType === "TENANT") {
+      redirect("/dashboard");
+    }
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(31,91,73,0.16),transparent_35%),linear-gradient(135deg,#f8faf7_0%,#edf3ee_50%,#f9fbf8_100%)]" />
+    <div className="relative min-h-screen overflow-hidden bg-[#050816] text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.2),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(15,23,42,0.65),transparent_38%),linear-gradient(160deg,#040712_0%,#08111c_46%,#030712_100%)]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1.08fr)_420px]">
-          <section className="hidden rounded-[32px] border border-white/60 bg-white/75 p-8 shadow-xl backdrop-blur xl:block">
-            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-              <Building2 className="size-6" />
+      <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid w-full gap-10 lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center">
+          <section className="mx-auto max-w-xl space-y-6 lg:mx-0">
+            <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 backdrop-blur">
+              <div className="flex size-10 items-center justify-center rounded-full bg-emerald-400/12 text-emerald-200">
+                <Building2 className="size-5" />
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-sm font-semibold text-white">Church ERP Web</p>
+                <p className="text-xs text-slate-400">
+                  Painel administrativo
+                </p>
+              </div>
             </div>
 
-            <div className="mt-8 space-y-4">
-              <Badge className="w-fit">Church ERP Web</Badge>
-              <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-foreground">
-                Gestao administrativa unificada para a operacao da igreja
-              </h1>
-              <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-                O Church ERP concentra autenticacao, dashboard, membros,
-                igrejas, tesouraria e usuarios em uma experiencia unica para
-                cada ambiente.
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-emerald-300/80">
+                Acesso ao painel
               </p>
-            </div>
-
-            <div className="mt-10 grid gap-4 md:grid-cols-2">
-              <div className="rounded-3xl border bg-white/80 p-5">
-                <p className="text-sm font-semibold text-foreground">
-                  Modulos integrados
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Dashboard, membros, igrejas, tesouraria e usuarios operam no
-                  mesmo painel administrativo.
-                </p>
-              </div>
-
-              <div className="rounded-3xl border bg-white/80 p-5">
-                <p className="text-sm font-semibold text-foreground">
-                  Experiencia consistente
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  O painel mantem a mesma linguagem visual em desktop e mobile.
-                </p>
-              </div>
-
-              <div className="rounded-3xl border bg-white/80 p-5 md:col-span-2">
-                <p className="text-sm font-semibold text-foreground">
-                  Operacao centralizada
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Tudo o que voce precisa para acompanhar a rotina da igreja em
-                  um unico painel.
-                </p>
-              </div>
+              <h1 className="max-w-lg text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                Gestao da igreja em um fluxo simples e direto.
+              </h1>
+              <p className="max-w-md text-base leading-7 text-slate-300">
+                Entre com as credenciais do seu ambiente para continuar.
+              </p>
             </div>
           </section>
 
-          <Card className="border-white/60 bg-white/90 shadow-2xl backdrop-blur">
-            <CardHeader className="space-y-4">
-              <Badge className="w-fit">Acesso ao painel</Badge>
+          <Card className="relative overflow-hidden border-white/10 bg-[#0d131d]/86 text-white shadow-[0_28px_80px_rgba(3,7,18,0.45)] backdrop-blur">
+            <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/45 to-transparent" />
+
+            <CardHeader className="space-y-5 p-6 sm:p-8">
+              <Badge className="w-fit border border-emerald-400/15 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/10">
+                Login
+              </Badge>
               <div className="space-y-2">
-                <CardTitle className="text-3xl">Entrar no painel</CardTitle>
-                <CardDescription className="text-sm leading-6">
-                  Acesse o painel administrativo do ambiente com codigo, usuario
-                  e senha.
+                <CardTitle className="text-3xl text-white sm:text-[2rem]">
+                  Entrar
+                </CardTitle>
+                <CardDescription className="text-sm leading-6 text-slate-400">
+                  Use banco, usuario e senha para acessar o painel.
                 </CardDescription>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="p-6 pt-0 sm:p-8 sm:pt-0">
               <LoginForm mode="TENANT" />
-
-              <div className="rounded-2xl bg-secondary/50 p-4 text-sm leading-6 text-muted-foreground">
-                Use as credenciais do seu ambiente para acompanhar a operacao
-                com seguranca e continuidade.
-              </div>
             </CardContent>
           </Card>
         </div>
