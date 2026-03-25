@@ -64,9 +64,9 @@ export default async function LoginPage() {
             </div>
           </section>
 
-          <Card className="relative overflow-hidden border-white/[0.04] bg-[#101719]/80 text-white shadow-[0_24px_72px_rgba(0,0,0,0.32)] backdrop-blur-xl">
+          <Card className="relative overflow-hidden !border-transparent bg-[#101719]/80 text-white shadow-[0_22px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl">
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_32%)] pointer-events-none" />
-            <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/[0.08] to-transparent" />
+            <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/[0.05] to-transparent" />
 
             <CardHeader className="space-y-5 p-6 sm:p-8">
               <Badge className="w-fit border border-emerald-400/[0.12] bg-emerald-500/[0.08] text-emerald-100 hover:bg-emerald-500/[0.08]">

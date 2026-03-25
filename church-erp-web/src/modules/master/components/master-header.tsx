@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { AuthUserPanel } from "@/modules/auth/components/auth-user-panel";
+import { MasterThemeToggle } from "@/modules/master/components/master-theme-toggle";
 import type { AuthUser } from "@/modules/auth/types/auth";
 
 interface MasterHeaderProps {
@@ -40,7 +41,8 @@ export function MasterHeader({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden rounded-full border border-border bg-white px-4 py-2 text-sm text-muted-foreground sm:block">
+          <MasterThemeToggle />
+          <div className="hidden rounded-full border border-border bg-card/80 px-4 py-2 text-sm text-muted-foreground sm:block">
             {formattedDate}
           </div>
           <AuthUserPanel user={user} />

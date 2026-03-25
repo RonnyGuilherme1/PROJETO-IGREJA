@@ -40,11 +40,11 @@ export function LoginForm({ mode }: LoginFormProps) {
     ? "text-sm font-medium text-slate-300"
     : "text-sm font-medium text-slate-300";
   const inputClassName = isTenantMode
-    ? "h-12 rounded-2xl border-white/[0.04] bg-[#131a1c] px-4 text-base text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.015)] placeholder:text-slate-500 focus-visible:border-emerald-500/[0.12] focus-visible:ring-1 focus-visible:ring-emerald-500/20"
-    : "h-12 rounded-2xl border-white/[0.04] bg-[#151c1c] px-4 text-base text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.015)] placeholder:text-slate-500 focus-visible:border-emerald-500/[0.12] focus-visible:ring-1 focus-visible:ring-emerald-500/20";
+    ? "h-12 rounded-2xl !border-transparent !shadow-none bg-[#131a1c] px-4 text-base text-slate-100 placeholder:text-slate-500 focus-visible:border-transparent focus-visible:ring-1 focus-visible:ring-emerald-500/20"
+    : "h-12 rounded-2xl !border-transparent !shadow-none bg-[#151c1c] px-4 text-base text-slate-100 placeholder:text-slate-500 focus-visible:border-transparent focus-visible:ring-1 focus-visible:ring-emerald-500/20";
   const buttonClassName = isTenantMode
-    ? "h-12 rounded-2xl bg-emerald-400/90 text-slate-950 shadow-[0_12px_28px_rgba(16,185,129,0.16)] hover:bg-emerald-400"
-    : "h-12 rounded-2xl bg-[#2b3232] text-slate-100 shadow-[0_12px_26px_rgba(0,0,0,0.18)] hover:bg-[#353d3d]";
+    ? "h-12 rounded-2xl bg-emerald-400/90 text-slate-950 shadow-[0_10px_22px_rgba(16,185,129,0.12)] hover:bg-emerald-400"
+    : "h-12 rounded-2xl bg-[#2b3232] text-slate-100 shadow-[0_10px_22px_rgba(0,0,0,0.12)] hover:bg-[#353d3d]";
   const errorClassName = isTenantMode
     ? "border-rose-500/[0.14] bg-rose-500/[0.08] text-rose-100"
     : "border-rose-500/[0.15] bg-rose-500/[0.08] text-rose-100";

@@ -24,6 +24,7 @@ import {
   createMasterTenant,
   getMasterTenantById,
   updateMasterTenant,
+  uploadMasterTenantLogo,
 } from "@/modules/master/services/master-tenants-service";
 import {
   DEFAULT_TENANT_THEME_KEY,
@@ -38,6 +39,31 @@ interface TenantFormPageProps {
   mode: "create" | "edit";
   tenantId?: string;
 }
+
+const TENANT_LOGO_ACCEPT = [
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+].join(",");
+
+const TENANT_LOGO_ALLOWED_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+]);
+
+const TENANT_LOGO_ALLOWED_EXTENSIONS = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+]);
 
 const initialFormValues: MasterTenantFormValues = {
   name: "",
@@ -58,7 +84,31 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
+  const [selectedLogoPreviewUrl, setSelectedLogoPreviewUrl] = useState<
+    string | null
+  >(null);
   const [isRedirecting, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!selectedLogoFile) {
+      setSelectedLogoPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedLogoFile);
+    setSelectedLogoPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedLogoFile]);
+
+  useEffect(() => {
+    setSelectedLogoFile(null);
+    setLogoError(null);
+  }, [mode, tenantId]);
 
   useEffect(() => {
     if (mode !== "edit" || !tenantId) {
@@ -122,10 +172,54 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
     }));
   }
 
+  function handleLogoFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      setLogoError(null);
+      setSelectedLogoFile(null);
+      return;
+    }
+
+    const normalizedMimeType = String(file.type ?? "").trim().toLowerCase();
+    const extensionIndex = file.name.lastIndexOf(".");
+    const normalizedExtension =
+      extensionIndex >= 0 ? file.name.slice(extensionIndex).toLowerCase() : "";
+    const hasAllowedMimeType =
+      normalizedMimeType.length > 0 &&
+      TENANT_LOGO_ALLOWED_MIME_TYPES.has(normalizedMimeType);
+    const hasAllowedExtension =
+      normalizedExtension.length > 0 &&
+      TENANT_LOGO_ALLOWED_EXTENSIONS.has(normalizedExtension);
+
+    if (
+      (normalizedMimeType && !hasAllowedMimeType) ||
+      (normalizedExtension && !hasAllowedExtension) ||
+      (!normalizedMimeType && !hasAllowedExtension)
+    ) {
+      setSelectedLogoFile(null);
+      setLogoError("Selecione uma imagem PNG, JPG, JPEG ou WEBP.");
+      event.target.value = "";
+      return;
+    }
+
+    setSubmitError(null);
+    setLogoError(null);
+    setSelectedLogoFile(file);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (logoError) {
+      setSubmitError(logoError);
+      return;
+    }
+
     setSubmitError(null);
     setIsSubmitting(true);
+
+    let createdTenantId: string | null = null;
 
     try {
       if (mode === "create") {
@@ -140,13 +234,40 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
           adminPassword: formValues.adminPassword,
         };
 
-        await createMasterTenant(payload);
+        const createdTenant = await createMasterTenant(payload);
+        createdTenantId = createdTenant.id;
+
+        if (selectedLogoFile) {
+          const uploadedLogoUrl = await uploadMasterTenantLogo(
+            createdTenant.id,
+            selectedLogoFile,
+          );
+
+          setFormValues((current) => ({
+            ...current,
+            logoUrl: uploadedLogoUrl,
+          }));
+
+          await updateMasterTenant(createdTenant.id, {
+            logoUrl: uploadedLogoUrl,
+          });
+        }
       } else if (tenantId) {
+        let logoUrl = formValues.logoUrl;
+
+        if (selectedLogoFile) {
+          logoUrl = await uploadMasterTenantLogo(tenantId, selectedLogoFile);
+          setFormValues((current) => ({
+            ...current,
+            logoUrl,
+          }));
+        }
+
         const payload: UpdateMasterTenantPayload = {
           name: formValues.name,
           code: formValues.code,
           status: formValues.status,
-          logoUrl: formValues.logoUrl,
+          logoUrl,
           themeKey: formValues.themeKey,
         };
 
@@ -161,7 +282,9 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
       setSubmitError(
         getApiErrorMessage(
           error,
-          mode === "create"
+          createdTenantId
+            ? "O ambiente foi criado, mas nao foi possivel concluir o envio da logo. Abra a edicao do ambiente para tentar novamente."
+            : mode === "create"
             ? "Nao foi possivel criar o ambiente."
             : "Nao foi possivel salvar as alteracoes do ambiente.",
         ),
@@ -183,7 +306,8 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
 
   const selectedThemeLabel = getTenantThemeLabel(formValues.themeKey);
   const previewTitle = formValues.name.trim() || "Preview da identidade";
-  const hasCustomLogo = formValues.logoUrl.trim().length > 0;
+  const previewLogoUrl = selectedLogoPreviewUrl ?? formValues.logoUrl;
+  const hasCustomLogo = previewLogoUrl.trim().length > 0;
 
   return (
     <div className="space-y-6">
@@ -293,18 +417,24 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="tenant-logo-url">URL da logo (opcional)</Label>
+                  <Label htmlFor="tenant-logo-file">Logo do ambiente (opcional)</Label>
                   <Input
-                    id="tenant-logo-url"
-                    value={formValues.logoUrl}
-                    onChange={(event) =>
-                      handleFieldChange("logoUrl", event.target.value)
-                    }
-                    placeholder="https://exemplo.com/logo.png"
+                    id="tenant-logo-file"
+                    type="file"
+                    accept={TENANT_LOGO_ACCEPT}
+                    onChange={handleLogoFileChange}
                   />
                   <p className="text-xs leading-5 text-muted-foreground">
-                    Se nao houver logo configurada, o ambiente continuara usando a marca padrao do sistema.
+                    Envie PNG, JPG, JPEG ou WEBP. O upload da imagem sera feito ao salvar.
                   </p>
+                  {selectedLogoFile ? (
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Arquivo selecionado: <strong>{selectedLogoFile.name}</strong>
+                    </p>
+                  ) : null}
+                  {logoError ? (
+                    <p className="text-xs leading-5 text-destructive">{logoError}</p>
+                  ) : null}
                 </div>
               </div>
 
@@ -312,7 +442,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   <BrandLogo
                     alt={`Logo do ambiente ${previewTitle}`}
-                    logoUrl={formValues.logoUrl}
+                    logoUrl={previewLogoUrl}
                     className="size-[5.5rem] shrink-0 rounded-2xl border border-border bg-card shadow-sm"
                     iconClassName="size-8 text-primary"
                   />
@@ -323,8 +453,10 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                       Tema selecionado: <strong>{selectedThemeLabel}</strong>
                     </p>
                     <p className="text-xs leading-5 text-muted-foreground">
-                      {hasCustomLogo
-                        ? "Logo personalizada pronta para este ambiente."
+                      {selectedLogoFile
+                        ? "Preview da nova logo selecionada. O arquivo sera enviado quando voce salvar."
+                        : hasCustomLogo
+                          ? "Logo atual pronta para este ambiente."
                         : "Sem logo informada. O layout usara a logo padrao do sistema."}
                     </p>
                   </div>

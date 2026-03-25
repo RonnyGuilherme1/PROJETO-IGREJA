@@ -12,6 +12,10 @@ import type {
 
 const MASTER_TENANTS_ENDPOINT = "/master/tenants";
 
+interface MasterTenantLogoUploadResponse {
+  logoUrl: string;
+}
+
 function sanitizeCreatePayload(payload: CreateMasterTenantPayload) {
   return {
     name: payload.name.trim(),
@@ -96,6 +100,29 @@ export async function updateMasterTenant(
   );
 
   return response.data;
+}
+
+export async function uploadMasterTenantLogo(
+  id: string,
+  file: File,
+): Promise<string> {
+  ensureApiConfigured();
+
+  const formData = new FormData();
+  formData.append("logo", file);
+
+  const response = await http.post<MasterTenantLogoUploadResponse>(
+    `${MASTER_TENANTS_ENDPOINT}/${id}/logo`,
+    formData,
+  );
+
+  const logoUrl = normalizeTenantLogoUrl(response.data.logoUrl);
+
+  if (!logoUrl) {
+    throw new Error("Nao foi possivel obter a URL da logo enviada.");
+  }
+
+  return logoUrl;
 }
 
 export async function activateMasterTenant(id: string): Promise<void> {

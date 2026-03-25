@@ -6,8 +6,11 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateTenantDto } from './dto/create-tenant.dto';
@@ -15,6 +18,7 @@ import { TenantResponseDto } from './dto/tenant-response.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { PlatformMasterGuard } from './guards/platform-master.guard';
 import { TenantsService } from './tenants.service';
+import { UploadedTenantLogoFile } from './types/uploaded-tenant-logo-file.type';
 
 @Controller('master/tenants')
 @UseGuards(JwtAuthGuard, PlatformMasterGuard)
@@ -36,6 +40,15 @@ export class TenantsController {
   @Post()
   create(@Body() createTenantDto: CreateTenantDto): Promise<TenantResponseDto> {
     return this.tenantsService.create(createTenantDto);
+  }
+
+  @Post(':id/logo')
+  @UseInterceptors(FileInterceptor('logo'))
+  uploadLogo(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @UploadedFile() file?: UploadedTenantLogoFile,
+  ): Promise<{ logoUrl: string }> {
+    return this.tenantsService.uploadLogoByMaster(id, file);
   }
 
   @Patch(':id')

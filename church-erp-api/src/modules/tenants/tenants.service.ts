@@ -170,6 +170,22 @@ export class TenantsService {
     const tenantId = this.ensureTenantAdminAccess(currentUser);
     await this.findTenantByIdOrThrow(tenantId);
 
+    return this.uploadLogoForTenant(tenantId, file);
+  }
+
+  async uploadLogoByMaster(
+    id: string,
+    file?: UploadedTenantLogoFile,
+  ): Promise<{ logoUrl: string }> {
+    await this.findTenantByIdOrThrow(id);
+
+    return this.uploadLogoForTenant(id, file);
+  }
+
+  private async uploadLogoForTenant(
+    tenantId: string,
+    file?: UploadedTenantLogoFile,
+  ): Promise<{ logoUrl: string }> {
     const validatedFile = this.validateTenantLogoFile(file);
     const filename = await this.saveTenantLogoFile(tenantId, validatedFile);
 

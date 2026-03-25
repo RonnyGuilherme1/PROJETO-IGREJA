@@ -89,6 +89,181 @@ body {
     linear-gradient(180deg, var(--tenant-shell-start) 0%, var(--tenant-shell-end) 100%);
 }
 
+.master-theme-shell {
+  background:
+    radial-gradient(circle at top, var(--master-shell-glow), transparent 34%),
+    linear-gradient(180deg, var(--master-shell-start) 0%, var(--master-shell-end) 100%);
+}
+
+.master-login-backdrop {
+  background:
+    radial-gradient(circle at top left, var(--master-login-glow), transparent 30%),
+    radial-gradient(circle at bottom right, var(--master-login-shadow), transparent 42%),
+    linear-gradient(
+      160deg,
+      var(--master-login-start) 0%,
+      var(--master-login-mid) 48%,
+      var(--master-login-end) 100%
+    );
+}
+
+.master-login-top-line {
+  background-color: var(--master-login-top-line);
+}
+
+.master-login-chip {
+  border: 1px solid var(--master-login-chip-border);
+  background: var(--master-login-chip-bg);
+  box-shadow: var(--master-login-chip-shadow);
+}
+
+.master-login-chip-icon {
+  background: var(--master-login-chip-icon-bg);
+  color: var(--master-login-chip-icon-fg);
+}
+
+.master-login-chip-title {
+  color: var(--master-login-chip-title);
+}
+
+.master-login-chip-subtitle,
+.master-login-card-description {
+  color: var(--master-login-chip-subtitle);
+}
+
+.master-login-eyebrow {
+  color: var(--master-login-eyebrow);
+}
+
+.master-login-hero-title {
+  color: var(--master-login-hero-title);
+}
+
+.master-login-hero-body {
+  color: var(--master-login-hero-body);
+}
+
+.master-login-card {
+  border-color: var(--master-login-card-border) !important;
+  background-color: var(--master-login-card-bg) !important;
+  color: var(--master-login-card-foreground) !important;
+  box-shadow: var(--master-login-card-shadow) !important;
+  backdrop-filter: blur(20px);
+}
+
+.master-login-card-highlight {
+  background: linear-gradient(180deg, var(--master-login-card-highlight), transparent 32%);
+}
+
+.master-login-card-line {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--master-login-card-line),
+    transparent
+  );
+}
+
+.master-login-badge {
+  border-color: var(--master-login-badge-border) !important;
+  background-color: var(--master-login-badge-bg) !important;
+  color: var(--master-login-badge-text) !important;
+}
+
+.master-login-form label {
+  color: var(--master-login-label) !important;
+}
+
+.master-login-form input {
+  border-color: transparent !important;
+  background-color: var(--master-login-input-bg) !important;
+  color: var(--master-login-input-text) !important;
+  box-shadow: none !important;
+}
+
+.master-login-form input::placeholder {
+  color: var(--master-login-input-placeholder) !important;
+}
+
+.master-login-form input:focus-visible {
+  border-color: transparent !important;
+  box-shadow: 0 0 0 1px var(--master-login-input-ring) !important;
+}
+
+.master-login-form button[type="submit"] {
+  background-color: var(--master-login-button-bg) !important;
+  color: var(--master-login-button-text) !important;
+  box-shadow: var(--master-login-button-shadow) !important;
+}
+
+.master-login-form button[type="submit"]:hover {
+  background-color: var(--master-login-button-hover) !important;
+}
+
+.master-login-form [class*="border-rose-500"] {
+  border-color: var(--master-login-error-border) !important;
+}
+
+.master-login-form [class*="bg-rose-500"] {
+  background-color: var(--master-login-error-bg) !important;
+}
+
+.master-login-form [class*="text-rose-100"] {
+  color: var(--master-login-error-text) !important;
+}
+
+.master-login-form [class*="border-emerald-500"] {
+  border-color: var(--master-login-success-border) !important;
+}
+
+.master-login-form [class*="bg-emerald-500"] {
+  background-color: var(--master-login-success-bg) !important;
+}
+
+.master-login-form [class*="text-emerald-100"] {
+  color: var(--master-login-success-text) !important;
+}
+
+html[data-master-theme="dark"] .master-theme-shell .bg-white {
+  background-color: var(--surface-base) !important;
+}
+
+html[data-master-theme="dark"] .master-theme-shell [class*="bg-white/70"] {
+  background-color: var(--surface-muted) !important;
+}
+
+html[data-master-theme="dark"] .master-theme-shell [class*="bg-white/75"] {
+  background-color: var(--surface-muted) !important;
+}
+
+html[data-master-theme="dark"] .master-theme-shell [class*="bg-white/80"] {
+  background-color: var(--surface-soft) !important;
+}
+
+html[data-master-theme="dark"] .master-theme-shell [class*="bg-white/85"] {
+  background-color: var(--surface-soft) !important;
+}
+
+html[data-master-theme="dark"] .master-theme-shell [class*="bg-white/90"] {
+  background-color: var(--surface-soft) !important;
+}
+
+html[data-master-theme="dark"] .master-theme-shell [class*="border-white/60"] {
+  border-color: color-mix(in srgb, var(--border) 60%, transparent) !important;
+}
+
+html[data-master-theme="dark"] .master-theme-shell .text-emerald-700 {
+  color: #86efac !important;
+}
+
+html[data-master-theme="dark"] .master-theme-shell .text-rose-700 {
+  color: #fda4af !important;
+}
+
+html[data-master-theme="dark"] .master-theme-shell .text-sky-700 {
+  color: #7dd3fc !important;
+}
+
 [data-tenant-theme="dark"] input,
 [data-tenant-theme="dark"] select,
 [data-tenant-theme="dark"] textarea {

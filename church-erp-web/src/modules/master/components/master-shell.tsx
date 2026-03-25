@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { MasterHeader } from "@/modules/master/components/master-header";
 import { MasterSidebar } from "@/modules/master/components/master-sidebar";
+import { MasterThemeScope } from "@/modules/master/components/master-theme-scope";
 import { masterNavItems } from "@/modules/master/config/navigation";
 import type { AuthUser } from "@/modules/auth/types/auth";
 
@@ -31,7 +32,7 @@ export function MasterShell({ children, user }: MasterShellProps) {
     ) ?? masterNavItems[0];
 
   return (
-    <div className="min-h-screen bg-background">
+    <MasterThemeScope>
       <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
         <aside className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
           <MasterSidebar />
@@ -48,7 +49,7 @@ export function MasterShell({ children, user }: MasterShellProps) {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="bg-white/70 lg:hidden"
+                    className="bg-card/80 lg:hidden"
                   >
                     <Menu className="size-5" />
                     <span className="sr-only">Abrir navegacao</span>
@@ -72,6 +73,6 @@ export function MasterShell({ children, user }: MasterShellProps) {
           </main>
         </div>
       </div>
-    </div>
+    </MasterThemeScope>
   );
 }
