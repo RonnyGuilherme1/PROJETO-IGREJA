@@ -10,9 +10,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { TENANT_LOGO_UPLOAD_ROOT } from './modules/tenants/constants/tenant-logo-upload.constants';
 
-function resolveCorsOrigin(corsOrigin?: string): true | string | string[] {
+function resolveCorsOrigin(
+  corsOrigin?: string,
+  nodeEnv?: string,
+): boolean | string | string[] {
+  const isProduction = nodeEnv === 'production';
+
   if (!corsOrigin || corsOrigin === '*') {
-    return true;
+    return !isProduction;
   }
 
   const origins = corsOrigin
@@ -31,7 +36,10 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
   app.setGlobalPrefix('api');
   app.enableCors({
-    origin: resolveCorsOrigin(configService.get<string>('CORS_ORIGIN')),
+    origin: resolveCorsOrigin(
+      configService.get<string>('CORS_ORIGIN'),
+      configService.get<string>('NODE_ENV'),
+    ),
     credentials: true,
   });
   app.useGlobalPipes(

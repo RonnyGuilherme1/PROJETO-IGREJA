@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule, minutes } from '@nestjs/throttler';
 
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './database/prisma/prisma.module';
@@ -19,6 +20,22 @@ import { UsersModule } from './modules/users/users.module';
       cache: true,
       envFilePath: '.env',
       validate: validateEnv,
+    }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const isProduction =
+          configService.get<string>('NODE_ENV') === 'production';
+
+        return [
+          {
+            ttl: minutes(1),
+            limit: isProduction ? 5 : 20,
+            blockDuration: isProduction ? minutes(5) : minutes(1),
+          },
+        ];
+      },
     }),
     PrismaModule,
     HealthModule,

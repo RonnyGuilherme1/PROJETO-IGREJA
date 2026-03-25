@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 import { CurrentUser } from './decorators/current-user.decorator';
 import { AuthUserDto } from './dto/auth-user.dto';
@@ -15,12 +16,14 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
   login(@Body() loginDto: LoginDto): Promise<LoginResponseDto> {
     return this.authService.login(loginDto);
   }
 
   @Post('master/login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
   masterLogin(
     @Body() masterLoginDto: MasterLoginDto,
   ): Promise<LoginResponseDto> {
