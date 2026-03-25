@@ -17,6 +17,7 @@ interface TreasurySummaryCardsProps {
   periodLabel: string;
   closureLabel: string;
   closureDescription: string;
+  actionsReady: boolean;
   isClosureLoading: boolean;
   isMonthClosed: boolean;
   showCloseAction: boolean;
@@ -39,6 +40,7 @@ export function TreasurySummaryCards({
   periodLabel,
   closureLabel,
   closureDescription,
+  actionsReady,
   isClosureLoading,
   isMonthClosed,
   showCloseAction,
@@ -77,6 +79,10 @@ export function TreasurySummaryCards({
       iconClassName: "bg-sky-100 text-sky-700",
     },
   ];
+  const exportDisabled = Boolean(!actionsReady || isExporting);
+  const closeMonthDisabled = Boolean(
+    !actionsReady || isMonthClosed || !canCloseMonth || isClosingMonth,
+  );
 
   return (
     <div className="space-y-4">
@@ -97,7 +103,7 @@ export function TreasurySummaryCards({
               type="button"
               variant="outline"
               onClick={onExport}
-              disabled={isExporting}
+              disabled={exportDisabled}
             >
               {isExporting ? (
                 <LoaderCircle className="size-4 animate-spin" />
@@ -111,7 +117,7 @@ export function TreasurySummaryCards({
               <Button
                 type="button"
                 onClick={onCloseMonth}
-                disabled={isMonthClosed || !canCloseMonth || isClosingMonth}
+                disabled={closeMonthDisabled}
               >
                 {isClosingMonth ? (
                   <LoaderCircle className="size-4 animate-spin" />

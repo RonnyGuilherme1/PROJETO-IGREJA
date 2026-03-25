@@ -221,6 +221,7 @@ export function TreasuryListPage({
   const [monthPendingClosure, setMonthPendingClosure] =
     useState<MonthReference | null>(null);
   const filtersControlsLoading = Boolean(isLoading);
+  const summaryActionsReady = Boolean(hasInitialized);
   const categoryNamesById = Object.fromEntries(
     categories.map((category) => [category.id, category.name]),
   );
@@ -592,6 +593,7 @@ export function TreasuryListPage({
         periodLabel={summaryPeriodLabel}
         closureLabel={closureLabel}
         closureDescription={closureDescription}
+        actionsReady={summaryActionsReady}
         isClosureLoading={isMonthClosureLoading}
         isMonthClosed={isMonthClosed}
         showCloseAction={canEdit}
