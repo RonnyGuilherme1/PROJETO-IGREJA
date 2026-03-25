@@ -49,22 +49,12 @@ export class ChurchesController {
     @CurrentUser() currentUser: AuthenticatedUser,
     @Query() query: FindChurchesQueryParams,
   ): Promise<ChurchesListResponseDto> {
-    const churches = await this.churchesService.findAll(currentUser);
-    const filteredChurches = churches.filter((church) =>
-      matchesChurchFilters(church, query),
-    );
-    const page = parsePage(query.page);
-    const limit = parseLimit(query.limit);
-    const total = filteredChurches.length;
-    const start = (page - 1) * limit;
-
-    return {
-      items: filteredChurches.slice(start, start + limit),
-      total,
-      page,
-      limit,
-      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
-    };
+    return this.churchesService.findAll(currentUser, {
+      page: parsePage(query.page),
+      limit: parseLimit(query.limit),
+      name: getQueryValue(query.name),
+      status: normalizeEnumValue(query.status),
+    });
   }
 
   @Get(':id')
@@ -112,8 +102,8 @@ function getQueryValue(value: QueryParamValue): string | undefined {
   return normalizedValue.length > 0 ? normalizedValue : undefined;
 }
 
-function normalizeSearchValue(value: string): string {
-  return value.trim().toLocaleLowerCase('pt-BR');
+function normalizeEnumValue(value: QueryParamValue): string | undefined {
+  return getQueryValue(value)?.toUpperCase();
 }
 
 function parsePage(value: QueryParamValue): number {
@@ -134,17 +124,4 @@ function parseLimit(value: QueryParamValue): number {
   }
 
   return Math.min(parsedValue, MAX_LIMIT);
-}
-
-function matchesChurchFilters(
-  church: ChurchResponseDto,
-  query: FindChurchesQueryParams,
-): boolean {
-  const name = getQueryValue(query.name);
-  const status = getQueryValue(query.status)?.toUpperCase();
-
-  return (
-    (!name || normalizeSearchValue(church.name).includes(normalizeSearchValue(name))) &&
-    (!status || church.status === status)
-  );
 }

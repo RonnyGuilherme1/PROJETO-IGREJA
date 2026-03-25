@@ -12,27 +12,71 @@ import { ChurchResponseDto } from './dto/church-response.dto';
 import { UpdateChurchDto } from './dto/update-church.dto';
 import { ChurchEntity, churchSelect } from './types/church.type';
 
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 5000;
+const CHURCH_STATUS_VALUES = new Set<string>(Object.values(ChurchStatus));
+
+interface FindChurchesQuery {
+  page?: number;
+  limit?: number;
+  name?: string;
+  status?: string;
+}
+
+interface ChurchesListResult {
+  items: ChurchResponseDto[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 @Injectable()
 export class ChurchesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(
     currentUser: AuthenticatedUser,
-  ): Promise<ChurchResponseDto[]> {
+    query: FindChurchesQuery,
+  ): Promise<ChurchesListResult> {
     this.ensureCanView(currentUser);
     const tenantId = this.ensureTenantAccess(currentUser);
+    const page = query.page && query.page > 0 ? query.page : DEFAULT_PAGE;
+    const limit = query.limit && query.limit > 0 ? query.limit : DEFAULT_LIMIT;
 
-    const churches = await this.prisma.church.findMany({
-      where: {
-        tenantId,
-      },
-      select: churchSelect,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    if (query.status !== undefined && !this.isChurchStatus(query.status)) {
+      return {
+        items: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+      };
+    }
 
-    return churches.map((church) => new ChurchResponseDto(church));
+    const where = this.buildWhere(query, tenantId);
+    const skip = (page - 1) * limit;
+
+    const [churches, total] = await this.prisma.$transaction([
+      this.prisma.church.findMany({
+        where,
+        select: churchSelect,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.church.count({ where }),
+    ]);
+
+    return {
+      items: churches.map((church) => new ChurchResponseDto(church)),
+      total,
+      page,
+      limit,
+      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    };
   }
 
   async findOne(
@@ -143,6 +187,28 @@ export class ChurchesService {
     return new ChurchResponseDto(church);
   }
 
+  private buildWhere(
+    query: FindChurchesQuery,
+    tenantId: string,
+  ): Prisma.ChurchWhereInput {
+    const where: Prisma.ChurchWhereInput = {
+      tenantId,
+    };
+
+    if (query.name) {
+      where.name = {
+        contains: query.name,
+        mode: 'insensitive',
+      };
+    }
+
+    if (query.status && this.isChurchStatus(query.status)) {
+      where.status = query.status;
+    }
+
+    return where;
+  }
+
   private ensureCanView(currentUser: AuthenticatedUser): void {
     if (!currentUser) {
       throw new ForbiddenException('Acesso nao autorizado.');
@@ -187,5 +253,9 @@ export class ChurchesService {
     }
 
     return church;
+  }
+
+  private isChurchStatus(value: string): value is ChurchStatus {
+    return CHURCH_STATUS_VALUES.has(value);
   }
 }

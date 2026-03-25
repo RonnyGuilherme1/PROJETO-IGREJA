@@ -34,7 +34,7 @@ export function AdminShell({ children, user }: AdminShellProps) {
 
   return (
     <TenantThemeScope themeKey={user.tenantThemeKey}>
-      <div className="grid min-h-screen lg:grid-cols-[248px_1fr]">
+      <div className="grid min-h-screen lg:grid-cols-[232px_1fr]">
         <aside className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
           <AdminSidebar user={user} />
         </aside>
@@ -57,7 +57,7 @@ export function AdminShell({ children, user }: AdminShellProps) {
                 </SheetTrigger>
                 <SheetContent
                   side="left"
-                  className="w-[248px] border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
+                  className="w-[232px] border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
                 >
                   <SheetHeader className="sr-only">
                     <SheetTitle>Menu de navegacao</SheetTitle>
@@ -68,7 +68,7 @@ export function AdminShell({ children, user }: AdminShellProps) {
             }
           />
 
-          <main className="flex-1 px-4 pb-6 pt-3 sm:px-6 lg:px-8">
+          <main className="flex-1 px-4 pb-5 pt-2.5 sm:px-6 lg:px-8">
             <div className="mx-auto w-full max-w-7xl">{children}</div>
           </main>
         </div>

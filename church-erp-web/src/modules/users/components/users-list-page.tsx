@@ -7,14 +7,12 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
-import { PageHeader } from "@/components/shared/page-header";
 import { PageLoading } from "@/components/shared/page-loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -185,27 +183,25 @@ export function UsersListPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Usuarios"
-        description="Acompanhe acessos e perfis."
-        badge="Administrador"
-        action={
-          <Button asChild>
-            <Link href="/usuarios/novo">
-              <Plus className="size-4" />
-              Novo usuario
-            </Link>
-          </Button>
-        }
-      />
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+            Usuarios
+          </h1>
+          <Badge variant="secondary">Administrador</Badge>
+        </div>
+        <Button asChild>
+          <Link href="/usuarios/novo">
+            <Plus className="size-4" />
+            Novo usuario
+          </Link>
+        </Button>
+      </div>
 
       <Card className="bg-white/85">
-        <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-2">
-            <CardTitle>Filtros</CardTitle>
-            <CardDescription>Aplique os filtros para localizar registros.</CardDescription>
-          </div>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 pb-4">
+          <CardTitle>Filtros</CardTitle>
           <Badge variant="secondary">Total: {total}</Badge>
         </CardHeader>
         <CardContent>
@@ -220,9 +216,8 @@ export function UsersListPage() {
       </Card>
 
       <Card className="bg-white/85">
-        <CardHeader className="space-y-2">
+        <CardHeader className="pb-4">
           <CardTitle>Resultados</CardTitle>
-          <CardDescription>Consulte os registros encontrados.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {feedback ? (

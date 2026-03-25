@@ -51,20 +51,14 @@ export class UsersController {
     @CurrentUser() currentUser: AuthenticatedUser,
     @Query() query: FindUsersQueryParams,
   ): Promise<UsersListResponseDto> {
-    const users = await this.usersService.findAll(currentUser);
-    const filteredUsers = users.filter((user) => matchesUserFilters(user, query));
-    const page = parsePage(query.page);
-    const limit = parseLimit(query.limit);
-    const total = filteredUsers.length;
-    const start = (page - 1) * limit;
-
-    return {
-      items: filteredUsers.slice(start, start + limit),
-      total,
-      page,
-      limit,
-      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
-    };
+    return this.usersService.findAll(currentUser, {
+      page: parsePage(query.page),
+      limit: parseLimit(query.limit),
+      name: getQueryValue(query.name),
+      email: getQueryValue(query.email),
+      status: normalizeEnumValue(query.status),
+      role: normalizeEnumValue(query.role),
+    });
   }
 
   @Get(':id')
@@ -112,8 +106,8 @@ function getQueryValue(value: QueryParamValue): string | undefined {
   return normalizedValue.length > 0 ? normalizedValue : undefined;
 }
 
-function normalizeSearchValue(value: string): string {
-  return value.trim().toLocaleLowerCase('pt-BR');
+function normalizeEnumValue(value: QueryParamValue): string | undefined {
+  return getQueryValue(value)?.toUpperCase();
 }
 
 function parsePage(value: QueryParamValue): number {
@@ -134,22 +128,4 @@ function parseLimit(value: QueryParamValue): number {
   }
 
   return Math.min(parsedValue, MAX_LIMIT);
-}
-
-function matchesUserFilters(
-  user: UserResponseDto,
-  query: FindUsersQueryParams,
-): boolean {
-  const name = getQueryValue(query.name);
-  const email = getQueryValue(query.email);
-  const status = getQueryValue(query.status)?.toUpperCase();
-  const role = getQueryValue(query.role)?.toUpperCase();
-
-  return (
-    (!name || normalizeSearchValue(user.name).includes(normalizeSearchValue(name))) &&
-    (!email ||
-      normalizeSearchValue(user.email ?? '').includes(normalizeSearchValue(email))) &&
-    (!status || user.status === status) &&
-    (!role || user.role === role)
-  );
 }

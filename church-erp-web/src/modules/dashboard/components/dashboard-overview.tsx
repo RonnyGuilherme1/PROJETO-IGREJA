@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import {
   ArrowDownRight,
   ArrowRight,
@@ -11,6 +11,7 @@ import {
   TrendingDown,
   TrendingUp,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import { ErrorView } from "@/components/shared/error-view";
 import { Badge } from "@/components/ui/badge";
@@ -23,10 +24,59 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DashboardFinanceChart } from "@/modules/dashboard/components/dashboard-finance-chart";
-import { DashboardMetricCard } from "@/modules/dashboard/components/dashboard-metric-card";
 import { DashboardOverviewSkeleton } from "@/modules/dashboard/components/dashboard-overview-skeleton";
 import { getDashboardOverviewData } from "@/modules/dashboard/services/dashboard-service";
 import type { DashboardOverviewData } from "@/modules/dashboard/types/dashboard";
+
+interface DashboardStatCardProps {
+  title: string;
+  value: string;
+  icon: LucideIcon;
+  tone?: "default" | "success" | "danger";
+  footer?: ReactNode;
+}
+
+const statToneClasses: Record<
+  NonNullable<DashboardStatCardProps["tone"]>,
+  string
+> = {
+  default: "bg-primary/10 text-primary",
+  success: "bg-emerald-500/10 text-emerald-700",
+  danger: "bg-rose-500/10 text-rose-700",
+};
+
+function DashboardStatCard({
+  title,
+  value,
+  icon: Icon,
+  tone = "default",
+  footer,
+}: DashboardStatCardProps) {
+  return (
+    <Card className="bg-white/85">
+      <CardContent className="flex items-start justify-between gap-4 p-5">
+        <div className="space-y-2.5">
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-3xl font-semibold tracking-tight text-foreground">
+              {value}
+            </p>
+          </div>
+          {footer}
+        </div>
+
+        <div
+          className={cn(
+            "flex size-11 shrink-0 items-center justify-center rounded-2xl",
+            statToneClasses[tone],
+          )}
+        >
+          <Icon className="size-5" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function formatInteger(value: number) {
   return new Intl.NumberFormat("pt-BR").format(value);
@@ -142,12 +192,6 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Dashboard
-        </h1>
-      </div>
-
       {error ? (
         <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
@@ -155,67 +199,48 @@ export function DashboardOverview() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Card className="bg-white/85">
-          <CardContent className="flex items-start justify-between gap-4 p-5">
-            <div className="space-y-2.5">
-              <div className="space-y-1.5">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total de membros
-                </p>
-                <p className="text-3xl font-semibold tracking-tight text-foreground">
-                  {formatInteger(metrics.totalMembers)}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Base atual
-                </p>
-              </div>
-              <div
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-                  membersTrend.className,
-                )}
-              >
-                <MembersTrendIcon className="size-4" />
-                <span>{membersTrend.label}</span>
-              </div>
+        <DashboardStatCard
+          title="Total de membros"
+          value={formatInteger(metrics.totalMembers)}
+          icon={Users}
+          footer={
+            <div
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+                membersTrend.className,
+              )}
+            >
+              <MembersTrendIcon className="size-4" />
+              <span>{membersTrend.label}</span>
             </div>
-
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Users className="size-5" />
-            </div>
-          </CardContent>
-        </Card>
-        <DashboardMetricCard
+          }
+        />
+        <DashboardStatCard
           title="Total de igrejas"
           value={formatInteger(metrics.totalChurches)}
-          description="Unidades"
           icon={Building2}
         />
-        <DashboardMetricCard
+        <DashboardStatCard
           title={`Entradas de ${data?.currentMonthLabel || "mes atual"}`}
           value={formatCurrency(metrics.monthlyIncome)}
-          description="Entradas"
           icon={TrendingUp}
           tone="success"
         />
-        <DashboardMetricCard
+        <DashboardStatCard
           title={`Saidas de ${data?.currentMonthLabel || "mes atual"}`}
           value={formatCurrency(metrics.monthlyExpense)}
-          description="Saidas"
           icon={TrendingDown}
           tone="danger"
         />
-        <DashboardMetricCard
+        <DashboardStatCard
           title="Saldo do mes"
           value={formatCurrency(metrics.monthlyBalance)}
-          description="Resultado"
           icon={Landmark}
           tone={metrics.monthlyBalance >= 0 ? "success" : "danger"}
         />
-        <DashboardMetricCard
+        <DashboardStatCard
           title="Usuarios ativos"
           value={formatInteger(metrics.activeUsers)}
-          description="Em uso"
           icon={CreditCard}
         />
       </div>

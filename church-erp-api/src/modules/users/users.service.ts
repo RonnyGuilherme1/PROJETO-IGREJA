@@ -14,6 +14,28 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserEntity, userSelect } from './types/user.type';
 
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 5000;
+const USER_STATUS_VALUES = new Set<string>(Object.values(UserStatus));
+const USER_ROLE_VALUES = new Set<string>(Object.values(UserRole));
+
+interface FindUsersQuery {
+  page?: number;
+  limit?: number;
+  name?: string;
+  email?: string;
+  status?: string;
+  role?: string;
+}
+
+interface UsersListResult {
+  items: UserResponseDto[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -21,21 +43,48 @@ export class UsersService {
     private readonly authService: AuthService,
   ) {}
 
-  async findAll(currentUser: AuthenticatedUser): Promise<UserResponseDto[]> {
+  async findAll(
+    currentUser: AuthenticatedUser,
+    query: FindUsersQuery,
+  ): Promise<UsersListResult> {
     this.ensureAdmin(currentUser);
     const tenantId = this.ensureTenantAccess(currentUser);
+    const page = query.page && query.page > 0 ? query.page : DEFAULT_PAGE;
+    const limit = query.limit && query.limit > 0 ? query.limit : DEFAULT_LIMIT;
 
-    const users = await this.prisma.user.findMany({
-      where: {
-        tenantId,
-      },
-      select: userSelect,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    if (this.hasInvalidEnumFilters(query)) {
+      return {
+        items: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+      };
+    }
 
-    return users.map((user) => new UserResponseDto(user));
+    const where = this.buildWhere(query, tenantId);
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where,
+        select: userSelect,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      items: users.map((user) => new UserResponseDto(user)),
+      total,
+      page,
+      limit,
+      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    };
   }
 
   async findOne(
@@ -160,6 +209,39 @@ export class UsersService {
     return new UserResponseDto(user);
   }
 
+  private buildWhere(
+    query: FindUsersQuery,
+    tenantId: string,
+  ): Prisma.UserWhereInput {
+    const where: Prisma.UserWhereInput = {
+      tenantId,
+    };
+
+    if (query.name) {
+      where.name = {
+        contains: query.name,
+        mode: 'insensitive',
+      };
+    }
+
+    if (query.email) {
+      where.email = {
+        contains: query.email,
+        mode: 'insensitive',
+      };
+    }
+
+    if (query.status && this.isUserStatus(query.status)) {
+      where.status = query.status;
+    }
+
+    if (query.role && this.isUserRole(query.role)) {
+      where.role = query.role;
+    }
+
+    return where;
+  }
+
   private ensureAdmin(currentUser: AuthenticatedUser): void {
     if (currentUser.role !== UserRole.ADMIN) {
       throw new ForbiddenException(
@@ -195,6 +277,21 @@ export class UsersService {
     }
 
     return user;
+  }
+
+  private hasInvalidEnumFilters(query: FindUsersQuery): boolean {
+    return (
+      (query.status !== undefined && !this.isUserStatus(query.status)) ||
+      (query.role !== undefined && !this.isUserRole(query.role))
+    );
+  }
+
+  private isUserStatus(value: string): value is UserStatus {
+    return USER_STATUS_VALUES.has(value);
+  }
+
+  private isUserRole(value: string): value is UserRole {
+    return USER_ROLE_VALUES.has(value);
   }
 
   private async ensureUniqueEmail(
