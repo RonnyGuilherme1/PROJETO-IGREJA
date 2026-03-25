@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 
 export const MASTER_THEME_STORAGE_KEY = "church-erp.master-theme";
-export const MASTER_THEME_ATTRIBUTE = "data-master-theme";
 export const DEFAULT_MASTER_THEME = "light";
 
 export const MASTER_THEME_OPTIONS = [
@@ -323,10 +322,6 @@ const MASTER_THEME_STYLES = {
   dark: createMasterThemeStyle("dark", MASTER_THEME_TOKENS.dark),
 } satisfies Record<MasterTheme, MasterThemeStyle>;
 
-export const MASTER_THEME_STYLE_KEYS = Object.keys(
-  MASTER_THEME_STYLES.light,
-).filter((key) => key.startsWith("--")) as ReadonlyArray<`--${string}`>;
-
 export function normalizeMasterTheme(value: unknown): MasterTheme {
   if (typeof value !== "string") {
     return DEFAULT_MASTER_THEME;
@@ -341,49 +336,4 @@ export function normalizeMasterTheme(value: unknown): MasterTheme {
 
 export function getMasterThemeStyle(theme?: MasterTheme | string | null) {
   return MASTER_THEME_STYLES[normalizeMasterTheme(theme)];
-}
-
-export function applyMasterTheme(target: HTMLElement, theme: MasterTheme | string) {
-  const normalizedTheme = normalizeMasterTheme(theme);
-  const style = getMasterThemeStyle(normalizedTheme);
-
-  target.setAttribute(MASTER_THEME_ATTRIBUTE, normalizedTheme);
-
-  for (const key of MASTER_THEME_STYLE_KEYS) {
-    target.style.setProperty(key, style[key]);
-  }
-
-  target.style.colorScheme = style.colorScheme;
-
-  return normalizedTheme;
-}
-
-export function getMasterThemeHydrationScript() {
-  return `(() => {
-    const root = document.documentElement;
-    const storageKey = ${JSON.stringify(MASTER_THEME_STORAGE_KEY)};
-    const attribute = ${JSON.stringify(MASTER_THEME_ATTRIBUTE)};
-    const styles = ${JSON.stringify(MASTER_THEME_STYLES)};
-    const fallbackTheme = ${JSON.stringify(DEFAULT_MASTER_THEME)};
-    const applyTheme = (value) => {
-      const theme = value === "dark" || value === "light" ? value : fallbackTheme;
-      const style = styles[theme];
-      root.setAttribute(attribute, theme);
-
-      for (const [name, styleValue] of Object.entries(style)) {
-        if (name === "colorScheme") {
-          root.style.colorScheme = String(styleValue);
-          continue;
-        }
-
-        root.style.setProperty(name, String(styleValue));
-      }
-    };
-
-    try {
-      applyTheme(window.localStorage.getItem(storageKey));
-    } catch {
-      applyTheme(fallbackTheme);
-    }
-  })();`;
 }

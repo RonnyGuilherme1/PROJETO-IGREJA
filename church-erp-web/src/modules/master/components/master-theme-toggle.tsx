@@ -1,13 +1,30 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { MoonStar, SunMedium } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMasterTheme } from "@/modules/master/components/master-theme-scope";
 
 export function MasterThemeToggle() {
   const { theme, toggleTheme } = useMasterTheme();
-  const isDarkTheme = theme === "dark";
-  const label = isDarkTheme ? "Ativar modo claro" : "Ativar modo escuro";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setMounted(true);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  const isDarkTheme = mounted && theme === "dark";
+  const label = mounted
+    ? isDarkTheme
+      ? "Ativar modo claro"
+      : "Ativar modo escuro"
+    : "Alternar tema master";
 
   return (
     <Button
@@ -19,7 +36,7 @@ export function MasterThemeToggle() {
       title={label}
       className="rounded-full bg-card/80"
     >
-      {isDarkTheme ? (
+      {mounted && isDarkTheme ? (
         <SunMedium className="size-4" />
       ) : (
         <MoonStar className="size-4" />
