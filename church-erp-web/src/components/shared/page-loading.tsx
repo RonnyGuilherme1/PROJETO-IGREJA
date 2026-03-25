@@ -1,4 +1,35 @@
-export function PageLoading() {
+interface PageLoadingProps {
+  variant?: "dashboard" | "form";
+  fields?: number;
+}
+
+export function PageLoading({
+  variant = "dashboard",
+  fields = 6,
+}: PageLoadingProps = {}) {
+  if (variant === "form") {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          {Array.from({ length: fields }).map((_, index) => (
+            <div
+              key={index}
+              className="h-16 animate-pulse rounded-2xl bg-secondary/60"
+            />
+          ))}
+        </div>
+
+        <div className="h-28 animate-pulse rounded-2xl bg-secondary/50" />
+        <div className="h-28 animate-pulse rounded-2xl bg-secondary/50" />
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="h-10 w-full animate-pulse rounded-xl bg-secondary/60 sm:w-40" />
+          <div className="h-10 w-full animate-pulse rounded-xl bg-secondary/40 sm:w-28" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">

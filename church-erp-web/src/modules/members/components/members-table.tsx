@@ -106,7 +106,7 @@ export function MembersTable({
                   colSpan={7}
                   className="px-4 py-14 text-center text-sm text-muted-foreground"
                 >
-                  Nenhum membro encontrado com os filtros informados.
+                  Nenhum membro encontrado para os filtros aplicados.
                 </td>
               </tr>
             ) : null}

@@ -111,7 +111,7 @@ export async function uploadMasterTenantLogo(
   const formData = new FormData();
   formData.append("logo", file);
 
-  const response = await http.post<MasterTenantLogoUploadResponse>(
+  const response = await http.postForm<MasterTenantLogoUploadResponse>(
     `${MASTER_TENANTS_ENDPOINT}/${id}/logo`,
     formData,
   );

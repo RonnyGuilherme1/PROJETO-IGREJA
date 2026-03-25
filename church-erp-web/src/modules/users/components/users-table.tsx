@@ -86,7 +86,7 @@ export function UsersTable({
                   colSpan={6}
                   className="px-4 py-14 text-center text-sm text-muted-foreground"
                 >
-                  Nenhum usuario encontrado com os filtros informados.
+                  Nenhum usuario encontrado para os filtros aplicados.
                 </td>
               </tr>
             ) : null}

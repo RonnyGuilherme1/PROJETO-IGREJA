@@ -6,6 +6,7 @@ import { ArrowLeft, LoaderCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import { ErrorView } from "@/components/shared/error-view";
+import { PageLoading } from "@/components/shared/page-loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,6 +52,8 @@ const initialFormValues: UserFormValues = {
   status: "ACTIVE",
   churchId: "",
 };
+
+const LIST_PATH = "/usuarios";
 
 export function UserFormPage({ mode, userId }: UserFormPageProps) {
   const router = useRouter();
@@ -110,8 +113,8 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
             getApiErrorMessage(
               error,
               mode === "create"
-                ? "Nao foi possivel carregar os dados iniciais do formulario."
-                : "Nao foi possivel carregar os dados do usuario para edicao.",
+                ? "Nao foi possivel carregar os dados para continuar."
+                : "Nao foi possivel carregar os dados do usuario.",
             ),
           );
         }
@@ -131,8 +134,13 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
 
   const hasSingleChurch = churchOptions.length === 1;
   const hasMultipleChurches = churchOptions.length > 1;
+  const isBusy = isSubmitting || isRedirecting;
 
   function handleFieldChange(field: keyof UserFormValues, value: string) {
+    if (submitError) {
+      setSubmitError(null);
+    }
+
     setFormValues((current) => ({
       ...current,
       [field]: value,
@@ -172,16 +180,16 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
       }
 
       startTransition(() => {
-        router.replace("/usuarios");
+        router.replace(
+          `${LIST_PATH}?feedback=${mode === "create" ? "created" : "updated"}`,
+        );
         router.refresh();
       });
     } catch (error) {
       setSubmitError(
         getApiErrorMessage(
           error,
-          mode === "create"
-            ? "Nao foi possivel criar o usuario."
-            : "Nao foi possivel salvar as alteracoes do usuario.",
+          "Nao foi possivel salvar os dados. Revise as informacoes e tente novamente.",
         ),
       );
     } finally {
@@ -192,7 +200,7 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
   if (loadError) {
     return (
       <ErrorView
-        title="Nao foi possivel abrir este usuario"
+        title="Nao foi possivel carregar o formulario"
         description={loadError}
         onAction={() => router.refresh()}
       />
@@ -206,12 +214,12 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
         description={
           mode === "create"
             ? "Preencha os dados para cadastrar um novo usuario na plataforma."
-            : "Atualize os dados do usuario mantendo o mesmo padrao administrativo do painel."
+            : "Atualize os dados do usuario com o mesmo fluxo usado nos demais cadastros."
         }
         badge="Usuarios"
         action={
           <Button asChild variant="outline">
-            <Link href="/usuarios">
+            <Link href={LIST_PATH}>
               <ArrowLeft className="size-4" />
               Voltar
             </Link>
@@ -231,14 +239,7 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-16 animate-pulse rounded-2xl bg-secondary/60"
-                />
-              ))}
-            </div>
+            <PageLoading variant="form" fields={6} />
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
@@ -375,16 +376,25 @@ export function UserFormPage({ mode, userId }: UserFormPageProps) {
               ) : null}
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button type="submit" disabled={isSubmitting || isRedirecting}>
-                  {isSubmitting || isRedirecting ? (
+                <Button type="submit" disabled={isBusy}>
+                  {isBusy ? (
                     <LoaderCircle className="size-4 animate-spin" />
                   ) : (
                     <Save className="size-4" />
                   )}
-                  {mode === "create" ? "Criar usuario" : "Salvar alteracoes"}
+                  {isBusy
+                    ? "Salvando..."
+                    : mode === "create"
+                      ? "Salvar cadastro"
+                      : "Salvar alteracoes"}
                 </Button>
-                <Button asChild variant="outline">
-                  <Link href="/usuarios">Cancelar</Link>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push(LIST_PATH)}
+                  disabled={isBusy}
+                >
+                  Cancelar
                 </Button>
               </div>
             </form>

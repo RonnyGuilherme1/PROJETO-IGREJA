@@ -6,6 +6,7 @@ import { ArrowLeft, LoaderCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import { ErrorView } from "@/components/shared/error-view";
+import { PageLoading } from "@/components/shared/page-loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,6 +57,8 @@ const initialFormValues: TreasuryFormValues = {
 
 const textareaClassName =
   "flex min-h-28 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+
+const LIST_PATH = "/tesouraria";
 
 export function TreasuryFormPage({
   mode,
@@ -127,8 +130,8 @@ export function TreasuryFormPage({
             getApiErrorMessage(
               error,
               mode === "create"
-                ? "Nao foi possivel carregar os dados iniciais da movimentacao."
-                : "Nao foi possivel carregar a movimentacao para edicao.",
+                ? "Nao foi possivel carregar os dados para continuar."
+                : "Nao foi possivel carregar os dados da movimentacao.",
             ),
           );
         }
@@ -147,6 +150,10 @@ export function TreasuryFormPage({
   }, [mode, movementId]);
 
   function handleFieldChange(field: keyof TreasuryFormValues, value: string) {
+    if (submitError) {
+      setSubmitError(null);
+    }
+
     setFormValues((current) => ({
       ...current,
       [field]: value,
@@ -203,16 +210,16 @@ export function TreasuryFormPage({
       }
 
       startTransition(() => {
-        router.replace("/tesouraria");
+        router.replace(
+          `${LIST_PATH}?feedback=${mode === "create" ? "created" : "updated"}`,
+        );
         router.refresh();
       });
     } catch (error) {
       setSubmitError(
         getApiErrorMessage(
           error,
-          mode === "create"
-            ? "Nao foi possivel criar a movimentacao."
-            : "Nao foi possivel salvar as alteracoes da movimentacao.",
+          "Nao foi possivel salvar os dados. Revise as informacoes e tente novamente.",
         ),
       );
     } finally {
@@ -220,10 +227,12 @@ export function TreasuryFormPage({
     }
   }
 
+  const isBusy = isSubmitting || isRedirecting;
+
   if (loadError) {
     return (
       <ErrorView
-        title="Nao foi possivel abrir esta movimentacao"
+        title="Nao foi possivel carregar o formulario"
         description={loadError}
         onAction={() => router.refresh()}
       />
@@ -237,12 +246,12 @@ export function TreasuryFormPage({
         description={
           mode === "create"
             ? "Cadastre uma nova entrada ou saida financeira vinculando igreja e categoria."
-            : "Atualize a movimentacao financeira mantendo o padrao administrativo do sistema."
+            : "Atualize a movimentacao com o mesmo fluxo usado nos demais cadastros."
         }
         badge="Tesouraria"
         action={
           <Button asChild variant="outline">
-            <Link href="/tesouraria">
+            <Link href={LIST_PATH}>
               <ArrowLeft className="size-4" />
               Voltar
             </Link>
@@ -261,14 +270,7 @@ export function TreasuryFormPage({
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 7 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-16 animate-pulse rounded-2xl bg-secondary/60"
-                />
-              ))}
-            </div>
+            <PageLoading variant="form" fields={7} />
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
@@ -398,18 +400,25 @@ export function TreasuryFormPage({
               ) : null}
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button type="submit" disabled={isSubmitting || isRedirecting}>
-                  {isSubmitting || isRedirecting ? (
+                <Button type="submit" disabled={isBusy}>
+                  {isBusy ? (
                     <LoaderCircle className="size-4 animate-spin" />
                   ) : (
                     <Save className="size-4" />
                   )}
-                  {mode === "create"
-                    ? "Criar movimentacao"
-                    : "Salvar alteracoes"}
+                  {isBusy
+                    ? "Salvando..."
+                    : mode === "create"
+                      ? "Salvar cadastro"
+                      : "Salvar alteracoes"}
                 </Button>
-                <Button asChild variant="outline">
-                  <Link href="/tesouraria">Cancelar</Link>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push(LIST_PATH)}
+                  disabled={isBusy}
+                >
+                  Cancelar
                 </Button>
               </div>
             </form>

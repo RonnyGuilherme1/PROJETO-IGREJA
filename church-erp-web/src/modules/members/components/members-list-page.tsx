@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
@@ -40,16 +41,26 @@ const initialFilters: MemberFilters = {
   churchId: "",
 };
 
+const feedbackMessages = {
+  created: "Membro cadastrado com sucesso.",
+  updated: "Membro atualizado com sucesso.",
+  inactivated: "Membro inativado com sucesso.",
+} as const;
+
 export function MembersListPage({
   canEdit,
   currentUser,
 }: MembersListPageProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [filters, setFilters] = useState<MemberFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<MemberFilters>(initialFilters);
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [churchOptions, setChurchOptions] = useState<ChurchOption[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [churchesError, setChurchesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inactivatingId, setInactivatingId] = useState<string | null>(null);
@@ -71,7 +82,7 @@ export function MembersListPage({
       setError(
         getApiErrorMessage(
           loadError,
-          "Nao foi possivel carregar a listagem de membros.",
+          "Nao foi possivel carregar os membros agora.",
         ),
       );
     } finally {
@@ -82,6 +93,23 @@ export function MembersListPage({
   useEffect(() => {
     void loadMembers(appliedFilters);
   }, [appliedFilters, loadMembers]);
+
+  useEffect(() => {
+    const feedbackKey = searchParams.get("feedback");
+
+    if (!feedbackKey || !(feedbackKey in feedbackMessages)) {
+      return;
+    }
+
+    setFeedback(feedbackMessages[feedbackKey as keyof typeof feedbackMessages]);
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("feedback");
+    router.replace(
+      nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname,
+      { scroll: false },
+    );
+  }, [pathname, router, searchParams]);
 
   useEffect(() => {
     let isActive = true;
@@ -105,7 +133,7 @@ export function MembersListPage({
           setChurchesError(
             getApiErrorMessage(
               loadError,
-              "Nao foi possivel carregar a lista de igrejas para filtro.",
+              "Nao foi possivel carregar as igrejas para o filtro.",
             ),
           );
         }
@@ -147,16 +175,18 @@ export function MembersListPage({
 
     setInactivatingId(memberPendingInactivation.id);
     setError(null);
+    setFeedback(null);
 
     try {
       await inactivateMember(memberPendingInactivation.id);
       await loadMembers(appliedFilters);
       setMemberPendingInactivation(null);
+      setFeedback(feedbackMessages.inactivated);
     } catch (actionError) {
       setError(
         getApiErrorMessage(
           actionError,
-          "Nao foi possivel inativar o membro selecionado.",
+          "Nao foi possivel concluir a inativacao agora.",
         ),
       );
     } finally {
@@ -167,7 +197,7 @@ export function MembersListPage({
   if (error && members.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Nao foi possivel abrir os membros"
+        title="Nao foi possivel carregar os membros"
         description={error}
         onAction={() => void loadMembers(appliedFilters)}
       />
@@ -228,6 +258,12 @@ export function MembersListPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {feedback ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              {feedback}
+            </div>
+          ) : null}
+
           {error ? (
             <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               {error}
@@ -250,10 +286,11 @@ export function MembersListPage({
         title="Inativar membro"
         description={
           memberPendingInactivation
-            ? `O cadastro de ${memberPendingInactivation.fullName} permanecera no historico, mas deixara de ficar ativo.`
+            ? `${memberPendingInactivation.fullName} deixara de aparecer como ativo e o cadastro permanecera no historico.`
             : ""
         }
         confirmLabel="Inativar"
+        cancelLabel="Voltar"
         confirmVariant="destructive"
         isLoading={Boolean(
           memberPendingInactivation &&

@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { LoaderCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { PageLoading } from "@/components/shared/page-loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,6 +84,34 @@ function validateTenantLogoFile(file: File): string | null {
   return null;
 }
 
+function getBrandingSuccessMessage(
+  previousBranding: TenantBrandingItem,
+  nextBranding: TenantBrandingItem,
+): string {
+  const previousLogoUrl = normalizeTenantLogoUrl(previousBranding.logoUrl);
+  const nextLogoUrl = normalizeTenantLogoUrl(nextBranding.logoUrl);
+  const logoChanged = previousLogoUrl !== nextLogoUrl;
+  const themeChanged = previousBranding.themeKey !== nextBranding.themeKey;
+
+  if (logoChanged && themeChanged) {
+    return "Logo e tema do ambiente atualizados com sucesso.";
+  }
+
+  if (logoChanged && nextLogoUrl) {
+    return "Logo do ambiente atualizada com sucesso.";
+  }
+
+  if (logoChanged) {
+    return "Logo removida. O sistema voltou a usar a marca padrao.";
+  }
+
+  if (themeChanged) {
+    return "Tema do ambiente atualizado com sucesso.";
+  }
+
+  return "Identidade visual atualizada com sucesso.";
+}
+
 export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
   const router = useRouter();
   const [isRedirecting, startTransition] = useTransition();
@@ -151,6 +180,9 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
   }, [selectedLogoPreviewUrl]);
 
   function handleFieldChange(field: keyof TenantBrandingFormValues, value: string) {
+    setSubmitError(null);
+    setSuccessMessage(null);
+
     setFormValues((current) => ({
       ...current,
       [field]: value,
@@ -277,11 +309,14 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
       });
       const nextTenantBranding = updatedTenantBranding;
 
+      setLoadError(null);
       setTenantBranding(nextTenantBranding);
       setFormValues(buildFormValues(nextTenantBranding));
       resetSelectedLogoState();
       syncStoredSession(nextTenantBranding);
-      setSuccessMessage("Identidade visual atualizada com sucesso.");
+      setSuccessMessage(
+        getBrandingSuccessMessage(tenantBranding, nextTenantBranding),
+      );
 
       startTransition(() => {
         router.refresh();
@@ -299,6 +334,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
   }
 
   const selectedThemeLabel = getTenantThemeLabel(formValues.themeKey);
+  const isBusy = isSubmitting || isRedirecting;
   const previewLogoUrl = selectedLogoPreviewUrl ?? formValues.logoUrl;
   const hasCustomLogo = Boolean(normalizeTenantLogoUrl(previewLogoUrl));
   const hasPersistedCustomLogo = Boolean(normalizeTenantLogoUrl(formValues.logoUrl));
@@ -327,14 +363,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
         </CardHeader>
         <CardContent>
           {isLoadingBranding && !tenantBranding ? (
-            <div className="space-y-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-16 animate-pulse rounded-2xl bg-secondary/60"
-                />
-              ))}
-            </div>
+            <PageLoading variant="form" fields={4} />
           ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             {loadError ? (
@@ -372,6 +401,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
                   type="file"
                   accept={TENANT_LOGO_INPUT_ACCEPT}
                   onChange={handleLogoFileChange}
+                  disabled={isBusy}
                 />
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs leading-5 text-muted-foreground">
@@ -381,7 +411,7 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
                     type="button"
                     variant="outline"
                     onClick={handleUseDefaultLogo}
-                    disabled={isSubmitting || isRedirecting}
+                    disabled={isBusy}
                   >
                     Usar logo padrao
                   </Button>
@@ -436,26 +466,24 @@ export function TenantBrandingPage({ user }: TenantBrandingPageProps) {
               <Button
                 type="submit"
                 disabled={
-                  isSubmitting ||
-                  isRedirecting ||
+                  isBusy ||
                   isLoadingBranding ||
                   !tenantBranding
                 }
               >
-                {isSubmitting || isRedirecting ? (
+                {isBusy ? (
                   <LoaderCircle className="size-4 animate-spin" />
                 ) : (
                   <Save className="size-4" />
                 )}
-                Salvar configuracoes
+                {isBusy ? "Salvando..." : "Salvar configuracoes"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleDiscardChanges}
                 disabled={
-                  isSubmitting ||
-                  isRedirecting ||
+                  isBusy ||
                   isLoadingBranding ||
                   !tenantBranding
                 }

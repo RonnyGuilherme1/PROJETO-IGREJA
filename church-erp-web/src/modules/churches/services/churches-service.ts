@@ -8,19 +8,8 @@ import type {
 } from "@/modules/churches/types/church";
 
 const CHURCHES_ENDPOINT = "/churches";
-
-function normalizeSearchValue(value: string) {
-  return value.trim().toLocaleLowerCase("pt-BR");
-}
-
-function matchesChurchFilters(church: ChurchItem, filters: ChurchFilters) {
-  const name = normalizeSearchValue(filters.name);
-
-  return (
-    (!name || normalizeSearchValue(church.name).includes(name)) &&
-    (!filters.status || church.status === filters.status)
-  );
-}
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 5000;
 
 function sanitizeChurchPayload(
   payload: CreateChurchPayload | UpdateChurchPayload,
@@ -65,15 +54,16 @@ export async function listChurches(
 ): Promise<ChurchListResult> {
   ensureApiConfigured();
 
-  const response = await http.get<ChurchItem[]>(CHURCHES_ENDPOINT);
-  const items = response.data.filter((church) =>
-    matchesChurchFilters(church, filters),
-  );
+  const response = await http.get<ChurchListResult>(CHURCHES_ENDPOINT, {
+    params: {
+      page: DEFAULT_PAGE,
+      limit: DEFAULT_LIMIT,
+      name: filters.name.trim() || undefined,
+      status: filters.status || undefined,
+    },
+  });
 
-  return {
-    items,
-    total: items.length,
-  };
+  return response.data;
 }
 
 export async function getChurchById(id: string): Promise<ChurchItem> {

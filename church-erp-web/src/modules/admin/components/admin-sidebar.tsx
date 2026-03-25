@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, ChevronRight } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { getTenantLabel } from "@/lib/tenant-branding";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/layout/brand-logo";
@@ -20,37 +20,31 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
   const tenantLabel =
     getTenantLabel(user?.tenantName, user?.tenantCode) ?? "Painel da igreja";
   const tenantTitle = user?.tenantName?.trim() || "Church ERP";
-  const tenantSubtitle = user?.tenantCode?.trim()
-    ? `Acesso ${user.tenantCode}`
-    : tenantLabel;
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-sidebar-border px-4 py-4">
+      <div className="border-b border-sidebar-border px-3 py-3">
         <Link
           href="/dashboard"
           onClick={onNavigate}
-          className="flex items-center gap-2.5"
+          className="flex items-center gap-2"
         >
           <BrandLogo
             alt={`Logo do ambiente ${tenantLabel}`}
             logoUrl={user?.tenantLogoUrl}
             icon={Building2}
-            className="size-11 shrink-0 rounded-xl bg-white/10 ring-1 ring-white/10"
-            iconClassName="size-5"
+            className="size-9 shrink-0 rounded-xl bg-white/10 ring-1 ring-white/10"
+            iconClassName="size-4.5"
           />
-          <div className="min-w-0 space-y-0.5">
-            <p className="truncate text-sm font-semibold leading-5 tracking-wide text-sidebar-foreground">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold leading-5 text-sidebar-foreground">
               {tenantTitle}
-            </p>
-            <p className="truncate text-[11px] leading-4 text-sidebar-foreground/60">
-              {tenantSubtitle}
             </p>
           </div>
         </Link>
       </div>
 
-      <div className="flex-1 px-3 py-4">
+      <div className="flex-1 px-2.5 py-3">
         <nav className="space-y-1">
           {navigationItems.map((item) => {
             const isActive =
@@ -63,7 +57,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
                 href={item.href}
                 onClick={onNavigate}
                 className={cn(
-                  "group flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors",
+                  "group flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors",
                   isActive
                     ? "bg-white/14 text-white shadow-sm ring-1 ring-white/10"
                     : "text-sidebar-foreground/80 hover:bg-white/10 hover:text-sidebar-foreground",
@@ -71,25 +65,19 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
               >
                 <div
                   className={cn(
-                    "flex size-8 items-center justify-center rounded-xl transition-colors",
+                    "flex size-7 items-center justify-center rounded-lg transition-colors",
                     isActive
                       ? "bg-white/16 text-white"
                       : "bg-white/8 text-sidebar-foreground/80 group-hover:bg-white/10",
                   )}
                 >
-                  <Icon className="size-4" />
+                  <Icon className="size-3.5" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium leading-5">
                     {item.title}
                   </p>
                 </div>
-                <ChevronRight
-                  className={cn(
-                    "size-3.5 shrink-0",
-                    isActive ? "text-white opacity-100" : "opacity-60",
-                  )}
-                />
               </Link>
             );
           })}

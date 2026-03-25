@@ -111,7 +111,7 @@ export function ChurchesTable({
                   colSpan={6}
                   className="px-4 py-14 text-center text-sm text-muted-foreground"
                 >
-                  Nenhuma igreja encontrada com os filtros informados.
+                  Nenhuma igreja encontrada para os filtros aplicados.
                 </td>
               </tr>
             ) : null}
@@ -161,7 +161,7 @@ export function ChurchesTable({
                       </Button>
                       {canEdit ? (
                         <>
-                          <Button asChild size="sm">
+                          <Button asChild variant="outline" size="sm">
                             <Link href={`/igrejas/${church.id}/editar`}>
                               <Pencil className="size-4" />
                               Editar

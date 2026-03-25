@@ -104,7 +104,7 @@ export function TreasuryTable({
                   colSpan={8}
                   className="px-4 py-14 text-center text-sm text-muted-foreground"
                 >
-                  Nenhuma movimentacao encontrada com os filtros informados.
+                  Nenhuma movimentacao encontrada para os filtros aplicados.
                 </td>
               </tr>
             ) : null}
@@ -143,8 +143,10 @@ export function TreasuryTable({
                     {expense ? "-" : "+"}
                     {formatCurrency(item.amount)}
                   </td>
-                  <td className="px-4 py-4 text-sm text-muted-foreground">
-                    {item.status === "CANCELLED" ? "Cancelada" : "Ativa"}
+                  <td className="px-4 py-4">
+                    <Badge variant={isCancelled ? "outline" : "secondary"}>
+                      {item.status === "CANCELLED" ? "Cancelada" : "Ativa"}
+                    </Badge>
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex flex-col justify-end gap-2 sm:flex-row">

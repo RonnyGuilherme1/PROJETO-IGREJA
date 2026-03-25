@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
@@ -29,7 +30,16 @@ const initialFilters: UserFilters = {
   role: "",
 };
 
+const feedbackMessages = {
+  created: "Usuario cadastrado com sucesso.",
+  updated: "Usuario atualizado com sucesso.",
+  inactivated: "Usuario inativado com sucesso.",
+} as const;
+
 export function UsersListPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [filters, setFilters] = useState<UserFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<UserFilters>(initialFilters);
   const [users, setUsers] = useState<UserItem[]>([]);
@@ -38,6 +48,7 @@ export function UsersListPage() {
   );
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [churchesError, setChurchesError] = useState<string | null>(null);
   const [inactivatingId, setInactivatingId] = useState<string | null>(null);
@@ -56,7 +67,7 @@ export function UsersListPage() {
       setError(
         getApiErrorMessage(
           loadError,
-          "Nao foi possivel carregar a listagem de usuarios.",
+          "Nao foi possivel carregar os usuarios agora.",
         ),
       );
     } finally {
@@ -67,6 +78,23 @@ export function UsersListPage() {
   useEffect(() => {
     void loadUsers(appliedFilters);
   }, [appliedFilters, loadUsers]);
+
+  useEffect(() => {
+    const feedbackKey = searchParams.get("feedback");
+
+    if (!feedbackKey || !(feedbackKey in feedbackMessages)) {
+      return;
+    }
+
+    setFeedback(feedbackMessages[feedbackKey as keyof typeof feedbackMessages]);
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("feedback");
+    router.replace(
+      nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname,
+      { scroll: false },
+    );
+  }, [pathname, router, searchParams]);
 
   useEffect(() => {
     let isActive = true;
@@ -90,7 +118,7 @@ export function UsersListPage() {
           setChurchesError(
             getApiErrorMessage(
               loadError,
-              "Nao foi possivel carregar a lista de igrejas para exibir os usuarios.",
+              "Nao foi possivel carregar as igrejas vinculadas.",
             ),
           );
         }
@@ -132,16 +160,18 @@ export function UsersListPage() {
 
     setInactivatingId(userPendingInactivation.id);
     setError(null);
+    setFeedback(null);
 
     try {
       await inactivateUser(userPendingInactivation.id);
       await loadUsers(appliedFilters);
       setUserPendingInactivation(null);
+      setFeedback(feedbackMessages.inactivated);
     } catch (actionError) {
       setError(
         getApiErrorMessage(
           actionError,
-          "Nao foi possivel inativar o usuario selecionado.",
+          "Nao foi possivel concluir a inativacao agora.",
         ),
       );
     } finally {
@@ -152,7 +182,7 @@ export function UsersListPage() {
   if (error && users.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Nao foi possivel abrir os usuarios"
+        title="Nao foi possivel carregar os usuarios"
         description={error}
         onAction={() => void loadUsers(appliedFilters)}
       />
@@ -210,6 +240,12 @@ export function UsersListPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {feedback ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              {feedback}
+            </div>
+          ) : null}
+
           {error ? (
             <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               {error}
@@ -231,10 +267,11 @@ export function UsersListPage() {
         title="Inativar usuario"
         description={
           userPendingInactivation
-            ? `O acesso de ${userPendingInactivation.name} sera bloqueado ate uma nova ativacao.`
+            ? `${userPendingInactivation.name} deixara de acessar o sistema e o cadastro permanecera disponivel para consulta.`
             : ""
         }
         confirmLabel="Inativar"
+        cancelLabel="Voltar"
         confirmVariant="destructive"
         isLoading={Boolean(
           userPendingInactivation &&

@@ -30,7 +30,16 @@ export function ConfirmActionDialog({
   onOpenChange,
 }: ConfirmActionDialogProps) {
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (isLoading) {
+          return;
+        }
+
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
           className={cn(
@@ -46,8 +55,21 @@ export function ConfirmActionDialog({
             "duration-200 data-[state=closed]:scale-95 data-[state=closed]:opacity-0",
             "data-[state=open]:scale-100 data-[state=open]:opacity-100",
           )}
+          onEscapeKeyDown={(event) => {
+            if (isLoading) {
+              event.preventDefault();
+            }
+          }}
+          onPointerDownOutside={(event) => {
+            if (isLoading) {
+              event.preventDefault();
+            }
+          }}
         >
-          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-current opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring">
+          <DialogPrimitive.Close
+            className="absolute right-4 top-4 rounded-md p-1 text-current opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none disabled:opacity-40"
+            disabled={isLoading}
+          >
             <X className="size-4" />
             <span className="sr-only">Fechar</span>
           </DialogPrimitive.Close>
@@ -80,6 +102,7 @@ export function ConfirmActionDialog({
                 variant={confirmVariant}
                 onClick={onConfirm}
                 disabled={isLoading}
+                aria-busy={isLoading}
               >
                 {isLoading ? (
                   <LoaderCircle className="size-4 animate-spin" />

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
@@ -44,10 +45,19 @@ const initialFilters: ChurchFilters = {
   status: "",
 };
 
+const feedbackMessages = {
+  created: "Igreja cadastrada com sucesso.",
+  updated: "Igreja atualizada com sucesso.",
+  inactivated: "Igreja inativada com sucesso.",
+} as const;
+
 export function ChurchesListPage({
   canEdit,
   currentUser,
 }: ChurchesListPageProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [filters, setFilters] = useState<ChurchFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<ChurchFilters>(initialFilters);
   const [churches, setChurches] = useState<ChurchItem[]>([]);
@@ -55,6 +65,7 @@ export function ChurchesListPage({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inactivatingId, setInactivatingId] = useState<string | null>(null);
   const [churchPendingInactivation, setChurchPendingInactivation] =
@@ -83,7 +94,7 @@ export function ChurchesListPage({
       setError(
         getApiErrorMessage(
           loadError,
-          "Nao foi possivel carregar a listagem de igrejas.",
+          "Nao foi possivel carregar as igrejas agora.",
         ),
       );
     } finally {
@@ -94,6 +105,23 @@ export function ChurchesListPage({
   useEffect(() => {
     void loadChurches(appliedFilters);
   }, [appliedFilters, loadChurches]);
+
+  useEffect(() => {
+    const feedbackKey = searchParams.get("feedback");
+
+    if (!feedbackKey || !(feedbackKey in feedbackMessages)) {
+      return;
+    }
+
+    setFeedback(feedbackMessages[feedbackKey as keyof typeof feedbackMessages]);
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("feedback");
+    router.replace(
+      nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname,
+      { scroll: false },
+    );
+  }, [pathname, router, searchParams]);
 
   function handleFilterChange(field: keyof ChurchFilters, value: string) {
     setFilters((current) => ({
@@ -128,16 +156,18 @@ export function ChurchesListPage({
 
     setInactivatingId(churchPendingInactivation.id);
     setError(null);
+    setFeedback(null);
 
     try {
       await inactivateChurch(churchPendingInactivation.id);
       await loadChurches(appliedFilters);
       setChurchPendingInactivation(null);
+      setFeedback(feedbackMessages.inactivated);
     } catch (actionError) {
       setError(
         getApiErrorMessage(
           actionError,
-          "Nao foi possivel inativar a igreja selecionada.",
+          "Nao foi possivel concluir a inativacao agora.",
         ),
       );
     } finally {
@@ -148,7 +178,7 @@ export function ChurchesListPage({
   if (error && churches.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Nao foi possivel abrir as igrejas"
+        title="Nao foi possivel carregar as igrejas"
         description={error}
         onAction={() => void loadChurches(appliedFilters)}
       />
@@ -202,6 +232,12 @@ export function ChurchesListPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {feedback ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              {feedback}
+            </div>
+          ) : null}
+
           {error ? (
             <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               {error}
@@ -238,10 +274,11 @@ export function ChurchesListPage({
         title="Inativar igreja"
         description={
           churchPendingInactivation
-            ? `A igreja ${churchPendingInactivation.name} deixara de aparecer como ativa para a operacao.`
+            ? `${churchPendingInactivation.name} deixara de aparecer como ativa e o cadastro permanecera disponivel para consulta.`
             : ""
         }
         confirmLabel="Inativar"
+        cancelLabel="Voltar"
         confirmVariant="destructive"
         isLoading={Boolean(
           churchPendingInactivation &&

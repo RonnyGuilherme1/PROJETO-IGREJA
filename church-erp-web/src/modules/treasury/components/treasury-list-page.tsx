@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
@@ -59,10 +60,19 @@ const emptySummary: TreasurySummary = {
   balance: 0,
 };
 
+const feedbackMessages = {
+  created: "Movimentacao cadastrada com sucesso.",
+  updated: "Movimentacao atualizada com sucesso.",
+  cancelled: "Movimentacao cancelada com sucesso.",
+} as const;
+
 export function TreasuryListPage({
   canEdit,
   currentUser,
 }: TreasuryListPageProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [filters, setFilters] = useState<TreasuryFiltersType>(initialFilters);
   const [appliedFilters, setAppliedFilters] =
     useState<TreasuryFiltersType>(initialFilters);
@@ -73,9 +83,9 @@ export function TreasuryListPage({
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [categoriesError, setCategoriesError] = useState<string | null>(null);
-  const [churchesError, setChurchesError] = useState<string | null>(null);
+  const [dependenciesError, setDependenciesError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [movementPendingCancellation, setMovementPendingCancellation] =
     useState<TreasuryMovementItem | null>(null);
@@ -99,7 +109,7 @@ export function TreasuryListPage({
       setError(
         getApiErrorMessage(
           loadError,
-          "Nao foi possivel carregar as movimentacoes financeiras.",
+          "Nao foi possivel carregar as movimentacoes agora.",
         ),
       );
       setSummary(emptySummary);
@@ -113,10 +123,28 @@ export function TreasuryListPage({
   }, [appliedFilters, loadMovements]);
 
   useEffect(() => {
+    const feedbackKey = searchParams.get("feedback");
+
+    if (!feedbackKey || !(feedbackKey in feedbackMessages)) {
+      return;
+    }
+
+    setFeedback(feedbackMessages[feedbackKey as keyof typeof feedbackMessages]);
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("feedback");
+    router.replace(
+      nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname,
+      { scroll: false },
+    );
+  }, [pathname, router, searchParams]);
+
+  useEffect(() => {
     let isActive = true;
 
     async function loadDependencies() {
       setIsCategoriesLoading(true);
+      setDependenciesError(null);
 
       try {
         const [categoriesResponse, churchesResponse] = await Promise.all([
@@ -142,11 +170,10 @@ export function TreasuryListPage({
 
         const message = getApiErrorMessage(
           loadError,
-          "Nao foi possivel carregar categorias e igrejas da tesouraria.",
+          "Nao foi possivel carregar categorias e igrejas para os filtros.",
         );
 
-        setCategoriesError(message);
-        setChurchesError(message);
+        setDependenciesError(message);
       } finally {
         if (isActive) {
           setIsCategoriesLoading(false);
@@ -189,16 +216,18 @@ export function TreasuryListPage({
 
     setCancellingId(movementPendingCancellation.id);
     setError(null);
+    setFeedback(null);
 
     try {
       await cancelTreasuryMovement(movementPendingCancellation.id);
       await loadMovements(appliedFilters);
       setMovementPendingCancellation(null);
+      setFeedback(feedbackMessages.cancelled);
     } catch (actionError) {
       setError(
         getApiErrorMessage(
           actionError,
-          "Nao foi possivel cancelar a movimentacao selecionada.",
+          "Nao foi possivel concluir o cancelamento agora.",
         ),
       );
     } finally {
@@ -209,7 +238,7 @@ export function TreasuryListPage({
   if (error && items.length === 0 && !isLoading) {
     return (
       <ErrorView
-        title="Nao foi possivel abrir a tesouraria"
+        title="Nao foi possivel carregar a tesouraria"
         description={error}
         onAction={() => void loadMovements(appliedFilters)}
       />
@@ -227,7 +256,7 @@ export function TreasuryListPage({
             <TreasuryCategoriesSheet
               categories={categories}
               isLoading={isCategoriesLoading}
-              error={categoriesError}
+              error={dependenciesError}
             />
             {canEdit ? (
               <Button asChild>
@@ -254,14 +283,9 @@ export function TreasuryListPage({
           <Badge variant="secondary">Total: {total}</Badge>
         </CardHeader>
         <CardContent className="space-y-4">
-          {categoriesError ? (
+          {dependenciesError ? (
             <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {categoriesError}
-            </div>
-          ) : null}
-          {churchesError ? (
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {churchesError}
+              {dependenciesError}
             </div>
           ) : null}
 
@@ -285,6 +309,12 @@ export function TreasuryListPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {feedback ? (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              {feedback}
+            </div>
+          ) : null}
+
           {error ? (
             <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
               {error}
@@ -308,10 +338,11 @@ export function TreasuryListPage({
         title="Cancelar movimentacao"
         description={
           movementPendingCancellation
-            ? `A movimentacao "${movementPendingCancellation.description}" sera mantida no historico, mas passara a constar como cancelada.`
+            ? `A movimentacao "${movementPendingCancellation.description}" sera marcada como cancelada e permanecera no historico financeiro.`
             : ""
         }
         confirmLabel="Cancelar movimentacao"
+        cancelLabel="Voltar"
         confirmVariant="destructive"
         isLoading={Boolean(
           movementPendingCancellation &&

@@ -166,7 +166,7 @@ export function DashboardOverview() {
                   {formatInteger(metrics.totalMembers)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Base cadastrada
+                  Base atual
                 </p>
               </div>
               <div
@@ -188,34 +188,34 @@ export function DashboardOverview() {
         <DashboardMetricCard
           title="Total de igrejas"
           value={formatInteger(metrics.totalChurches)}
-          description="Unidades cadastradas"
+          description="Unidades"
           icon={Building2}
         />
         <DashboardMetricCard
           title={`Entradas de ${data?.currentMonthLabel || "mes atual"}`}
           value={formatCurrency(metrics.monthlyIncome)}
-          description="Receita do mes"
+          description="Entradas"
           icon={TrendingUp}
           tone="success"
         />
         <DashboardMetricCard
           title={`Saidas de ${data?.currentMonthLabel || "mes atual"}`}
           value={formatCurrency(metrics.monthlyExpense)}
-          description="Despesa do mes"
+          description="Saidas"
           icon={TrendingDown}
           tone="danger"
         />
         <DashboardMetricCard
           title="Saldo do mes"
           value={formatCurrency(metrics.monthlyBalance)}
-          description="Resultado atual"
+          description="Resultado"
           icon={Landmark}
           tone={metrics.monthlyBalance >= 0 ? "success" : "danger"}
         />
         <DashboardMetricCard
           title="Usuarios ativos"
           value={formatInteger(metrics.activeUsers)}
-          description="Acessos ativos"
+          description="Em uso"
           icon={CreditCard}
         />
       </div>

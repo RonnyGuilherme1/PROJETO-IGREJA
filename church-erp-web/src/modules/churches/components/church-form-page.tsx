@@ -6,6 +6,7 @@ import { ArrowLeft, LoaderCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import { ErrorView } from "@/components/shared/error-view";
+import { PageLoading } from "@/components/shared/page-loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +49,8 @@ const initialFormValues: ChurchFormValues = {
 
 const textareaClassName =
   "flex min-h-28 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+
+const LIST_PATH = "/igrejas";
 
 export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
   const router = useRouter();
@@ -92,7 +95,7 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
           setLoadError(
             getApiErrorMessage(
               error,
-              "Nao foi possivel carregar os dados da igreja para edicao.",
+              "Nao foi possivel carregar os dados da igreja.",
             ),
           );
         }
@@ -111,6 +114,10 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
   }, [mode, churchId]);
 
   function handleFieldChange(field: keyof ChurchFormValues, value: string) {
+    if (submitError) {
+      setSubmitError(null);
+    }
+
     setFormValues((current) => ({
       ...current,
       [field]: value,
@@ -152,16 +159,16 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
       }
 
       startTransition(() => {
-        router.replace("/igrejas");
+        router.replace(
+          `${LIST_PATH}?feedback=${mode === "create" ? "created" : "updated"}`,
+        );
         router.refresh();
       });
     } catch (error) {
       setSubmitError(
         getApiErrorMessage(
           error,
-          mode === "create"
-            ? "Nao foi possivel criar a igreja."
-            : "Nao foi possivel salvar as alteracoes da igreja.",
+          "Nao foi possivel salvar os dados. Revise as informacoes e tente novamente.",
         ),
       );
     } finally {
@@ -169,10 +176,12 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
     }
   }
 
+  const isBusy = isSubmitting || isRedirecting;
+
   if (loadError) {
     return (
       <ErrorView
-        title="Nao foi possivel abrir esta igreja"
+        title="Nao foi possivel carregar o formulario"
         description={loadError}
         onAction={() => router.refresh()}
       />
@@ -186,12 +195,12 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
         description={
           mode === "create"
             ? "Cadastre uma nova igreja com os dados principais para uso no painel administrativo."
-            : "Atualize os dados da igreja mantendo o mesmo padrao visual do sistema."
+            : "Atualize os dados da igreja com o mesmo fluxo usado nos demais cadastros."
         }
         badge="Igrejas"
         action={
           <Button asChild variant="outline">
-            <Link href="/igrejas">
+            <Link href={LIST_PATH}>
               <ArrowLeft className="size-4" />
               Voltar
             </Link>
@@ -211,14 +220,7 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-16 animate-pulse rounded-2xl bg-secondary/60"
-                />
-              ))}
-            </div>
+            <PageLoading variant="form" fields={6} />
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
@@ -335,16 +337,25 @@ export function ChurchFormPage({ mode, churchId }: ChurchFormPageProps) {
               ) : null}
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button type="submit" disabled={isSubmitting || isRedirecting}>
-                  {isSubmitting || isRedirecting ? (
+                <Button type="submit" disabled={isBusy}>
+                  {isBusy ? (
                     <LoaderCircle className="size-4 animate-spin" />
                   ) : (
                     <Save className="size-4" />
                   )}
-                  {mode === "create" ? "Criar igreja" : "Salvar alteracoes"}
+                  {isBusy
+                    ? "Salvando..."
+                    : mode === "create"
+                      ? "Salvar cadastro"
+                      : "Salvar alteracoes"}
                 </Button>
-                <Button asChild variant="outline">
-                  <Link href="/igrejas">Cancelar</Link>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push(LIST_PATH)}
+                  disabled={isBusy}
+                >
+                  Cancelar
                 </Button>
               </div>
             </form>

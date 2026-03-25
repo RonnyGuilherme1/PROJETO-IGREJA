@@ -168,30 +168,67 @@ export class TenantsService {
     file?: UploadedTenantLogoFile,
   ): Promise<{ logoUrl: string }> {
     const tenantId = this.ensureTenantAdminAccess(currentUser);
-    await this.findTenantByIdOrThrow(tenantId);
+    const tenant = await this.findTenantByIdOrThrow(tenantId);
 
-    return this.uploadLogoForTenant(tenantId, file);
+    return this.uploadLogoForTenant(tenant, file);
   }
 
   async uploadLogoByMaster(
     id: string,
     file?: UploadedTenantLogoFile,
   ): Promise<{ logoUrl: string }> {
-    await this.findTenantByIdOrThrow(id);
+    const tenant = await this.findTenantByIdOrThrow(id);
 
-    return this.uploadLogoForTenant(id, file);
+    return this.uploadLogoForTenant(tenant, file);
   }
 
   private async uploadLogoForTenant(
-    tenantId: string,
+    tenant: TenantEntity,
     file?: UploadedTenantLogoFile,
   ): Promise<{ logoUrl: string }> {
     const validatedFile = this.validateTenantLogoFile(file);
-    const filename = await this.saveTenantLogoFile(tenantId, validatedFile);
+    const filename = await this.saveTenantLogoFile(tenant.id, validatedFile);
+    const logoUrl = `${TENANT_LOGO_PUBLIC_BASE_PATH}/${filename}`;
 
-    return {
-      logoUrl: `${TENANT_LOGO_PUBLIC_BASE_PATH}/${filename}`,
-    };
+    try {
+      const updatedTenant = await this.prisma.tenant.update({
+        where: { id: tenant.id },
+        data: {
+          logoUrl,
+        },
+        select: {
+          logoUrl: true,
+        },
+      });
+
+      await this.deleteManagedLogoIfReplaced(
+        tenant.logoUrl,
+        updatedTenant.logoUrl,
+      );
+
+      if (!updatedTenant.logoUrl) {
+        throw new BadRequestException(
+          'Nao foi possivel persistir a logo do tenant.',
+        );
+      }
+
+      return {
+        logoUrl: updatedTenant.logoUrl,
+      };
+    } catch (error) {
+      await this.deleteManagedLogoIfReplaced(logoUrl, null);
+      throw error;
+    }
+  }
+
+  private normalizeTenantLogoMimeType(mimeType?: string | null): string {
+    const normalizedMimeType = String(mimeType ?? '').trim().toLowerCase();
+
+    if (normalizedMimeType === 'image/jpg') {
+      return 'image/jpeg';
+    }
+
+    return normalizedMimeType;
   }
 
   async inactivate(id: string): Promise<TenantResponseDto> {
@@ -401,7 +438,7 @@ export class TenantsService {
       );
     }
 
-    const normalizedMimeType = String(file.mimetype ?? '').trim().toLowerCase();
+    const normalizedMimeType = this.normalizeTenantLogoMimeType(file.mimetype);
     const normalizedExtension = extname(file.originalname ?? '')
       .trim()
       .toLowerCase();
@@ -450,7 +487,7 @@ export class TenantsService {
       return normalizedExtension.slice(1);
     }
 
-    switch (String(file.mimetype ?? '').trim().toLowerCase()) {
+    switch (this.normalizeTenantLogoMimeType(file.mimetype)) {
       case 'image/png':
         return 'png';
       case 'image/webp':

@@ -6,6 +6,7 @@ import { ArrowLeft, LoaderCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import { ErrorView } from "@/components/shared/error-view";
+import { PageLoading } from "@/components/shared/page-loading";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +60,8 @@ const initialFormValues: MemberFormValues = {
 
 const textareaClassName =
   "flex min-h-28 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+
+const LIST_PATH = "/membros";
 
 export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
   const router = useRouter();
@@ -122,8 +125,8 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
             getApiErrorMessage(
               error,
               mode === "create"
-                ? "Nao foi possivel carregar os dados iniciais do formulario."
-                : "Nao foi possivel carregar os dados do membro para edicao.",
+                ? "Nao foi possivel carregar os dados para continuar."
+                : "Nao foi possivel carregar os dados do membro.",
             ),
           );
         }
@@ -142,6 +145,10 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
   }, [mode, memberId]);
 
   function handleFieldChange(field: keyof MemberFormValues, value: string) {
+    if (submitError) {
+      setSubmitError(null);
+    }
+
     setFormValues((current) => ({
       ...current,
       [field]: value,
@@ -189,16 +196,16 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
       }
 
       startTransition(() => {
-        router.replace("/membros");
+        router.replace(
+          `${LIST_PATH}?feedback=${mode === "create" ? "created" : "updated"}`,
+        );
         router.refresh();
       });
     } catch (error) {
       setSubmitError(
         getApiErrorMessage(
           error,
-          mode === "create"
-            ? "Nao foi possivel criar o membro."
-            : "Nao foi possivel salvar as alteracoes do membro.",
+          "Nao foi possivel salvar os dados. Revise as informacoes e tente novamente.",
         ),
       );
     } finally {
@@ -206,10 +213,12 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
     }
   }
 
+  const isBusy = isSubmitting || isRedirecting;
+
   if (loadError) {
     return (
       <ErrorView
-        title="Nao foi possivel abrir este membro"
+        title="Nao foi possivel carregar o formulario"
         description={loadError}
         onAction={() => router.refresh()}
       />
@@ -223,12 +232,12 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
         description={
           mode === "create"
             ? "Cadastre um novo membro com os dados principais vinculando-o a uma igreja."
-            : "Atualize os dados do membro mantendo o mesmo padrao administrativo do sistema."
+            : "Atualize os dados do membro com o mesmo fluxo usado nos demais cadastros."
         }
         badge="Membros"
         action={
           <Button asChild variant="outline">
-            <Link href="/membros">
+            <Link href={LIST_PATH}>
               <ArrowLeft className="size-4" />
               Voltar
             </Link>
@@ -247,14 +256,7 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 7 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-16 animate-pulse rounded-2xl bg-secondary/60"
-                />
-              ))}
-            </div>
+            <PageLoading variant="form" fields={8} />
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
@@ -426,16 +428,25 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
               ) : null}
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button type="submit" disabled={isSubmitting || isRedirecting}>
-                  {isSubmitting || isRedirecting ? (
+                <Button type="submit" disabled={isBusy}>
+                  {isBusy ? (
                     <LoaderCircle className="size-4 animate-spin" />
                   ) : (
                     <Save className="size-4" />
                   )}
-                  {mode === "create" ? "Criar membro" : "Salvar alteracoes"}
+                  {isBusy
+                    ? "Salvando..."
+                    : mode === "create"
+                      ? "Salvar cadastro"
+                      : "Salvar alteracoes"}
                 </Button>
-                <Button asChild variant="outline">
-                  <Link href="/membros">Cancelar</Link>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push(LIST_PATH)}
+                  disabled={isBusy}
+                >
+                  Cancelar
                 </Button>
               </div>
             </form>

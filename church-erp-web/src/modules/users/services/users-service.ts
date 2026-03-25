@@ -8,22 +8,8 @@ import type {
 } from "@/modules/users/types/user";
 
 const USERS_ENDPOINT = "/users";
-
-function normalizeSearchValue(value: string) {
-  return value.trim().toLocaleLowerCase("pt-BR");
-}
-
-function matchesUserFilters(user: UserItem, filters: UserFilters) {
-  const name = normalizeSearchValue(filters.name);
-  const email = normalizeSearchValue(filters.email);
-
-  return (
-    (!name || normalizeSearchValue(user.name).includes(name)) &&
-    (!email || normalizeSearchValue(user.email ?? "").includes(email)) &&
-    (!filters.status || user.status === filters.status) &&
-    (!filters.role || user.role === filters.role)
-  );
-}
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 5000;
 
 function sanitizeUserPayload(payload: CreateUserPayload | UpdateUserPayload) {
   const sanitizedPayload = {
@@ -57,13 +43,18 @@ function sanitizeUserPayload(payload: CreateUserPayload | UpdateUserPayload) {
 export async function listUsers(filters: UserFilters): Promise<UserListResult> {
   ensureApiConfigured();
 
-  const response = await http.get<UserItem[]>(USERS_ENDPOINT);
-  const items = response.data.filter((user) => matchesUserFilters(user, filters));
+  const response = await http.get<UserListResult>(USERS_ENDPOINT, {
+    params: {
+      page: DEFAULT_PAGE,
+      limit: DEFAULT_LIMIT,
+      name: filters.name.trim() || undefined,
+      email: filters.email.trim() || undefined,
+      status: filters.status || undefined,
+      role: filters.role || undefined,
+    },
+  });
 
-  return {
-    items,
-    total: items.length,
-  };
+  return response.data;
 }
 
 export async function getUserById(id: string): Promise<UserItem> {
