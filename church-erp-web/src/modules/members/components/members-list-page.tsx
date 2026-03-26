@@ -49,6 +49,17 @@ const feedbackMessages = {
   inactivated: "Membro inativado com sucesso.",
 } as const;
 
+function areMemberFiltersEqual(left: MemberFilters, right: MemberFilters) {
+  return (
+    left.name === right.name &&
+    left.status === right.status &&
+    left.churchId === right.churchId &&
+    left.ageRange === right.ageRange &&
+    left.joinedFrom === right.joinedFrom &&
+    left.joinedTo === right.joinedTo
+  );
+}
+
 export function MembersListPage({
   canEdit,
   currentUser,
@@ -62,6 +73,7 @@ export function MembersListPage({
   const [churchOptions, setChurchOptions] = useState<ChurchOption[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [churchesError, setChurchesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +92,7 @@ export function MembersListPage({
       const response = await listMembers(currentFilters);
       setMembers(response.items);
       setTotal(response.total);
+      setHasLoadedOnce(true);
     } catch (loadError) {
       setError(
         getApiErrorMessage(loadError, "Nao foi possivel carregar os membros."),
@@ -155,10 +168,22 @@ export function MembersListPage({
 
   function handleFilterSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (areMemberFiltersEqual(filters, appliedFilters)) {
+      return;
+    }
+
     setAppliedFilters({ ...filters });
   }
 
   function handleResetFilters() {
+    if (
+      areMemberFiltersEqual(filters, initialFilters) &&
+      areMemberFiltersEqual(appliedFilters, initialFilters)
+    ) {
+      return;
+    }
+
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
   }
@@ -190,7 +215,9 @@ export function MembersListPage({
     }
   }
 
-  if (error && members.length === 0 && !isLoading) {
+  const showInitialLoading = !hasLoadedOnce && isLoading;
+
+  if (error && !hasLoadedOnce && !isLoading) {
     return (
       <ErrorView
         title="Nao foi possivel carregar os membros"
@@ -265,7 +292,7 @@ export function MembersListPage({
             />
           ) : null}
 
-          {isLoading && members.length === 0 ? (
+          {showInitialLoading ? (
             <PageLoading variant="list" />
           ) : (
             <MembersTable

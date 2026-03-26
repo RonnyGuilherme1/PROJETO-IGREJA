@@ -35,6 +35,15 @@ const feedbackMessages = {
   inactivated: "Usuario inativado com sucesso.",
 } as const;
 
+function areUserFiltersEqual(left: UserFilters, right: UserFilters) {
+  return (
+    left.name === right.name &&
+    left.email === right.email &&
+    left.status === right.status &&
+    left.role === right.role
+  );
+}
+
 export function UsersListPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -47,6 +56,7 @@ export function UsersListPage() {
   );
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [churchesError, setChurchesError] = useState<string | null>(null);
@@ -62,6 +72,7 @@ export function UsersListPage() {
       const response = await listUsers(currentFilters);
       setUsers(response.items);
       setTotal(response.total);
+      setHasLoadedOnce(true);
     } catch (loadError) {
       setError(
         getApiErrorMessage(loadError, "Nao foi possivel carregar os usuarios."),
@@ -137,10 +148,22 @@ export function UsersListPage() {
 
   function handleFilterSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (areUserFiltersEqual(filters, appliedFilters)) {
+      return;
+    }
+
     setAppliedFilters({ ...filters });
   }
 
   function handleResetFilters() {
+    if (
+      areUserFiltersEqual(filters, initialFilters) &&
+      areUserFiltersEqual(appliedFilters, initialFilters)
+    ) {
+      return;
+    }
+
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
   }
@@ -172,7 +195,9 @@ export function UsersListPage() {
     }
   }
 
-  if (error && users.length === 0 && !isLoading) {
+  const showInitialLoading = !hasLoadedOnce && isLoading;
+
+  if (error && !hasLoadedOnce && !isLoading) {
     return (
       <ErrorView
         title="Nao foi possivel carregar os usuarios"
@@ -244,7 +269,7 @@ export function UsersListPage() {
             />
           ) : null}
 
-          {isLoading && users.length === 0 ? (
+          {showInitialLoading ? (
             <PageLoading variant="list" />
           ) : (
             <UsersTable

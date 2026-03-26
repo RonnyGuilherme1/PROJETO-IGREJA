@@ -50,6 +50,10 @@ const feedbackMessages = {
   inactivated: "Igreja inativada com sucesso.",
 } as const;
 
+function areChurchFiltersEqual(left: ChurchFilters, right: ChurchFilters) {
+  return left.name === right.name && left.status === right.status;
+}
+
 export function ChurchesListPage({
   canEdit,
   currentUser,
@@ -64,6 +68,7 @@ export function ChurchesListPage({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inactivatingId, setInactivatingId] = useState<string | null>(null);
@@ -78,6 +83,7 @@ export function ChurchesListPage({
       const response = await listChurches(currentFilters);
       setChurches(response.items);
       setTotal(response.total);
+      setHasLoadedOnce(true);
       if (response.items.length === 0) {
         setIsDetailsOpen(false);
       }
@@ -128,10 +134,22 @@ export function ChurchesListPage({
 
   function handleFilterSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (areChurchFiltersEqual(filters, appliedFilters)) {
+      return;
+    }
+
     setAppliedFilters({ ...filters });
   }
 
   function handleResetFilters() {
+    if (
+      areChurchFiltersEqual(filters, initialFilters) &&
+      areChurchFiltersEqual(appliedFilters, initialFilters)
+    ) {
+      return;
+    }
+
     setFilters(initialFilters);
     setAppliedFilters(initialFilters);
   }
@@ -168,7 +186,9 @@ export function ChurchesListPage({
     }
   }
 
-  if (error && churches.length === 0 && !isLoading) {
+  const showInitialLoading = !hasLoadedOnce && isLoading;
+
+  if (error && !hasLoadedOnce && !isLoading) {
     return (
       <ErrorView
         title="Nao foi possivel carregar as igrejas"
@@ -234,7 +254,7 @@ export function ChurchesListPage({
             />
           ) : null}
 
-          {isLoading && churches.length === 0 ? (
+          {showInitialLoading ? (
             <PageLoading variant="list" />
           ) : (
             <ChurchesTable

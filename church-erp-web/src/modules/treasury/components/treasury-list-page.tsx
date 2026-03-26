@@ -185,6 +185,20 @@ const feedbackMessages = {
   cancelled: "Movimentacao cancelada com sucesso.",
 } as const;
 
+function areTreasuryFiltersEqual(
+  left: TreasuryFiltersType,
+  right: TreasuryFiltersType,
+) {
+  return (
+    left.startDate === right.startDate &&
+    left.endDate === right.endDate &&
+    left.type === right.type &&
+    left.categoryId === right.categoryId &&
+    left.churchId === right.churchId &&
+    left.status === right.status
+  );
+}
+
 export function TreasuryListPage({
   canEdit,
   currentUser,
@@ -205,6 +219,7 @@ export function TreasuryListPage({
   const [summary, setSummary] = useState<TreasurySummary>(emptySummary);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
   const [isMonthClosureLoading, setIsMonthClosureLoading] = useState(false);
   const [isClosingMonth, setIsClosingMonth] = useState(false);
@@ -280,6 +295,7 @@ export function TreasuryListPage({
       setItems(response.items);
       setTotal(response.total);
       setSummary(response.summary);
+      setHasLoadedOnce(true);
     } catch (loadError) {
       setError(
         getApiErrorMessage(
@@ -287,7 +303,6 @@ export function TreasuryListPage({
           "Nao foi possivel carregar as movimentacoes.",
         ),
       );
-      setSummary(emptySummary);
     } finally {
       setIsLoading(false);
     }
@@ -448,6 +463,11 @@ export function TreasuryListPage({
 
   function handleFilterSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (areTreasuryFiltersEqual(filters, appliedFilters)) {
+      return;
+    }
+
     setAppliedFilters({ ...filters });
   }
 
@@ -456,6 +476,13 @@ export function TreasuryListPage({
       defaultDateRange.startDate && defaultDateRange.endDate
         ? defaultDateRange
         : stableInitialFilters;
+
+    if (
+      areTreasuryFiltersEqual(filters, nextFilters) &&
+      areTreasuryFiltersEqual(appliedFilters, nextFilters)
+    ) {
+      return;
+    }
 
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
@@ -552,7 +579,9 @@ export function TreasuryListPage({
     }
   }
 
-  if (error && items.length === 0 && !isLoading) {
+  const showInitialLoading = !hasInitialized || (!hasLoadedOnce && isLoading);
+
+  if (error && !hasLoadedOnce && !isLoading) {
     return (
       <ErrorView
         title="Nao foi possivel carregar as movimentacoes"
@@ -660,7 +689,7 @@ export function TreasuryListPage({
             />
           ) : null}
 
-          {isLoading && items.length === 0 ? (
+          {showInitialLoading ? (
             <PageLoading variant="list" />
           ) : (
             <TreasuryTable
