@@ -32,8 +32,24 @@ import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpdateTenantBrandingDto } from './dto/update-tenant-branding.dto';
 import { TenantResponseDto } from './dto/tenant-response.dto';
-import { TenantEntity, tenantSelect } from './types/tenant.type';
 import { UploadedTenantLogoFile } from './types/uploaded-tenant-logo-file.type';
+
+const tenantAuditSelect = Prisma.validator<Prisma.TenantSelect>()({
+  id: true,
+  name: true,
+  slug: true,
+  status: true,
+  logoUrl: true,
+  themeKey: true,
+  createdAt: true,
+  updatedAt: true,
+  createdByPlatformUserId: true,
+  updatedByPlatformUserId: true,
+});
+
+type TenantAuditEntity = Prisma.TenantGetPayload<{
+  select: typeof tenantAuditSelect;
+}>;
 
 @Injectable()
 export class TenantsService {
@@ -47,19 +63,19 @@ export class TenantsService {
 
   async findAll(): Promise<TenantResponseDto[]> {
     const tenants = await this.prisma.tenant.findMany({
-      select: tenantSelect,
+      select: tenantAuditSelect,
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    return tenants.map((tenant) => new TenantResponseDto(tenant));
+    return this.toTenantResponses(tenants);
   }
 
   async findOne(id: string): Promise<TenantResponseDto> {
     const tenant = await this.findTenantByIdOrThrow(id);
 
-    return new TenantResponseDto(tenant);
+    return this.toTenantResponse(tenant);
   }
 
   async findCurrent(
@@ -68,7 +84,7 @@ export class TenantsService {
     const tenantId = this.ensureTenantAdminAccess(currentUser);
     const tenant = await this.findTenantByIdOrThrow(tenantId);
 
-    return new TenantResponseDto(tenant);
+    return this.toTenantResponse(tenant);
   }
 
   async create(
@@ -92,7 +108,7 @@ export class TenantsService {
       passwordHash,
     );
 
-    return new TenantResponseDto(tenant);
+    return this.toTenantResponse(tenant);
   }
 
   async update(
@@ -137,7 +153,7 @@ export class TenantsService {
     const tenant = await this.prisma.tenant.update({
       where: { id },
       data,
-      select: tenantSelect,
+      select: tenantAuditSelect,
     });
 
     await this.deleteManagedLogoIfReplaced(
@@ -145,7 +161,7 @@ export class TenantsService {
       tenant.logoUrl,
     );
 
-    return new TenantResponseDto(tenant);
+    return this.toTenantResponse(tenant);
   }
 
   async updateCurrentBranding(
@@ -168,7 +184,7 @@ export class TenantsService {
     const tenant = await this.prisma.tenant.update({
       where: { id: tenantId },
       data,
-      select: tenantSelect,
+      select: tenantAuditSelect,
     });
 
     await this.deleteManagedLogoIfReplaced(
@@ -176,7 +192,7 @@ export class TenantsService {
       tenant.logoUrl,
     );
 
-    return new TenantResponseDto(tenant);
+    return this.toTenantResponse(tenant);
   }
 
   async uploadCurrentLogo(
@@ -223,10 +239,10 @@ export class TenantsService {
         status: TenantStatus.INACTIVE,
         updatedByPlatformUserId: currentUser.id,
       },
-      select: tenantSelect,
+      select: tenantAuditSelect,
     });
 
-    return new TenantResponseDto(tenant);
+    return this.toTenantResponse(tenant);
   }
 
   async activate(
@@ -242,16 +258,16 @@ export class TenantsService {
         status: TenantStatus.ACTIVE,
         updatedByPlatformUserId: currentUser.id,
       },
-      select: tenantSelect,
+      select: tenantAuditSelect,
     });
 
-    return new TenantResponseDto(tenant);
+    return this.toTenantResponse(tenant);
   }
 
-  private async findTenantByIdOrThrow(id: string): Promise<TenantEntity> {
+  private async findTenantByIdOrThrow(id: string): Promise<TenantAuditEntity> {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id },
-      select: tenantSelect,
+      select: tenantAuditSelect,
     });
 
     if (!tenant) {
@@ -293,7 +309,7 @@ export class TenantsService {
     createdByPlatformUserId: string,
     createTenantDto: CreateTenantDto,
     passwordHash: string | null,
-  ): Promise<TenantEntity> {
+  ): Promise<TenantAuditEntity> {
     for (
       let attempt = 0;
       attempt < TenantsService.MAX_CODE_GENERATION_ATTEMPTS;
@@ -313,7 +329,7 @@ export class TenantsService {
                   createTenantDto.themeKey ?? DEFAULT_TENANT_THEME_KEY,
                 createdByPlatformUserId,
               },
-              select: tenantSelect,
+              select: tenantAuditSelect,
             });
 
             await this.ensureDefaultFinanceCategories(tx, createdTenant.id);
@@ -637,5 +653,71 @@ export class TenantsService {
     if (user) {
       throw new ConflictException('Ja existe um usuario com este email.');
     }
+  }
+
+  private async toTenantResponses(
+    tenants: TenantAuditEntity[],
+  ): Promise<TenantResponseDto[]> {
+    const auditNamesByTenantId = await this.getAuditNamesByTenantId(tenants);
+
+    return tenants.map(
+      (tenant) =>
+        new TenantResponseDto(tenant, auditNamesByTenantId.get(tenant.id)),
+    );
+  }
+
+  private async toTenantResponse(
+    tenant: TenantAuditEntity,
+  ): Promise<TenantResponseDto> {
+    const [response] = await this.toTenantResponses([tenant]);
+
+    return response;
+  }
+
+  private async getAuditNamesByTenantId(
+    tenants: TenantAuditEntity[],
+  ): Promise<Map<string, { createdByName: string | null; updatedByName: string | null }>> {
+    const platformUserIds = Array.from(
+      new Set(
+        tenants.flatMap((tenant) =>
+          [tenant.createdByPlatformUserId, tenant.updatedByPlatformUserId].filter(
+            (id): id is string => Boolean(id),
+          ),
+        ),
+      ),
+    );
+
+    const platformUsers =
+      platformUserIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: {
+              id: {
+                in: platformUserIds,
+              },
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+          })
+        : [];
+
+    const platformUserNamesById = new Map(
+      platformUsers.map((platformUser) => [platformUser.id, platformUser.name]),
+    );
+
+    return new Map(
+      tenants.map((tenant) => [
+        tenant.id,
+        {
+          createdByName: tenant.createdByPlatformUserId
+            ? platformUserNamesById.get(tenant.createdByPlatformUserId) ?? null
+            : null,
+          updatedByName: tenant.updatedByPlatformUserId
+            ? platformUserNamesById.get(tenant.updatedByPlatformUserId) ?? null
+            : null,
+        },
+      ]),
+    );
   }
 }

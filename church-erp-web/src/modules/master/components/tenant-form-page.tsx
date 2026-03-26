@@ -31,6 +31,7 @@ import {
   MASTER_TENANT_STATUS_OPTIONS,
   MASTER_TENANT_THEME_OPTIONS,
   type CreateMasterTenantPayload,
+  type MasterTenantItem,
   type MasterTenantFormValues,
   type UpdateMasterTenantPayload,
 } from "@/modules/master/types/tenant";
@@ -39,6 +40,8 @@ interface TenantFormPageProps {
   mode: "create" | "edit";
   tenantId?: string;
 }
+
+const AUDIT_TIMEZONE_OFFSET_IN_MS = 3 * 60 * 60 * 1000;
 
 const TENANT_LOGO_ACCEPT = [
   "image/png",
@@ -77,9 +80,35 @@ const initialFormValues: MasterTenantFormValues = {
   adminPassword: "",
 };
 
+function formatAuditName(name: string | null) {
+  return name?.trim() || "Nao informado";
+}
+
+function formatDateTime(value: string) {
+  if (!value) {
+    return "-";
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  const fortalezaDate = new Date(parsed.getTime() - AUDIT_TIMEZONE_OFFSET_IN_MS);
+  const day = String(fortalezaDate.getUTCDate()).padStart(2, "0");
+  const month = String(fortalezaDate.getUTCMonth() + 1).padStart(2, "0");
+  const year = fortalezaDate.getUTCFullYear();
+  const hours = String(fortalezaDate.getUTCHours()).padStart(2, "0");
+  const minutes = String(fortalezaDate.getUTCMinutes()).padStart(2, "0");
+
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
+
 export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
   const router = useRouter();
   const [formValues, setFormValues] = useState<MasterTenantFormValues>(initialFormValues);
+  const [tenantMetadata, setTenantMetadata] = useState<MasterTenantItem | null>(null);
   const [isLoading, setIsLoading] = useState(mode === "edit");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -108,6 +137,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
   useEffect(() => {
     setSelectedLogoFile(null);
     setLogoError(null);
+    setTenantMetadata(null);
   }, [mode, tenantId]);
 
   useEffect(() => {
@@ -140,6 +170,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
           adminEmail: "",
           adminPassword: "",
         });
+        setTenantMetadata(tenant);
       } catch (error) {
         if (!isActive) {
           return;
@@ -468,6 +499,45 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                   O codigo de acesso sera gerado automaticamente pelo sistema a
                   partir de <strong>1001</strong> e sera usado no login do
                   ambiente.
+                </div>
+              ) : null}
+
+              {mode === "edit" && tenantMetadata ? (
+                <div className="grid gap-4 rounded-3xl border border-border bg-secondary/20 p-5 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                      Criado por
+                    </p>
+                    <p className="text-sm font-medium text-foreground">
+                      {formatAuditName(tenantMetadata.createdByName)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Criado em {formatDateTime(tenantMetadata.createdAt)}
+                    </p>
+                  </div>
+
+                  {tenantMetadata.updatedByName ? (
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                        Ultima alteracao por
+                      </p>
+                      <p className="text-sm font-medium text-foreground">
+                        {formatAuditName(tenantMetadata.updatedByName)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Atualizado em {formatDateTime(tenantMetadata.updatedAt)}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                        Ultima alteracao
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Ainda nao ha alteracoes registradas apos a criacao.
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : null}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { ArrowLeft, LoaderCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
@@ -57,7 +57,10 @@ export function PlatformUserFormPage({
   userId,
 }: PlatformUserFormPageProps) {
   const router = useRouter();
-  const currentUser = useMemo(() => getStoredMasterUser(), []);
+  const [isSessionReady, setIsSessionReady] = useState(false);
+  const [currentUser, setCurrentUser] = useState<ReturnType<
+    typeof getStoredMasterUser
+  >>(null);
   const canManageUsers = canManagePlatformUsers(currentUser);
   const [formValues, setFormValues] =
     useState<PlatformUserFormValues>(initialFormValues);
@@ -69,10 +72,19 @@ export function PlatformUserFormPage({
   const [isRedirecting, startTransition] = useTransition();
 
   useEffect(() => {
+    setCurrentUser(getStoredMasterUser());
+    setIsSessionReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isSessionReady) {
+      return;
+    }
+
     if (!canManageUsers) {
       router.replace("/master/dashboard");
     }
-  }, [canManageUsers, router]);
+  }, [canManageUsers, isSessionReady, router]);
 
   useEffect(() => {
     let isActive = true;
@@ -118,6 +130,10 @@ export function PlatformUserFormPage({
       }
     }
 
+    if (!isSessionReady) {
+      return;
+    }
+
     if (!canManageUsers) {
       setIsLoading(false);
       return;
@@ -128,7 +144,7 @@ export function PlatformUserFormPage({
     return () => {
       isActive = false;
     };
-  }, [canManageUsers, mode, userId]);
+  }, [canManageUsers, isSessionReady, mode, userId]);
 
   function handleFieldChange(
     field: keyof PlatformUserFormValues,
@@ -195,6 +211,39 @@ export function PlatformUserFormPage({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (!isSessionReady) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title={mode === "create" ? "Novo usuario master" : "Editar usuario master"}
+          description="Carregando permissoes da area master."
+          badge="Plataforma"
+        />
+
+        <Card className="bg-[color:var(--surface-soft)]">
+          <CardHeader>
+            <CardTitle>
+              {mode === "create" ? "Cadastro de usuario" : "Edicao de usuario"}
+            </CardTitle>
+            <CardDescription>
+              Validando permissao de acesso e carregando os dados da tela.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-16 animate-pulse rounded-2xl bg-secondary/60"
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (!canManageUsers) {

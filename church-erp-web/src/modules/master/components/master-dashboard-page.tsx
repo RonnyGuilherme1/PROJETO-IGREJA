@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, Building2, CircleOff, ImageIcon, Plus, ShieldCheck } from "lucide-react";
 import { getApiErrorMessage } from "@/lib/http";
-import { getTenantThemeLabel } from "@/lib/tenant-branding";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -19,8 +18,35 @@ import {
 import { listMasterTenants } from "@/modules/master/services/master-tenants-service";
 import type { MasterTenantItem } from "@/modules/master/types/tenant";
 
+const AUDIT_TIMEZONE_OFFSET_IN_MS = 3 * 60 * 60 * 1000;
+
 function isInactive(status: string) {
   return status.toUpperCase() === "INACTIVE";
+}
+
+function formatAuditName(name: string | null) {
+  return name?.trim() || "Nao informado";
+}
+
+function formatDateTime(value: string) {
+  if (!value) {
+    return "-";
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  const fortalezaDate = new Date(parsed.getTime() - AUDIT_TIMEZONE_OFFSET_IN_MS);
+  const day = String(fortalezaDate.getUTCDate()).padStart(2, "0");
+  const month = String(fortalezaDate.getUTCMonth() + 1).padStart(2, "0");
+  const year = fortalezaDate.getUTCFullYear();
+  const hours = String(fortalezaDate.getUTCHours()).padStart(2, "0");
+  const minutes = String(fortalezaDate.getUTCMinutes()).padStart(2, "0");
+
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
 export function MasterDashboardPage() {
@@ -162,7 +188,7 @@ export function MasterDashboardPage() {
           <div className="space-y-2">
             <CardTitle>Ambientes recentes</CardTitle>
             <CardDescription>
-              Ultimos ambientes cadastrados na plataforma.
+              Ambientes criados recentemente com autoria visivel da operacao.
             </CardDescription>
           </div>
           <Button asChild variant="outline">
@@ -182,10 +208,10 @@ export function MasterDashboardPage() {
                       Ambiente
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Codigo
+                      Criado por
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                      Tema
+                      Criado em
                     </th>
                     <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                       Status
@@ -216,14 +242,19 @@ export function MasterDashboardPage() {
 
                   {summary.recent.map((tenant) => (
                     <tr key={tenant.id}>
-                      <td className="px-4 py-4 font-medium text-foreground">
-                        {tenant.name}
+                      <td className="px-4 py-4">
+                        <div className="space-y-1">
+                          <p className="font-medium text-foreground">{tenant.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Codigo {tenant.code || "-"}
+                          </p>
+                        </div>
                       </td>
                       <td className="px-4 py-4 text-sm text-muted-foreground">
-                        {tenant.code || "-"}
+                        {formatAuditName(tenant.createdByName)}
                       </td>
                       <td className="px-4 py-4 text-sm text-muted-foreground">
-                        {getTenantThemeLabel(tenant.themeKey)}
+                        {formatDateTime(tenant.createdAt)}
                       </td>
                       <td className="px-4 py-4">
                         <Badge

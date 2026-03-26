@@ -13,6 +13,8 @@ export interface MasterTenantItem {
   status: MasterTenantStatus;
   logoUrl: string | null;
   themeKey: TenantThemeKey;
+  createdByName: string | null;
+  updatedByName: string | null;
   createdAt: string;
   updatedAt: string;
 }
