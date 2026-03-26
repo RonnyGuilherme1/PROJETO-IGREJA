@@ -32,8 +32,6 @@ import { DashboardFinanceChart } from "@/modules/dashboard/components/dashboard-
 import { DashboardOverviewSkeleton } from "@/modules/dashboard/components/dashboard-overview-skeleton";
 import {
   getDashboardOverviewData,
-  getDashboardOverviewCacheSnapshot,
-  invalidateDashboardOverviewData,
   type DashboardOperationalSummary,
   type DashboardOverviewViewData,
 } from "@/modules/dashboard/services/dashboard-service";
@@ -337,39 +335,16 @@ function buildOperationalStatuses(
 }
 
 export function DashboardOverview() {
-  const [data, setData] = useState<DashboardOverviewViewData | null>(
-    () => getDashboardOverviewCacheSnapshot().data ?? null,
-  );
-  const [isLoading, setIsLoading] = useState(
-    () => !getDashboardOverviewCacheSnapshot().data,
-  );
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [data, setData] = useState<DashboardOverviewViewData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadDashboard = useCallback(async (options?: { force?: boolean }) => {
-    const snapshot = getDashboardOverviewCacheSnapshot();
-    const hasVisibleData = Boolean(snapshot.data);
-
-    if (snapshot.data) {
-      setData(snapshot.data);
-    }
-
-    if (options?.force) {
-      invalidateDashboardOverviewData();
-      setIsRefreshing(hasVisibleData);
-      setIsLoading(!hasVisibleData);
-    } else if (!snapshot.isFresh) {
-      setIsRefreshing(hasVisibleData);
-      setIsLoading(!hasVisibleData);
-    } else {
-      setIsRefreshing(false);
-      setIsLoading(false);
-    }
-
+  const loadDashboard = useCallback(async () => {
+    setIsLoading(true);
     setError(null);
 
     try {
-      const response = await getDashboardOverviewData({ force: options?.force });
+      const response = await getDashboardOverviewData();
       setData(response);
     } catch (loadError) {
       setError(
@@ -380,7 +355,6 @@ export function DashboardOverview() {
       );
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
   }, []);
 
@@ -393,7 +367,7 @@ export function DashboardOverview() {
       <ErrorView
         title="Nao foi possivel abrir o dashboard"
         description={error}
-        onAction={() => void loadDashboard({ force: true })}
+        onAction={() => void loadDashboard()}
       />
     );
   }
@@ -437,12 +411,6 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-5">
-      {isRefreshing ? (
-        <div className="rounded-2xl border border-border/70 bg-white/70 px-4 py-2 text-sm text-muted-foreground">
-          Atualizando indicadores do dashboard...
-        </div>
-      ) : null}
-
       {error ? (
         <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
