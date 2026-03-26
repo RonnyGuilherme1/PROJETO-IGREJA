@@ -2,7 +2,6 @@ import 'reflect-metadata';
 
 import { mkdirSync } from 'fs';
 import express from 'express';
-import { join } from 'path';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -26,7 +25,7 @@ function resolveCorsOrigin(corsOrigin?: string): true | string | string[] {
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
-  const uploadRoot = join(TENANT_LOGO_UPLOAD_ROOT);
+  const uploadRoot = TENANT_LOGO_UPLOAD_ROOT;
 
   app.enableShutdownHooks();
   app.setGlobalPrefix('api');

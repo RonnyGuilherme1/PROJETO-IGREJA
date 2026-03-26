@@ -10,10 +10,12 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "start:railway": "npm run prisma:migrate:deploy && npm run start:prod",
     "seed": "prisma db seed",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

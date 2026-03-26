@@ -4,8 +4,10 @@ import {
   getClientAccessToken,
 } from "@/modules/auth/lib/auth-session";
 
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim() || "/api";
+
 export const http = axios.create({
-  baseURL: "/api",
+  baseURL: apiBaseUrl,
   timeout: 15000,
   headers: {
     Accept: "application/json",
