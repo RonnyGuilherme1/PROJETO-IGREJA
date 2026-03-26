@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
     "192.168.50.41",
   ],
   async rewrites() {
+    if (process.env.NODE_ENV !== "development") {
+      return [];
+    }
+
     return [
       {
         source: "/api/:path*",
