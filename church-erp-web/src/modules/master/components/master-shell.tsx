@@ -14,8 +14,8 @@ import {
 import { MasterHeader } from "@/modules/master/components/master-header";
 import { MasterSidebar } from "@/modules/master/components/master-sidebar";
 import { MasterThemeScope } from "@/modules/master/components/master-theme-scope";
-import { masterNavItems } from "@/modules/master/config/navigation";
 import type { AuthUser } from "@/modules/auth/types/auth";
+import { getMasterNavItems } from "@/modules/master/config/navigation";
 
 interface MasterShellProps {
   children: React.ReactNode;
@@ -25,6 +25,7 @@ interface MasterShellProps {
 export function MasterShell({ children, user }: MasterShellProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const masterNavItems = getMasterNavItems(user);
 
   const currentPage =
     masterNavItems.find(
@@ -35,7 +36,7 @@ export function MasterShell({ children, user }: MasterShellProps) {
     <MasterThemeScope>
       <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
         <aside className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
-          <MasterSidebar />
+          <MasterSidebar user={user} />
         </aside>
 
         <div className="flex min-h-screen flex-col">
@@ -62,7 +63,7 @@ export function MasterShell({ children, user }: MasterShellProps) {
                   <SheetHeader className="sr-only">
                     <SheetTitle>Menu de navegacao master</SheetTitle>
                   </SheetHeader>
-                  <MasterSidebar onNavigate={() => setOpen(false)} />
+                  <MasterSidebar user={user} onNavigate={() => setOpen(false)} />
                 </SheetContent>
               </Sheet>
             }

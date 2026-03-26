@@ -4,14 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight, ShieldUser } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { masterNavItems } from "@/modules/master/config/navigation";
+import type { AuthUser } from "@/modules/auth/types/auth";
+import { getMasterNavItems } from "@/modules/master/config/navigation";
 
 interface MasterSidebarProps {
+  user: AuthUser;
   onNavigate?: () => void;
 }
 
-export function MasterSidebar({ onNavigate }: MasterSidebarProps) {
+export function MasterSidebar({ user, onNavigate }: MasterSidebarProps) {
   const pathname = usePathname();
+  const masterNavItems = getMasterNavItems(user);
 
   return (
     <div className="flex h-full flex-col">
