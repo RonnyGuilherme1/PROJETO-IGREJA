@@ -18,6 +18,11 @@ export const metadata: Metadata = {
     template: "%s | Church ERP Web",
   },
   description: "Painel administrativo para a operacao da igreja.",
+  icons: {
+    icon: [{ url: "/platform-logo.svg", type: "image/svg+xml" }],
+    shortcut: [{ url: "/platform-logo.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/platform-logo.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({

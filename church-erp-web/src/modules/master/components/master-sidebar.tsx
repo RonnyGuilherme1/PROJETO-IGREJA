@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, ShieldUser } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import type { AuthUser } from "@/modules/auth/types/auth";
 import { getMasterNavItems } from "@/modules/master/config/navigation";
 
@@ -28,9 +29,11 @@ export function MasterSidebar({ user, onNavigate }: MasterSidebarProps) {
           onClick={onNavigate}
           className="flex items-center gap-3"
         >
-          <div className="flex size-10 items-center justify-center rounded-2xl bg-sidebar-foreground/10 text-sidebar-foreground shadow-sm">
-            <ShieldUser className="size-5" />
-          </div>
+          <BrandLogo
+            alt="Logo da plataforma Church ERP"
+            className="size-16 shrink-0"
+            imageClassName="object-contain"
+          />
           <div className="space-y-1">
             <p className="text-sm font-semibold tracking-wide text-sidebar-foreground">
               Plataforma Church ERP

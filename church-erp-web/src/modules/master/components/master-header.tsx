@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { BrandLogo } from "@/components/layout/brand-logo";
 import { AuthUserPanel } from "@/modules/auth/components/auth-user-panel";
 import { MasterThemeToggle } from "@/modules/master/components/master-theme-toggle";
 import type { AuthUser } from "@/modules/auth/types/auth";
@@ -36,6 +37,11 @@ export function MasterHeader({
       <div className="mx-auto flex min-h-24 w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-start gap-3">
           <div className="lg:hidden">{mobileNavigation}</div>
+          <BrandLogo
+            alt="Logo da plataforma Church ERP"
+            className="hidden size-16 shrink-0 sm:flex"
+            imageClassName="object-contain"
+          />
           <div className="min-w-0 space-y-1.5">
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground/80">
               Plataforma Church ERP
