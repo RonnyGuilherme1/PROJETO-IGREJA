@@ -5,6 +5,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
+import {
+  createQueryKey,
+  fetchCachedQuery,
+  getCachedQuerySnapshot,
+  invalidateQuery,
+  invalidateQueryPrefix,
+} from "@/lib/query/query-cache";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageLoading } from "@/components/shared/page-loading";
@@ -16,6 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { invalidateDashboardOverviewData } from "@/modules/dashboard/services/dashboard-service";
 import { listChurches } from "@/modules/churches/services/churches-service";
 import { TreasuryCategoriesSheet } from "@/modules/treasury/components/treasury-categories-sheet";
 import { TreasuryFilters } from "@/modules/treasury/components/treasury-filters";
@@ -32,9 +40,11 @@ import {
   type TreasuryMonthlyClosureStatus,
 } from "@/modules/treasury/services/treasury-service";
 import type { AuthUser } from "@/modules/auth/types/auth";
+import type { ChurchFilters, ChurchListResult } from "@/modules/churches/types/church";
 import type {
   TreasuryCategoryItem,
   TreasuryFilters as TreasuryFiltersType,
+  TreasuryListResult,
   TreasuryMovementItem,
   TreasurySummary,
 } from "@/modules/treasury/types/treasury";
@@ -185,6 +195,57 @@ const feedbackMessages = {
   cancelled: "Movimentacao cancelada com sucesso.",
 } as const;
 
+const TREASURY_LIST_QUERY_PREFIX = "treasury:list";
+const TREASURY_CATEGORIES_QUERY_KEY = createQueryKey("treasury:categories");
+const TREASURY_MONTH_CLOSURE_QUERY_PREFIX = "treasury:month-closure";
+const CHURCHES_LIST_QUERY_PREFIX = "churches:list";
+const TREASURY_LIST_TTL_MS = 30_000;
+const TREASURY_DEPENDENCIES_TTL_MS = 5 * 60_000;
+const TREASURY_MONTH_CLOSURE_TTL_MS = 30_000;
+const churchLookupFilters: ChurchFilters = {
+  name: "",
+  status: "",
+};
+
+function getInitialTreasuryFilters(): TreasuryFiltersType {
+  const { startDate, endDate } = getCurrentMonthDateRange();
+
+  return {
+    ...stableInitialFilters,
+    startDate,
+    endDate,
+  };
+}
+
+function getTreasuryListQueryKey(filters: TreasuryFiltersType) {
+  return createQueryKey(TREASURY_LIST_QUERY_PREFIX, {
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    type: filters.type,
+    categoryId: filters.categoryId,
+    churchId: filters.churchId,
+    status: filters.status,
+  });
+}
+
+function getChurchLookupQueryKey() {
+  return createQueryKey(CHURCHES_LIST_QUERY_PREFIX, churchLookupFilters);
+}
+
+function getTreasuryMonthClosureQueryKey(year: number, month: number) {
+  return createQueryKey(TREASURY_MONTH_CLOSURE_QUERY_PREFIX, {
+    year,
+    month,
+  });
+}
+
+function buildChurchOptions(churches?: ChurchListResult): ChurchOption[] {
+  return (churches?.items ?? []).map((church) => ({
+    id: church.id,
+    name: church.name,
+  }));
+}
+
 export function TreasuryListPage({
   canEdit,
   currentUser,
@@ -192,21 +253,65 @@ export function TreasuryListPage({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [filters, setFilters] =
-    useState<TreasuryFiltersType>(stableInitialFilters);
-  const [appliedFilters, setAppliedFilters] =
-    useState<TreasuryFiltersType>(stableInitialFilters);
-  const [hasInitialized, setHasInitialized] = useState(false);
-  const [defaultDateRange, setDefaultDateRange] =
-    useState<TreasuryFiltersType>(stableInitialFilters);
-  const [items, setItems] = useState<TreasuryMovementItem[]>([]);
-  const [categories, setCategories] = useState<TreasuryCategoryItem[]>([]);
-  const [churches, setChurches] = useState<ChurchOption[]>([]);
-  const [summary, setSummary] = useState<TreasurySummary>(emptySummary);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const feedbackKey = searchParams.get("feedback");
+  const hasNavigationFeedback = Boolean(
+    feedbackKey &&
+      Object.prototype.hasOwnProperty.call(feedbackMessages, feedbackKey),
+  );
+  const initialDefaultDateRange = getInitialTreasuryFilters();
+  const initialMovementsSnapshot = getCachedQuerySnapshot<TreasuryListResult>(
+    getTreasuryListQueryKey(initialDefaultDateRange),
+  );
+  const initialCategoriesSnapshot = getCachedQuerySnapshot<TreasuryCategoryItem[]>(
+    TREASURY_CATEGORIES_QUERY_KEY,
+  );
+  const initialChurchesSnapshot = getCachedQuerySnapshot<ChurchListResult>(
+    getChurchLookupQueryKey(),
+  );
+  const initialMonthReference = getMonthReferenceFromFilters(initialDefaultDateRange);
+  const initialMonthClosureSnapshot =
+    initialMonthReference
+      ? getCachedQuerySnapshot<TreasuryMonthlyClosureStatus>(
+          getTreasuryMonthClosureQueryKey(
+            initialMonthReference.year,
+            initialMonthReference.month,
+          ),
+        )
+      : {
+          data: undefined,
+          isFresh: false,
+        };
+  const [defaultDateRange] = useState<TreasuryFiltersType>(
+    () => initialDefaultDateRange,
+  );
+  const [filters, setFilters] = useState<TreasuryFiltersType>(
+    () => initialDefaultDateRange,
+  );
+  const [appliedFilters, setAppliedFilters] = useState<TreasuryFiltersType>(
+    () => initialDefaultDateRange,
+  );
+  const [items, setItems] = useState<TreasuryMovementItem[]>(
+    () => initialMovementsSnapshot.data?.items ?? [],
+  );
+  const [categories, setCategories] = useState<TreasuryCategoryItem[]>(
+    () => initialCategoriesSnapshot.data ?? [],
+  );
+  const [churches, setChurches] = useState<ChurchOption[]>(
+    () => buildChurchOptions(initialChurchesSnapshot.data),
+  );
+  const [summary, setSummary] = useState<TreasurySummary>(
+    () => initialMovementsSnapshot.data?.summary ?? emptySummary,
+  );
+  const [total, setTotal] = useState(
+    () => initialMovementsSnapshot.data?.total ?? 0,
+  );
+  const [isLoading, setIsLoading] = useState(
+    () => !initialMovementsSnapshot.data,
+  );
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
-  const [isMonthClosureLoading, setIsMonthClosureLoading] = useState(false);
+  const [isMonthClosureLoading, setIsMonthClosureLoading] = useState(
+    () => Boolean(initialMonthReference && !initialMonthClosureSnapshot.data),
+  );
   const [isClosingMonth, setIsClosingMonth] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -215,13 +320,15 @@ export function TreasuryListPage({
   const [monthClosureError, setMonthClosureError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [monthClosure, setMonthClosure] =
-    useState<TreasuryMonthlyClosureStatus | null>(null);
+    useState<TreasuryMonthlyClosureStatus | null>(
+      () => initialMonthClosureSnapshot.data ?? null,
+    );
   const [movementPendingCancellation, setMovementPendingCancellation] =
     useState<TreasuryMovementItem | null>(null);
   const [monthPendingClosure, setMonthPendingClosure] =
     useState<MonthReference | null>(null);
   const filtersControlsLoading = Boolean(isLoading);
-  const summaryActionsReady = Boolean(hasInitialized);
+  const summaryActionsReady = true;
   const categoryNamesById = Object.fromEntries(
     categories.map((category) => [category.id, category.name]),
   );
@@ -271,53 +378,189 @@ export function TreasuryListPage({
       "O mes ainda nao foi fechado. Ao fechar, o resumo do mes e salvo e novas alteracoes ficam bloqueadas.";
   }
 
-  const loadMovements = useCallback(async (currentFilters: TreasuryFiltersType) => {
-    setIsLoading(true);
-    setError(null);
+  const loadMovements = useCallback(
+    async (
+      currentFilters: TreasuryFiltersType,
+      options?: { force?: boolean },
+    ) => {
+      if (options?.force) {
+        invalidateQueryPrefix(TREASURY_LIST_QUERY_PREFIX);
+        invalidateDashboardOverviewData();
+      }
 
-    try {
-      const response = await listTreasuryMovements(currentFilters);
-      setItems(response.items);
-      setTotal(response.total);
-      setSummary(response.summary);
-    } catch (loadError) {
-      setError(
-        getApiErrorMessage(
-          loadError,
-          "Nao foi possivel carregar as movimentacoes.",
-        ),
-      );
-      setSummary(emptySummary);
-    } finally {
-      setIsLoading(false);
+      const queryKey = getTreasuryListQueryKey(currentFilters);
+      const snapshot = getCachedQuerySnapshot<TreasuryListResult>(queryKey);
+
+      if (snapshot.data) {
+        setItems(snapshot.data.items);
+        setTotal(snapshot.data.total);
+        setSummary(snapshot.data.summary);
+      }
+
+      if (snapshot.isFresh && !options?.force) {
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetchCachedQuery(
+          queryKey,
+          () => listTreasuryMovements(currentFilters),
+          {
+            ttlMs: TREASURY_LIST_TTL_MS,
+            force: options?.force,
+          },
+        );
+
+        setItems(response.items);
+        setTotal(response.total);
+        setSummary(response.summary);
+      } catch (loadError) {
+        setError(
+          getApiErrorMessage(
+            loadError,
+            "Nao foi possivel carregar as movimentacoes.",
+          ),
+        );
+        setSummary(emptySummary);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const loadDependencies = useCallback(async () => {
+    const churchesQueryKey = getChurchLookupQueryKey();
+    const categoriesSnapshot = getCachedQuerySnapshot<TreasuryCategoryItem[]>(
+      TREASURY_CATEGORIES_QUERY_KEY,
+    );
+    const churchesSnapshot =
+      getCachedQuerySnapshot<ChurchListResult>(churchesQueryKey);
+
+    if (categoriesSnapshot.data) {
+      setCategories(categoriesSnapshot.data);
     }
-  }, []);
 
-  useEffect(() => {
-    const nextDateRange = getCurrentMonthDateRange();
-    const nextFilters = {
-      ...stableInitialFilters,
-      startDate: nextDateRange.startDate,
-      endDate: nextDateRange.endDate,
-    };
+    if (churchesSnapshot.data) {
+      setChurches(buildChurchOptions(churchesSnapshot.data));
+    }
 
-    setDefaultDateRange(nextFilters);
-    setFilters(nextFilters);
-    setAppliedFilters(nextFilters);
-    setHasInitialized(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasInitialized || !appliedFilters.startDate || !appliedFilters.endDate) {
+    if (categoriesSnapshot.isFresh && churchesSnapshot.isFresh) {
+      setDependenciesError(null);
+      setIsCategoriesLoading(false);
       return;
     }
 
-    void loadMovements(appliedFilters);
-  }, [appliedFilters, hasInitialized, loadMovements]);
+    setIsCategoriesLoading(true);
+    setDependenciesError(null);
+
+    try {
+      const [categoriesResponse, churchesResponse] = await Promise.all([
+        fetchCachedQuery(
+          TREASURY_CATEGORIES_QUERY_KEY,
+          listTreasuryCategories,
+          {
+            ttlMs: TREASURY_DEPENDENCIES_TTL_MS,
+          },
+        ),
+        fetchCachedQuery(churchesQueryKey, () => listChurches(churchLookupFilters), {
+          ttlMs: TREASURY_DEPENDENCIES_TTL_MS,
+        }),
+      ]);
+
+      setCategories(categoriesResponse);
+      setChurches(buildChurchOptions(churchesResponse));
+    } catch (loadError) {
+      setDependenciesError(
+        getApiErrorMessage(
+          loadError,
+          "Nao foi possivel carregar as opcoes de filtro.",
+        ),
+      );
+    } finally {
+      setIsCategoriesLoading(false);
+    }
+  }, []);
+
+  const loadMonthClosureStatus = useCallback(
+    async (
+      reference: MonthReference | null,
+      options?: { force?: boolean },
+    ) => {
+      if (!reference) {
+        setMonthClosure(null);
+        setMonthClosureError(null);
+        setIsMonthClosureLoading(false);
+        return;
+      }
+
+      const queryKey = getTreasuryMonthClosureQueryKey(
+        reference.year,
+        reference.month,
+      );
+
+      if (options?.force) {
+        invalidateQuery(queryKey);
+      }
+
+      const snapshot =
+        getCachedQuerySnapshot<TreasuryMonthlyClosureStatus>(queryKey);
+
+      if (snapshot.data) {
+        setMonthClosure(snapshot.data);
+        setMonthClosureError(null);
+      } else {
+        setMonthClosure(null);
+      }
+
+      if (snapshot.isFresh && !options?.force) {
+        setMonthClosureError(null);
+        setIsMonthClosureLoading(false);
+        return;
+      }
+
+      setIsMonthClosureLoading(true);
+      setMonthClosureError(null);
+
+      try {
+        const response = await fetchCachedQuery(
+          queryKey,
+          () => getTreasuryMonthlyClosureStatus(reference.year, reference.month),
+          {
+            ttlMs: TREASURY_MONTH_CLOSURE_TTL_MS,
+            force: options?.force,
+          },
+        );
+
+        setMonthClosure(response);
+      } catch (loadError) {
+        setMonthClosureError(
+          getApiErrorMessage(
+            loadError,
+            "Nao foi possivel consultar o fechamento mensal.",
+          ),
+        );
+      } finally {
+        setIsMonthClosureLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
-    const feedbackKey = searchParams.get("feedback");
+    if (!appliedFilters.startDate || !appliedFilters.endDate) {
+      return;
+    }
 
+    void loadMovements(appliedFilters, { force: hasNavigationFeedback });
+  }, [appliedFilters, hasNavigationFeedback, loadMovements]);
+
+  useEffect(() => {
     if (!feedbackKey || !(feedbackKey in feedbackMessages)) {
       return;
     }
@@ -330,114 +573,17 @@ export function TreasuryListPage({
       nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname,
       { scroll: false },
     );
-  }, [pathname, router, searchParams]);
+  }, [feedbackKey, pathname, router, searchParams]);
 
   useEffect(() => {
-    let isActive = true;
-
-    async function loadDependencies() {
-      setIsCategoriesLoading(true);
-      setDependenciesError(null);
-
-      try {
-        const [categoriesResponse, churchesResponse] = await Promise.all([
-          listTreasuryCategories(),
-          listChurches({ name: "", status: "" }),
-        ]);
-
-        if (!isActive) {
-          return;
-        }
-
-        setCategories(categoriesResponse);
-        setChurches(
-          churchesResponse.items.map((church) => ({
-            id: church.id,
-            name: church.name,
-          })),
-        );
-      } catch (loadError) {
-        if (!isActive) {
-          return;
-        }
-
-        const message = getApiErrorMessage(
-          loadError,
-          "Nao foi possivel carregar as opcoes de filtro.",
-        );
-
-        setDependenciesError(message);
-      } finally {
-        if (isActive) {
-          setIsCategoriesLoading(false);
-        }
-      }
-    }
-
     void loadDependencies();
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
+  }, [loadDependencies]);
 
   useEffect(() => {
-    if (!hasInitialized) {
-      return;
-    }
-
-    let isActive = true;
-    const reference = getMonthReferenceFromFilters(appliedFilters);
-
-    async function loadMonthClosureStatus(reference: MonthReference) {
-      setIsMonthClosureLoading(true);
-      setMonthClosureError(null);
-      setMonthClosure(null);
-
-      try {
-        const response = await getTreasuryMonthlyClosureStatus(
-          reference.year,
-          reference.month,
-        );
-
-        if (!isActive) {
-          return;
-        }
-
-        setMonthClosure(response);
-      } catch (loadError) {
-        if (!isActive) {
-          return;
-        }
-
-        setMonthClosureError(
-          getApiErrorMessage(
-            loadError,
-            "Nao foi possivel consultar o fechamento mensal.",
-          ),
-        );
-      } finally {
-        if (isActive) {
-          setIsMonthClosureLoading(false);
-        }
-      }
-    }
-
-    if (!reference) {
-      setMonthClosure(null);
-      setMonthClosureError(null);
-      setIsMonthClosureLoading(false);
-      return () => {
-        isActive = false;
-      };
-    }
-
-    void loadMonthClosureStatus(reference);
-
-    return () => {
-      isActive = false;
-    };
-  }, [appliedFilters, hasInitialized]);
+    void loadMonthClosureStatus(getMonthReferenceFromFilters(appliedFilters), {
+      force: hasNavigationFeedback,
+    });
+  }, [appliedFilters, hasNavigationFeedback, loadMonthClosureStatus]);
 
   function handleFilterChange(field: keyof TreasuryFiltersType, value: string) {
     setFilters((current) => ({
@@ -476,7 +622,7 @@ export function TreasuryListPage({
 
     try {
       await cancelTreasuryMovement(movementPendingCancellation.id);
-      await loadMovements(appliedFilters);
+      await loadMovements(appliedFilters, { force: true });
       setMovementPendingCancellation(null);
       setFeedback(feedbackMessages.cancelled);
     } catch (actionError) {
@@ -514,9 +660,10 @@ export function TreasuryListPage({
         monthPendingClosure.month,
       );
 
+      invalidateQueryPrefix(TREASURY_MONTH_CLOSURE_QUERY_PREFIX);
       setMonthClosure(response);
       setMonthClosureError(null);
-      await loadMovements(appliedFilters);
+      await loadMovements(appliedFilters, { force: true });
       setMonthPendingClosure(null);
       setFeedback(`Mes ${monthPendingClosure.label} fechado com sucesso.`);
     } catch (actionError) {
@@ -557,7 +704,7 @@ export function TreasuryListPage({
       <ErrorView
         title="Nao foi possivel carregar as movimentacoes"
         description={error}
-        onAction={() => void loadMovements(appliedFilters)}
+        onAction={() => void loadMovements(appliedFilters, { force: true })}
       />
     );
   }
@@ -615,27 +762,20 @@ export function TreasuryListPage({
               variant="inline"
               title="Filtros indisponiveis"
               description={dependenciesError}
+              actionLabel="Recarregar filtros"
+              onAction={() => void loadDependencies()}
             />
           ) : null}
 
-          {hasInitialized ? (
-            <TreasuryFilters
-              filters={filters}
-              categories={categories}
-              churches={churches}
-              isLoading={filtersControlsLoading}
-              onChange={handleFilterChange}
-              onSubmit={handleFilterSubmit}
-              onReset={handleResetFilters}
-            />
-          ) : (
-            <div
-              aria-hidden="true"
-              className="rounded-2xl border border-dashed border-border/80 bg-secondary/20 px-4 py-6 text-sm text-muted-foreground"
-            >
-              Preparando filtros...
-            </div>
-          )}
+          <TreasuryFilters
+            filters={filters}
+            categories={categories}
+            churches={churches}
+            isLoading={filtersControlsLoading}
+            onChange={handleFilterChange}
+            onSubmit={handleFilterSubmit}
+            onReset={handleResetFilters}
+          />
         </CardContent>
       </Card>
 
@@ -656,7 +796,7 @@ export function TreasuryListPage({
               title="Nao foi possivel atualizar a listagem"
               description={error}
               actionLabel="Recarregar listagem"
-              onAction={() => void loadMovements(appliedFilters)}
+              onAction={() => void loadMovements(appliedFilters, { force: true })}
             />
           ) : null}
 

@@ -5,6 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
+import {
+  createQueryKey,
+  fetchCachedQuery,
+  getCachedQuerySnapshot,
+  invalidateQueryPrefix,
+} from "@/lib/query/query-cache";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageLoading } from "@/components/shared/page-loading";
@@ -16,11 +22,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { invalidateDashboardOverviewData } from "@/modules/dashboard/services/dashboard-service";
 import { listChurches } from "@/modules/churches/services/churches-service";
 import { UsersFilters } from "@/modules/users/components/users-filters";
 import { UsersTable } from "@/modules/users/components/users-table";
 import { inactivateUser, listUsers } from "@/modules/users/services/users-service";
+import type { ChurchFilters, ChurchListResult } from "@/modules/churches/types/church";
 import type { UserFilters, UserItem } from "@/modules/users/types/user";
+import type { UserListResult } from "@/modules/users/types/user";
 
 const initialFilters: UserFilters = {
   name: "",
@@ -35,18 +44,67 @@ const feedbackMessages = {
   inactivated: "Usuario inativado com sucesso.",
 } as const;
 
+const USERS_LIST_QUERY_PREFIX = "users:list";
+const CHURCHES_LIST_QUERY_PREFIX = "churches:list";
+const USERS_LIST_TTL_MS = 30_000;
+const CHURCH_NAMES_TTL_MS = 5 * 60_000;
+const churchLookupFilters: ChurchFilters = {
+  name: "",
+  status: "",
+};
+
+function getUsersListQueryKey(filters: UserFilters) {
+  return createQueryKey(USERS_LIST_QUERY_PREFIX, {
+    name: filters.name.trim(),
+    email: filters.email.trim(),
+    status: filters.status,
+    role: filters.role,
+  });
+}
+
+function getChurchLookupQueryKey() {
+  return createQueryKey(CHURCHES_LIST_QUERY_PREFIX, churchLookupFilters);
+}
+
+function buildChurchNamesById(churches?: ChurchListResult) {
+  return Object.fromEntries(
+    (churches?.items ?? []).map((church) => [church.id, church.name]),
+  );
+}
+
 export function UsersListPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const feedbackKey = searchParams.get("feedback");
+  const hasNavigationFeedback = Boolean(
+    feedbackKey &&
+      Object.prototype.hasOwnProperty.call(feedbackMessages, feedbackKey),
+  );
   const [filters, setFilters] = useState<UserFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<UserFilters>(initialFilters);
-  const [users, setUsers] = useState<UserItem[]>([]);
-  const [churchNamesById, setChurchNamesById] = useState<Record<string, string>>(
-    {},
+  const [users, setUsers] = useState<UserItem[]>(
+    () =>
+      getCachedQuerySnapshot<UserListResult>(getUsersListQueryKey(initialFilters))
+        .data?.items ?? [],
   );
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [churchNamesById, setChurchNamesById] = useState<Record<string, string>>(
+    () =>
+      buildChurchNamesById(
+        getCachedQuerySnapshot<ChurchListResult>(getChurchLookupQueryKey()).data,
+      ),
+  );
+  const [total, setTotal] = useState(
+    () =>
+      getCachedQuerySnapshot<UserListResult>(getUsersListQueryKey(initialFilters))
+        .data?.total ?? 0,
+  );
+  const [isLoading, setIsLoading] = useState(
+    () =>
+      !getCachedQuerySnapshot<UserListResult>(
+        getUsersListQueryKey(initialFilters),
+      ).data,
+  );
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [churchesError, setChurchesError] = useState<string | null>(null);
@@ -54,30 +112,86 @@ export function UsersListPage() {
   const [userPendingInactivation, setUserPendingInactivation] =
     useState<UserItem | null>(null);
 
-  const loadUsers = useCallback(async (currentFilters: UserFilters) => {
-    setIsLoading(true);
-    setError(null);
+  const loadUsers = useCallback(
+    async (currentFilters: UserFilters, options?: { force?: boolean }) => {
+      if (options?.force) {
+        invalidateQueryPrefix(USERS_LIST_QUERY_PREFIX);
+        invalidateDashboardOverviewData();
+      }
+
+      const queryKey = getUsersListQueryKey(currentFilters);
+      const snapshot = getCachedQuerySnapshot<UserListResult>(queryKey);
+
+      if (snapshot.data) {
+        setUsers(snapshot.data.items);
+        setTotal(snapshot.data.total);
+      }
+
+      if (snapshot.isFresh && !options?.force) {
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetchCachedQuery(queryKey, () => listUsers(currentFilters), {
+          ttlMs: USERS_LIST_TTL_MS,
+          force: options?.force,
+        });
+
+        setUsers(response.items);
+        setTotal(response.total);
+      } catch (loadError) {
+        setError(
+          getApiErrorMessage(loadError, "Nao foi possivel carregar os usuarios."),
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const loadChurchNames = useCallback(async () => {
+    const queryKey = getChurchLookupQueryKey();
+    const snapshot = getCachedQuerySnapshot<ChurchListResult>(queryKey);
+
+    if (snapshot.data) {
+      setChurchNamesById(buildChurchNamesById(snapshot.data));
+      setChurchesError(null);
+    }
+
+    if (snapshot.isFresh) {
+      return;
+    }
+
+    setChurchesError(null);
 
     try {
-      const response = await listUsers(currentFilters);
-      setUsers(response.items);
-      setTotal(response.total);
+      const response = await fetchCachedQuery(queryKey, () => listChurches(churchLookupFilters), {
+        ttlMs: CHURCH_NAMES_TTL_MS,
+      });
+
+      setChurchesError(null);
+      setChurchNamesById(buildChurchNamesById(response));
     } catch (loadError) {
-      setError(
-        getApiErrorMessage(loadError, "Nao foi possivel carregar os usuarios."),
+      setChurchesError(
+        getApiErrorMessage(
+          loadError,
+          "Nao foi possivel carregar os nomes das igrejas.",
+        ),
       );
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadUsers(appliedFilters);
-  }, [appliedFilters, loadUsers]);
+    void loadUsers(appliedFilters, { force: hasNavigationFeedback });
+  }, [appliedFilters, hasNavigationFeedback, loadUsers]);
 
   useEffect(() => {
-    const feedbackKey = searchParams.get("feedback");
-
     if (!feedbackKey || !(feedbackKey in feedbackMessages)) {
       return;
     }
@@ -90,43 +204,11 @@ export function UsersListPage() {
       nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname,
       { scroll: false },
     );
-  }, [pathname, router, searchParams]);
+  }, [feedbackKey, pathname, router, searchParams]);
 
   useEffect(() => {
-    let isActive = true;
-
-    async function loadChurchNames() {
-      try {
-        const response = await listChurches({ name: "", status: "" });
-
-        if (!isActive) {
-          return;
-        }
-
-        setChurchesError(null);
-        setChurchNamesById(
-          Object.fromEntries(
-            response.items.map((church) => [church.id, church.name]),
-          ),
-        );
-      } catch (loadError) {
-        if (isActive) {
-          setChurchesError(
-            getApiErrorMessage(
-              loadError,
-              "Nao foi possivel carregar os nomes das igrejas.",
-            ),
-          );
-        }
-      }
-    }
-
     void loadChurchNames();
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
+  }, [loadChurchNames]);
 
   function handleFilterChange(field: keyof UserFilters, value: string) {
     setFilters((current) => ({
@@ -160,7 +242,7 @@ export function UsersListPage() {
 
     try {
       await inactivateUser(userPendingInactivation.id);
-      await loadUsers(appliedFilters);
+      await loadUsers(appliedFilters, { force: true });
       setUserPendingInactivation(null);
       setFeedback(feedbackMessages.inactivated);
     } catch (actionError) {
@@ -177,7 +259,7 @@ export function UsersListPage() {
       <ErrorView
         title="Nao foi possivel carregar os usuarios"
         description={error}
-        onAction={() => void loadUsers(appliedFilters)}
+        onAction={() => void loadUsers(appliedFilters, { force: true })}
       />
     );
   }
@@ -240,7 +322,7 @@ export function UsersListPage() {
               title="Nao foi possivel atualizar a listagem"
               description={error}
               actionLabel="Recarregar listagem"
-              onAction={() => void loadUsers(appliedFilters)}
+              onAction={() => void loadUsers(appliedFilters, { force: true })}
             />
           ) : null}
 

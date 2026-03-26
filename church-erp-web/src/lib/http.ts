@@ -4,12 +4,23 @@ import {
   getClientAccessToken,
 } from "@/modules/auth/lib/auth-session";
 
+const DEFAULT_API_BASE_URL = "/api";
+
+function resolveApiBaseUrl(baseUrl?: string) {
+  const normalizedBaseUrl = String(baseUrl ?? "").trim();
+
+  if (!normalizedBaseUrl) {
+    return DEFAULT_API_BASE_URL;
+  }
+
+  return normalizedBaseUrl.replace(/\/+$/, "");
+}
+
 export const http = axios.create({
-  baseURL: "/api",
+  baseURL: resolveApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL),
   timeout: 15000,
   headers: {
     Accept: "application/json",
-    "Content-Type": "application/json",
   },
 });
 
@@ -34,6 +45,19 @@ function getRequestAccessType(url?: string, pathname?: string) {
 http.interceptors.request.use((config) => {
   if (typeof window === "undefined") {
     return config;
+  }
+
+  config.headers = config.headers ?? {};
+
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+  } else if (
+    config.data !== undefined &&
+    config.method &&
+    !["get", "head"].includes(config.method.toLowerCase()) &&
+    !config.headers["Content-Type"]
+  ) {
+    config.headers["Content-Type"] = "application/json";
   }
 
   if (isAuthLoginRequest(config.url)) {

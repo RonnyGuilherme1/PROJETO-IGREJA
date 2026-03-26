@@ -5,6 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
+import {
+  createQueryKey,
+  fetchCachedQuery,
+  getCachedQuerySnapshot,
+  invalidateQueryPrefix,
+} from "@/lib/query/query-cache";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageLoading } from "@/components/shared/page-loading";
@@ -23,6 +29,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { invalidateDashboardOverviewData } from "@/modules/dashboard/services/dashboard-service";
 import { ChurchDetailsCard } from "@/modules/churches/components/church-details-card";
 import { ChurchesFilters } from "@/modules/churches/components/churches-filters";
 import { ChurchesTable } from "@/modules/churches/components/churches-table";
@@ -32,7 +39,11 @@ import {
   listChurches,
 } from "@/modules/churches/services/churches-service";
 import type { AuthUser } from "@/modules/auth/types/auth";
-import type { ChurchFilters, ChurchItem } from "@/modules/churches/types/church";
+import type {
+  ChurchFilters,
+  ChurchItem,
+  ChurchListResult,
+} from "@/modules/churches/types/church";
 
 interface ChurchesListPageProps {
   canEdit: boolean;
@@ -50,6 +61,16 @@ const feedbackMessages = {
   inactivated: "Igreja inativada com sucesso.",
 } as const;
 
+const CHURCHES_LIST_QUERY_PREFIX = "churches:list";
+const CHURCHES_LIST_TTL_MS = 30_000;
+
+function getChurchesListQueryKey(filters: ChurchFilters) {
+  return createQueryKey(CHURCHES_LIST_QUERY_PREFIX, {
+    name: filters.name.trim(),
+    status: filters.status,
+  });
+}
+
 export function ChurchesListPage({
   canEdit,
   currentUser,
@@ -57,54 +78,103 @@ export function ChurchesListPage({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const feedbackKey = searchParams.get("feedback");
+  const hasNavigationFeedback = Boolean(
+    feedbackKey &&
+      Object.prototype.hasOwnProperty.call(feedbackMessages, feedbackKey),
+  );
   const [filters, setFilters] = useState<ChurchFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<ChurchFilters>(initialFilters);
-  const [churches, setChurches] = useState<ChurchItem[]>([]);
+  const [churches, setChurches] = useState<ChurchItem[]>(
+    () =>
+      getCachedQuerySnapshot<ChurchListResult>(
+        getChurchesListQueryKey(initialFilters),
+      ).data?.items ?? [],
+  );
   const [selectedChurchId, setSelectedChurchId] = useState<string | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [total, setTotal] = useState(
+    () =>
+      getCachedQuerySnapshot<ChurchListResult>(
+        getChurchesListQueryKey(initialFilters),
+      ).data?.total ?? 0,
+  );
+  const [isLoading, setIsLoading] = useState(
+    () =>
+      !getCachedQuerySnapshot<ChurchListResult>(
+        getChurchesListQueryKey(initialFilters),
+      ).data,
+  );
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inactivatingId, setInactivatingId] = useState<string | null>(null);
   const [churchPendingInactivation, setChurchPendingInactivation] =
     useState<ChurchItem | null>(null);
 
-  const loadChurches = useCallback(async (currentFilters: ChurchFilters) => {
-    setIsLoading(true);
-    setError(null);
+  function applyChurchesResponse(response: ChurchListResult) {
+    setChurches(response.items);
+    setTotal(response.total);
 
-    try {
-      const response = await listChurches(currentFilters);
-      setChurches(response.items);
-      setTotal(response.total);
-      if (response.items.length === 0) {
-        setIsDetailsOpen(false);
-      }
-      setSelectedChurchId((current) => {
-        if (response.items.length === 0) {
-          return null;
-        }
-
-        const stillExists = response.items.some((church) => church.id === current);
-        return stillExists ? current : response.items[0]?.id ?? null;
-      });
-    } catch (loadError) {
-      setError(
-        getApiErrorMessage(loadError, "Nao foi possivel carregar as igrejas."),
-      );
-    } finally {
-      setIsLoading(false);
+    if (response.items.length === 0) {
+      setIsDetailsOpen(false);
     }
-  }, []);
+
+    setSelectedChurchId((current) => {
+      if (response.items.length === 0) {
+        return null;
+      }
+
+      const stillExists = response.items.some((church) => church.id === current);
+      return stillExists ? current : response.items[0]?.id ?? null;
+    });
+  }
+
+  const loadChurches = useCallback(
+    async (currentFilters: ChurchFilters, options?: { force?: boolean }) => {
+      if (options?.force) {
+        invalidateQueryPrefix(CHURCHES_LIST_QUERY_PREFIX);
+        invalidateDashboardOverviewData();
+      }
+
+      const queryKey = getChurchesListQueryKey(currentFilters);
+      const snapshot = getCachedQuerySnapshot<ChurchListResult>(queryKey);
+
+      if (snapshot.data) {
+        applyChurchesResponse(snapshot.data);
+      }
+
+      if (snapshot.isFresh && !options?.force) {
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetchCachedQuery(queryKey, () => listChurches(currentFilters), {
+          ttlMs: CHURCHES_LIST_TTL_MS,
+          force: options?.force,
+        });
+
+        applyChurchesResponse(response);
+      } catch (loadError) {
+        setError(
+          getApiErrorMessage(loadError, "Nao foi possivel carregar as igrejas."),
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
-    void loadChurches(appliedFilters);
-  }, [appliedFilters, loadChurches]);
+    void loadChurches(appliedFilters, { force: hasNavigationFeedback });
+  }, [appliedFilters, hasNavigationFeedback, loadChurches]);
 
   useEffect(() => {
-    const feedbackKey = searchParams.get("feedback");
-
     if (!feedbackKey || !(feedbackKey in feedbackMessages)) {
       return;
     }
@@ -117,7 +187,7 @@ export function ChurchesListPage({
       nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname,
       { scroll: false },
     );
-  }, [pathname, router, searchParams]);
+  }, [feedbackKey, pathname, router, searchParams]);
 
   function handleFilterChange(field: keyof ChurchFilters, value: string) {
     setFilters((current) => ({
@@ -156,7 +226,7 @@ export function ChurchesListPage({
 
     try {
       await inactivateChurch(churchPendingInactivation.id);
-      await loadChurches(appliedFilters);
+      await loadChurches(appliedFilters, { force: true });
       setChurchPendingInactivation(null);
       setFeedback(feedbackMessages.inactivated);
     } catch (actionError) {
@@ -173,7 +243,7 @@ export function ChurchesListPage({
       <ErrorView
         title="Nao foi possivel carregar as igrejas"
         description={error}
-        onAction={() => void loadChurches(appliedFilters)}
+        onAction={() => void loadChurches(appliedFilters, { force: true })}
       />
     );
   }
@@ -230,7 +300,7 @@ export function ChurchesListPage({
               title="Nao foi possivel atualizar a listagem"
               description={error}
               actionLabel="Recarregar listagem"
-              onAction={() => void loadChurches(appliedFilters)}
+              onAction={() => void loadChurches(appliedFilters, { force: true })}
             />
           ) : null}
 

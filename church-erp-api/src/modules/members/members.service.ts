@@ -241,11 +241,11 @@ export class MembersService {
     const where: Prisma.MemberWhereInput = {
       tenantId,
     };
-    const filters: Prisma.MemberWhereInput[] = [];
+    const normalizedName = query.name?.trim();
 
-    if (query.name) {
+    if (normalizedName) {
       where.fullName = {
-        contains: query.name,
+        contains: normalizedName,
         mode: 'insensitive',
       };
     }
@@ -260,30 +260,22 @@ export class MembersService {
 
     const joinedRange = this.normalizeDateRange(query.joinedFrom, query.joinedTo);
 
-    if (joinedRange.from) {
-      filters.push({
-        joinedAt: {
-          gte: joinedRange.from,
-        },
-      });
-    }
+    if (joinedRange.from || joinedRange.to) {
+      const joinedAt: Prisma.DateTimeNullableFilter = {};
 
-    if (joinedRange.to) {
-      filters.push({
-        joinedAt: {
-          lte: joinedRange.to,
-        },
-      });
+      if (joinedRange.from) {
+        joinedAt.gte = joinedRange.from;
+      }
+
+      if (joinedRange.to) {
+        joinedAt.lte = joinedRange.to;
+      }
+
+      where.joinedAt = joinedAt;
     }
 
     if (query.ageRange) {
-      filters.push({
-        birthDate: this.buildBirthDateFilter(query.ageRange),
-      });
-    }
-
-    if (filters.length > 0) {
-      where.AND = filters;
+      where.birthDate = this.buildBirthDateFilter(query.ageRange);
     }
 
     return where;

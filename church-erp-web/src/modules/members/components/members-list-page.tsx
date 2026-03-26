@@ -5,6 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
+import {
+  createQueryKey,
+  fetchCachedQuery,
+  getCachedQuerySnapshot,
+  invalidateQueryPrefix,
+} from "@/lib/query/query-cache";
 import { ConfirmActionDialog } from "@/components/shared/confirm-action-dialog";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageLoading } from "@/components/shared/page-loading";
@@ -16,13 +22,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { invalidateDashboardOverviewData } from "@/modules/dashboard/services/dashboard-service";
 import { listChurches } from "@/modules/churches/services/churches-service";
 import { MembersFilters } from "@/modules/members/components/members-filters";
 import { MembersTable } from "@/modules/members/components/members-table";
 import { getMembersAccessLabel } from "@/modules/members/lib/members-permissions";
 import { inactivateMember, listMembers } from "@/modules/members/services/members-service";
 import type { AuthUser } from "@/modules/auth/types/auth";
+import type { ChurchFilters, ChurchListResult } from "@/modules/churches/types/church";
 import type { MemberFilters, MemberItem } from "@/modules/members/types/member";
+import type { MemberListResult } from "@/modules/members/types/member";
 
 interface MembersListPageProps {
   canEdit: boolean;
@@ -49,6 +58,37 @@ const feedbackMessages = {
   inactivated: "Membro inativado com sucesso.",
 } as const;
 
+const MEMBERS_LIST_QUERY_PREFIX = "members:list";
+const CHURCHES_LIST_QUERY_PREFIX = "churches:list";
+const MEMBERS_LIST_TTL_MS = 30_000;
+const CHURCH_OPTIONS_TTL_MS = 5 * 60_000;
+const churchLookupFilters: ChurchFilters = {
+  name: "",
+  status: "",
+};
+
+function getMembersListQueryKey(filters: MemberFilters) {
+  return createQueryKey(MEMBERS_LIST_QUERY_PREFIX, {
+    name: filters.name.trim(),
+    status: filters.status,
+    churchId: filters.churchId,
+    ageRange: filters.ageRange,
+    joinedFrom: filters.joinedFrom,
+    joinedTo: filters.joinedTo,
+  });
+}
+
+function getChurchOptionsQueryKey() {
+  return createQueryKey(CHURCHES_LIST_QUERY_PREFIX, churchLookupFilters);
+}
+
+function buildChurchOptions(churches?: ChurchListResult): ChurchOption[] {
+  return (churches?.items ?? []).map((church) => ({
+    id: church.id,
+    name: church.name,
+  }));
+}
+
 export function MembersListPage({
   canEdit,
   currentUser,
@@ -56,12 +96,37 @@ export function MembersListPage({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const feedbackKey = searchParams.get("feedback");
+  const hasNavigationFeedback = Boolean(
+    feedbackKey &&
+      Object.prototype.hasOwnProperty.call(feedbackMessages, feedbackKey),
+  );
   const [filters, setFilters] = useState<MemberFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<MemberFilters>(initialFilters);
-  const [members, setMembers] = useState<MemberItem[]>([]);
-  const [churchOptions, setChurchOptions] = useState<ChurchOption[]>([]);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [members, setMembers] = useState<MemberItem[]>(
+    () =>
+      getCachedQuerySnapshot<MemberListResult>(
+        getMembersListQueryKey(initialFilters),
+      ).data?.items ?? [],
+  );
+  const [churchOptions, setChurchOptions] = useState<ChurchOption[]>(
+    () =>
+      buildChurchOptions(
+        getCachedQuerySnapshot<ChurchListResult>(getChurchOptionsQueryKey()).data,
+      ),
+  );
+  const [total, setTotal] = useState(
+    () =>
+      getCachedQuerySnapshot<MemberListResult>(
+        getMembersListQueryKey(initialFilters),
+      ).data?.total ?? 0,
+  );
+  const [isLoading, setIsLoading] = useState(
+    () =>
+      !getCachedQuerySnapshot<MemberListResult>(
+        getMembersListQueryKey(initialFilters),
+      ).data,
+  );
   const [feedback, setFeedback] = useState<string | null>(null);
   const [churchesError, setChurchesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,30 +137,84 @@ export function MembersListPage({
     churchOptions.map((church) => [church.id, church.name]),
   );
 
-  const loadMembers = useCallback(async (currentFilters: MemberFilters) => {
-    setIsLoading(true);
-    setError(null);
+  const loadMembers = useCallback(
+    async (currentFilters: MemberFilters, options?: { force?: boolean }) => {
+      if (options?.force) {
+        invalidateQueryPrefix(MEMBERS_LIST_QUERY_PREFIX);
+        invalidateDashboardOverviewData();
+      }
+
+      const queryKey = getMembersListQueryKey(currentFilters);
+      const snapshot = getCachedQuerySnapshot<MemberListResult>(queryKey);
+
+      if (snapshot.data) {
+        setMembers(snapshot.data.items);
+        setTotal(snapshot.data.total);
+      }
+
+      if (snapshot.isFresh && !options?.force) {
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetchCachedQuery(queryKey, () => listMembers(currentFilters), {
+          ttlMs: MEMBERS_LIST_TTL_MS,
+          force: options?.force,
+        });
+
+        setMembers(response.items);
+        setTotal(response.total);
+      } catch (loadError) {
+        setError(
+          getApiErrorMessage(loadError, "Nao foi possivel carregar os membros."),
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const loadChurchOptions = useCallback(async () => {
+    const queryKey = getChurchOptionsQueryKey();
+    const snapshot = getCachedQuerySnapshot<ChurchListResult>(queryKey);
+
+    if (snapshot.data) {
+      setChurchOptions(buildChurchOptions(snapshot.data));
+      setChurchesError(null);
+    }
+
+    if (snapshot.isFresh) {
+      return;
+    }
 
     try {
-      const response = await listMembers(currentFilters);
-      setMembers(response.items);
-      setTotal(response.total);
+      const response = await fetchCachedQuery(queryKey, () => listChurches(churchLookupFilters), {
+        ttlMs: CHURCH_OPTIONS_TTL_MS,
+      });
+
+      setChurchOptions(buildChurchOptions(response));
+      setChurchesError(null);
     } catch (loadError) {
-      setError(
-        getApiErrorMessage(loadError, "Nao foi possivel carregar os membros."),
+      setChurchesError(
+        getApiErrorMessage(
+          loadError,
+          "Nao foi possivel carregar as igrejas para os filtros.",
+        ),
       );
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadMembers(appliedFilters);
-  }, [appliedFilters, loadMembers]);
+    void loadMembers(appliedFilters, { force: hasNavigationFeedback });
+  }, [appliedFilters, hasNavigationFeedback, loadMembers]);
 
   useEffect(() => {
-    const feedbackKey = searchParams.get("feedback");
-
     if (!feedbackKey || !(feedbackKey in feedbackMessages)) {
       return;
     }
@@ -108,43 +227,11 @@ export function MembersListPage({
       nextParams.size > 0 ? `${pathname}?${nextParams.toString()}` : pathname,
       { scroll: false },
     );
-  }, [pathname, router, searchParams]);
+  }, [feedbackKey, pathname, router, searchParams]);
 
   useEffect(() => {
-    let isActive = true;
-
-    async function loadChurchOptions() {
-      try {
-        const response = await listChurches({ name: "", status: "" });
-
-        if (!isActive) {
-          return;
-        }
-
-        setChurchOptions(
-          response.items.map((church) => ({
-            id: church.id,
-            name: church.name,
-          })),
-        );
-      } catch (loadError) {
-        if (isActive) {
-          setChurchesError(
-            getApiErrorMessage(
-              loadError,
-              "Nao foi possivel carregar as igrejas para os filtros.",
-            ),
-          );
-        }
-      }
-    }
-
     void loadChurchOptions();
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
+  }, [loadChurchOptions]);
 
   function handleFilterChange(field: keyof MemberFilters, value: string) {
     setFilters((current) => ({
@@ -178,7 +265,7 @@ export function MembersListPage({
 
     try {
       await inactivateMember(memberPendingInactivation.id);
-      await loadMembers(appliedFilters);
+      await loadMembers(appliedFilters, { force: true });
       setMemberPendingInactivation(null);
       setFeedback(feedbackMessages.inactivated);
     } catch (actionError) {
@@ -195,7 +282,7 @@ export function MembersListPage({
       <ErrorView
         title="Nao foi possivel carregar os membros"
         description={error}
-        onAction={() => void loadMembers(appliedFilters)}
+        onAction={() => void loadMembers(appliedFilters, { force: true })}
       />
     );
   }
@@ -261,7 +348,7 @@ export function MembersListPage({
               title="Nao foi possivel atualizar a listagem"
               description={error}
               actionLabel="Recarregar listagem"
-              onAction={() => void loadMembers(appliedFilters)}
+              onAction={() => void loadMembers(appliedFilters, { force: true })}
             />
           ) : null}
 

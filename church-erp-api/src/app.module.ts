@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule, minutes } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule, minutes } from '@nestjs/throttler';
 
 import { validateEnv } from './config/env.validation';
 import { PrismaModule } from './database/prisma/prisma.module';
@@ -28,13 +29,17 @@ import { UsersModule } from './modules/users/users.module';
         const isProduction =
           configService.get<string>('NODE_ENV') === 'production';
 
-        return [
-          {
-            ttl: minutes(1),
-            limit: isProduction ? 5 : 20,
-            blockDuration: isProduction ? minutes(5) : minutes(1),
-          },
-        ];
+        return {
+          errorMessage: 'Muitas requisicoes. Tente novamente em instantes.',
+          setHeaders: true,
+          throttlers: [
+            {
+              ttl: minutes(1),
+              limit: isProduction ? 60 : 300,
+              blockDuration: minutes(1),
+            },
+          ],
+        };
       },
     }),
     PrismaModule,
@@ -46,6 +51,12 @@ import { UsersModule } from './modules/users/users.module';
     MembersModule,
     FinanceModule,
     DashboardModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

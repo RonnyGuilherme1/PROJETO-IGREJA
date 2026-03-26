@@ -15,15 +15,24 @@ function resolveCorsOrigin(
   nodeEnv?: string,
 ): boolean | string | string[] {
   const isProduction = nodeEnv === 'production';
+  const normalizedCorsOrigin = String(corsOrigin ?? '').trim();
 
-  if (!corsOrigin || corsOrigin === '*') {
+  if (normalizedCorsOrigin.length === 0 || normalizedCorsOrigin === '*') {
     return !isProduction;
   }
 
-  const origins = corsOrigin
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const origins = [
+    ...new Set(
+      normalizedCorsOrigin
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter((origin) => origin.length > 0 && origin !== '*'),
+    ),
+  ];
+
+  if (origins.length === 0) {
+    return !isProduction;
+  }
 
   return origins.length === 1 ? origins[0] : origins;
 }

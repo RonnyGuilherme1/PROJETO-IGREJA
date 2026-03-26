@@ -95,13 +95,6 @@ const financeMonthClosureSelect =
     closedByUserId: true,
   });
 
-const financeMonthSummaryTransactionSelect =
-  Prisma.validator<Prisma.FinanceTransactionSelect>()({
-    amount: true,
-    type: true,
-    status: true,
-  });
-
 const financeTransactionExportSelect =
   Prisma.validator<Prisma.FinanceTransactionSelect>()({
     id: true,
@@ -149,6 +142,12 @@ type FinanceMonthSummarySnapshot = {
   incomeAmount: Prisma.Decimal;
   expenseAmount: Prisma.Decimal;
   balanceAmount: Prisma.Decimal;
+  transactionCount: number;
+};
+
+type FinanceMonthSummaryAggregateRow = {
+  incomeAmount: Prisma.Decimal | string | number | null;
+  expenseAmount: Prisma.Decimal | string | number | null;
   transactionCount: number;
 };
 
@@ -637,32 +636,36 @@ export class FinanceService {
     month: number,
   ): Promise<FinanceMonthSummarySnapshot> {
     const { startDate, endDate } = this.getMonthDateRange(year, month);
-    const transactions = await this.prisma.financeTransaction.findMany({
-      where: {
-        tenantId,
-        transactionDate: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      select: financeMonthSummaryTransactionSelect,
-    });
-
-    let incomeAmount = new Prisma.Decimal(0);
-    let expenseAmount = new Prisma.Decimal(0);
-
-    for (const transaction of transactions) {
-      if (transaction.status === FinanceTransactionStatus.CANCELLED) {
-        continue;
-      }
-
-      if (transaction.type === FinanceType.ENTRY) {
-        incomeAmount = incomeAmount.add(transaction.amount);
-        continue;
-      }
-
-      expenseAmount = expenseAmount.add(transaction.amount);
-    }
+    const [summary] = await this.prisma.$queryRaw<FinanceMonthSummaryAggregateRow[]>(
+      Prisma.sql`
+        SELECT
+          COALESCE(
+            SUM(
+              CASE
+                WHEN "status" = 'ACTIVE' AND "type" = 'ENTRY' THEN "amount"
+                ELSE 0
+              END
+            ),
+            0
+          ) AS "incomeAmount",
+          COALESCE(
+            SUM(
+              CASE
+                WHEN "status" = 'ACTIVE' AND "type" = 'EXPENSE' THEN "amount"
+                ELSE 0
+              END
+            ),
+            0
+          ) AS "expenseAmount",
+          COUNT(*)::int AS "transactionCount"
+        FROM "FinanceTransaction"
+        WHERE "tenantId" = ${tenantId}::uuid
+          AND "transactionDate" >= ${startDate}
+          AND "transactionDate" < ${endDate}
+      `,
+    );
+    const incomeAmount = new Prisma.Decimal(summary?.incomeAmount ?? 0);
+    const expenseAmount = new Prisma.Decimal(summary?.expenseAmount ?? 0);
 
     return {
       year,
@@ -673,7 +676,7 @@ export class FinanceService {
       incomeAmount,
       expenseAmount,
       balanceAmount: incomeAmount.sub(expenseAmount),
-      transactionCount: transactions.length,
+      transactionCount: Number(summary?.transactionCount ?? 0),
     };
   }
 
@@ -683,7 +686,7 @@ export class FinanceService {
   ): { startDate: Date; endDate: Date } {
     return {
       startDate: new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0)),
-      endDate: new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)),
+      endDate: new Date(Date.UTC(year, month, 1, 0, 0, 0, 0)),
     };
   }
 

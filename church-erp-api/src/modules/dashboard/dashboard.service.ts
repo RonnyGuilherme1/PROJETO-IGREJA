@@ -1,8 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import {
   ChurchStatus,
-  FinanceTransactionStatus,
-  FinanceType,
   MemberStatus,
   Prisma,
   UserStatus,
@@ -25,6 +23,11 @@ type MembersByMonthRow = {
   total: number | string;
 };
 
+type DashboardMonthFinanceTotalsRow = {
+  entries: Prisma.Decimal | string | number | null;
+  expenses: Prisma.Decimal | string | number | null;
+};
+
 @Injectable()
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
@@ -39,8 +42,7 @@ export class DashboardService {
       totalMembers,
       totalChurches,
       totalActiveUsers,
-      monthEntries,
-      monthExpenses,
+      monthFinanceTotals,
     ] = await Promise.all([
       this.prisma.member.count({
         where: {
@@ -60,38 +62,39 @@ export class DashboardService {
           status: UserStatus.ACTIVE,
         },
       }),
-      this.prisma.financeTransaction.aggregate({
-        where: {
-          tenantId,
-          status: FinanceTransactionStatus.ACTIVE,
-          type: FinanceType.ENTRY,
-          transactionDate: {
-            gte: start,
-            lt: end,
-          },
-        },
-        _sum: {
-          amount: true,
-        },
-      }),
-      this.prisma.financeTransaction.aggregate({
-        where: {
-          tenantId,
-          status: FinanceTransactionStatus.ACTIVE,
-          type: FinanceType.EXPENSE,
-          transactionDate: {
-            gte: start,
-            lt: end,
-          },
-        },
-        _sum: {
-          amount: true,
-        },
-      }),
+      this.prisma.$queryRaw<DashboardMonthFinanceTotalsRow[]>(Prisma.sql`
+        SELECT
+          COALESCE(
+            SUM(
+              CASE
+                WHEN "type" = 'ENTRY' THEN "amount"
+                ELSE 0
+              END
+            ),
+            0
+          ) AS entries,
+          COALESCE(
+            SUM(
+              CASE
+                WHEN "type" = 'EXPENSE' THEN "amount"
+                ELSE 0
+              END
+            ),
+            0
+          ) AS expenses
+        FROM "FinanceTransaction"
+        WHERE "tenantId" = ${tenantId}::uuid
+          AND "status" = 'ACTIVE'
+          AND "transactionDate" >= ${start}
+          AND "transactionDate" < ${end}
+      `),
     ]);
+    const [monthFinanceSummary] = monthFinanceTotals;
 
-    const totalMonthEntries = this.toDecimalString(monthEntries._sum.amount);
-    const totalMonthExpenses = this.toDecimalString(monthExpenses._sum.amount);
+    const totalMonthEntries = this.toDecimalString(monthFinanceSummary?.entries);
+    const totalMonthExpenses = this.toDecimalString(
+      monthFinanceSummary?.expenses,
+    );
     const monthBalance = new Prisma.Decimal(totalMonthEntries)
       .minus(new Prisma.Decimal(totalMonthExpenses))
       .toFixed(2);

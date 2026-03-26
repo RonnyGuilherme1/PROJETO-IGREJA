@@ -1,4 +1,10 @@
 import { ensureApiConfigured, http } from "@/lib/http";
+import {
+  createQueryKey,
+  fetchCachedQuery,
+  getCachedQuerySnapshot,
+  invalidateQuery,
+} from "@/lib/query/query-cache";
 import type {
   DashboardCardsResponse,
   DashboardFinanceByMonthResponse,
@@ -11,6 +17,8 @@ import type {
 const DASHBOARD_CARDS_ENDPOINT = "/dashboard/cards";
 const DASHBOARD_FINANCE_BY_MONTH_ENDPOINT = "/dashboard/finance-by-month";
 const DASHBOARD_MEMBERS_BY_MONTH_ENDPOINT = "/dashboard/members-by-month";
+const DASHBOARD_OVERVIEW_QUERY_KEY = createQueryKey("dashboard:overview");
+const DASHBOARD_OVERVIEW_TTL_MS = 30_000;
 
 export interface DashboardOperationalSummary {
   currentMonthMembers: number;
@@ -104,12 +112,14 @@ function buildOperationalSummary(
   };
 }
 
-export async function getDashboardOverviewData(): Promise<DashboardOverviewViewData> {
+async function fetchDashboardOverviewData(): Promise<DashboardOverviewViewData> {
   ensureApiConfigured();
 
   const [cardsResponse, financeResponse, membersResponse] = await Promise.all([
     http.get<DashboardCardsResponse>(DASHBOARD_CARDS_ENDPOINT),
-    http.get<DashboardFinanceByMonthResponse[]>(DASHBOARD_FINANCE_BY_MONTH_ENDPOINT),
+    http.get<DashboardFinanceByMonthResponse[]>(
+      DASHBOARD_FINANCE_BY_MONTH_ENDPOINT,
+    ),
     http.get<DashboardMembersByMonthResponse[]>(
       DASHBOARD_MEMBERS_BY_MONTH_ENDPOINT,
     ),
@@ -138,4 +148,31 @@ export async function getDashboardOverviewData(): Promise<DashboardOverviewViewD
     ...overviewData,
     operational: buildOperationalSummary(overviewData),
   };
+}
+
+export function peekDashboardOverviewData(): DashboardOverviewViewData | null {
+  return getDashboardOverviewCacheSnapshot().data ?? null;
+}
+
+export function getDashboardOverviewCacheSnapshot() {
+  return getCachedQuerySnapshot<DashboardOverviewViewData>(
+    DASHBOARD_OVERVIEW_QUERY_KEY,
+  );
+}
+
+export function invalidateDashboardOverviewData() {
+  invalidateQuery(DASHBOARD_OVERVIEW_QUERY_KEY);
+}
+
+export async function getDashboardOverviewData(options?: {
+  force?: boolean;
+}): Promise<DashboardOverviewViewData> {
+  return fetchCachedQuery(
+    DASHBOARD_OVERVIEW_QUERY_KEY,
+    fetchDashboardOverviewData,
+    {
+      ttlMs: DASHBOARD_OVERVIEW_TTL_MS,
+      force: options?.force,
+    },
+  );
 }
