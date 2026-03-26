@@ -15,24 +15,28 @@ interface MasterSidebarProps {
 export function MasterSidebar({ user, onNavigate }: MasterSidebarProps) {
   const pathname = usePathname();
   const masterNavItems = getMasterNavItems(user);
+  const accessLabel =
+    user.platformRole === "PLATFORM_ADMIN"
+      ? "Administracao da plataforma"
+      : "Operacao de ambientes";
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-sidebar-border px-6 py-6">
+      <div className="border-b border-sidebar-border px-5 py-5">
         <Link
           href="/master/dashboard"
           onClick={onNavigate}
           className="flex items-center gap-3"
         >
-          <div className="flex size-11 items-center justify-center rounded-2xl bg-sidebar-foreground/10 text-sidebar-foreground">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-sidebar-foreground/10 text-sidebar-foreground shadow-sm">
             <ShieldUser className="size-5" />
           </div>
           <div className="space-y-1">
             <p className="text-sm font-semibold tracking-wide text-sidebar-foreground">
               Plataforma Church ERP
             </p>
-            <p className="text-xs text-sidebar-foreground/60">
-              Plataforma
+            <p className="text-xs uppercase tracking-[0.22em] text-sidebar-foreground/55">
+              Area master
             </p>
           </div>
         </Link>
@@ -42,7 +46,7 @@ export function MasterSidebar({ user, onNavigate }: MasterSidebarProps) {
         <p className="px-2 text-xs font-medium uppercase tracking-[0.24em] text-sidebar-foreground/45">
           Navegacao
         </p>
-        <nav className="mt-4 space-y-1.5">
+        <nav className="mt-4 space-y-2">
           {masterNavItems.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -54,7 +58,7 @@ export function MasterSidebar({ user, onNavigate }: MasterSidebarProps) {
                 href={item.href}
                 onClick={onNavigate}
                 className={cn(
-                  "group flex items-center gap-3 rounded-2xl px-3 py-3 transition-colors",
+                  "group flex items-center gap-3 rounded-[1.35rem] px-3.5 py-3 transition-colors",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-foreground shadow-sm ring-1 ring-sidebar-border"
                     : "text-sidebar-foreground/80 hover:bg-sidebar-accent/80 hover:text-sidebar-foreground",

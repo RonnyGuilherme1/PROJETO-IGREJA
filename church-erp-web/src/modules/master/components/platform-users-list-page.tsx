@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
@@ -31,7 +31,10 @@ import type { PlatformUserItem } from "@/modules/master/types/platform-user";
 
 export function PlatformUsersListPage() {
   const router = useRouter();
-  const currentUser = useMemo(() => getStoredMasterUser(), []);
+  const [isSessionReady, setIsSessionReady] = useState(false);
+  const [currentUser, setCurrentUser] = useState<ReturnType<
+    typeof getStoredMasterUser
+  >>(null);
   const canManageUsers = canManagePlatformUsers(currentUser);
   const [users, setUsers] = useState<PlatformUserItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -40,6 +43,11 @@ export function PlatformUsersListPage() {
   const [inactivatingId, setInactivatingId] = useState<string | null>(null);
   const [userPendingInactivation, setUserPendingInactivation] =
     useState<PlatformUserItem | null>(null);
+
+  useEffect(() => {
+    setCurrentUser(getStoredMasterUser());
+    setIsSessionReady(true);
+  }, []);
 
   const loadUsers = useCallback(async () => {
     setIsLoading(true);
@@ -62,6 +70,10 @@ export function PlatformUsersListPage() {
   }, []);
 
   useEffect(() => {
+    if (!isSessionReady) {
+      return;
+    }
+
     if (!canManageUsers) {
       setIsLoading(false);
       router.replace("/master/dashboard");
@@ -69,12 +81,60 @@ export function PlatformUsersListPage() {
     }
 
     void loadUsers();
-  }, [canManageUsers, loadUsers, router]);
+  }, [canManageUsers, isSessionReady, loadUsers, router]);
 
   const protectedUsersCount = users.filter((user) => user.isSystemProtected).length;
   const operatorUsersCount = users.filter(
     (user) => user.platformRole === "PLATFORM_OPERATOR",
   ).length;
+
+  if (!isSessionReady) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Usuarios da plataforma"
+          description="Carregando a configuracao visual e as permissoes da area master."
+          badge="Plataforma"
+        />
+
+        <Card className="bg-[color:var(--surface-soft)]">
+          <CardHeader>
+            <CardTitle>Visao geral</CardTitle>
+            <CardDescription>
+              Preparando os indicadores e a listagem de usuarios da plataforma.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-24 animate-pulse rounded-3xl bg-secondary/60"
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[color:var(--surface-soft)]">
+          <CardHeader>
+            <CardTitle>Listagem</CardTitle>
+            <CardDescription>Carregando usuarios master.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-16 animate-pulse rounded-2xl bg-secondary/60"
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!canManageUsers) {
     return null;
@@ -143,14 +203,56 @@ export function PlatformUsersListPage() {
           <div className="space-y-2">
             <CardTitle>Visao geral</CardTitle>
             <CardDescription>
-              Usuarios protegidos ficam identificados e operadores aparecem com escopo restrito a ambientes.
+              Usuarios protegidos ficam identificados e operadores permanecem restritos ao fluxo operacional de ambientes.
             </CardDescription>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Badge variant="secondary">Total: {total}</Badge>
-            <Badge variant="outline">{protectedUsersCount} protegidos</Badge>
-            <Badge variant="outline">{operatorUsersCount} operacionais</Badge>
+          <Badge variant="secondary">Total: {total}</Badge>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-3xl border border-border bg-[color:var(--surface-base)] p-5">
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Total
+              </p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+                {total}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Usuarios cadastrados para operar ou administrar a plataforma.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-border bg-[color:var(--surface-base)] p-5">
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Protegidos
+              </p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+                {protectedUsersCount}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Usuarios com protecao do sistema, sem inativacao ou rebaixamento comum.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-border bg-[color:var(--surface-base)] p-5">
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Operacionais
+              </p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+                {operatorUsersCount}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Usuarios com atuacao apenas em ambientes, sem criar outros masters.
+              </p>
+            </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[color:var(--surface-soft)]">
+        <CardHeader className="space-y-2">
+          <CardTitle>Listagem</CardTitle>
+          <CardDescription>
+            Visualize equipe da plataforma, papeis operacionais e protecoes ativas com a mesma leitura administrativa do restante do sistema.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error ? (

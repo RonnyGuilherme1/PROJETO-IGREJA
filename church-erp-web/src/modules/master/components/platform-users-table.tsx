@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import type { UserStatus } from "@/modules/auth/types/auth";
 import type { PlatformUserItem } from "@/modules/master/types/platform-user";
 
+const PLATFORM_USER_TIMEZONE_OFFSET_IN_MS = 3 * 60 * 60 * 1000;
+
 interface PlatformUsersTableProps {
   users: PlatformUserItem[];
   isLoading: boolean;
@@ -45,6 +47,27 @@ function getPlatformRoleHint(role: PlatformUserItem["platformRole"]) {
   }
 }
 
+function formatDate(value: string) {
+  if (!value) {
+    return "-";
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  const fortalezaDate = new Date(
+    parsed.getTime() - PLATFORM_USER_TIMEZONE_OFFSET_IN_MS,
+  );
+  const day = String(fortalezaDate.getUTCDate()).padStart(2, "0");
+  const month = String(fortalezaDate.getUTCMonth() + 1).padStart(2, "0");
+  const year = fortalezaDate.getUTCFullYear();
+
+  return `${day}/${month}/${year}`;
+}
+
 export function PlatformUsersTable({
   users,
   isLoading,
@@ -62,7 +85,7 @@ export function PlatformUsersTable({
                 Nome
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                Username e e-mail
+                Contato
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 Papel
@@ -112,23 +135,32 @@ export function PlatformUsersTable({
                     <div className="space-y-1">
                       <p className="font-medium text-foreground">{user.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        Criado em{" "}
-                        {new Date(user.createdAt).toLocaleDateString("pt-BR")}
+                        Criado em {formatDate(user.createdAt)}
                       </p>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
                     <div className="space-y-1">
-                      <p>Username: {user.username || "-"}</p>
-                      <p>E-mail: {user.email || "-"}</p>
+                      <p className="font-medium text-foreground">
+                        {user.username || "Sem username"}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {user.email || "Sem e-mail informado"}
+                      </p>
                     </div>
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
-                    <div className="space-y-2">
-                      <Badge variant="outline">{getPlatformRoleLabel(user.platformRole)}</Badge>
-                      {user.platformRole === "PLATFORM_OPERATOR" ? (
-                        <Badge variant="secondary">Opera ambientes</Badge>
-                      ) : null}
+                    <div className="max-w-[17rem] space-y-2">
+                      <Badge
+                        variant={
+                          user.platformRole === "PLATFORM_ADMIN"
+                            ? "secondary"
+                            : "outline"
+                        }
+                        className="w-fit"
+                      >
+                        {getPlatformRoleLabel(user.platformRole)}
+                      </Badge>
                       <p className="text-xs leading-5 text-muted-foreground">
                         {getPlatformRoleHint(user.platformRole)}
                       </p>
@@ -146,7 +178,9 @@ export function PlatformUsersTable({
                         Protegido pelo sistema
                       </Badge>
                     ) : (
-                      <Badge variant="outline">Gerenciavel</Badge>
+                      <Badge variant="outline" className="bg-[color:var(--surface-base)]">
+                        Gerenciavel
+                      </Badge>
                     )}
                   </td>
                   <td className="px-4 py-4">

@@ -225,7 +225,7 @@ export function PlatformUserFormPage({
         <Card className="bg-[color:var(--surface-soft)]">
           <CardHeader>
             <CardTitle>
-              {mode === "create" ? "Cadastro de usuario" : "Edicao de usuario"}
+              {mode === "create" ? "Cadastro" : "Edicao de usuario"}
             </CardTitle>
             <CardDescription>
               Validando permissao de acesso e carregando os dados da tela.
@@ -289,7 +289,7 @@ export function PlatformUserFormPage({
       <Card className="bg-[color:var(--surface-soft)]">
         <CardHeader>
           <CardTitle>
-            {mode === "create" ? "Cadastro de usuario" : "Edicao de usuario"}
+            {mode === "create" ? "Cadastro" : "Edicao de usuario"}
           </CardTitle>
           <CardDescription>
             O backend continua como fonte de verdade para as permissoes de usuarios da plataforma.
@@ -312,6 +312,14 @@ export function PlatformUserFormPage({
                   Este usuario e protegido pelo sistema. Nome, e-mail e senha podem
                   ser ajustados, mas status e papel permanecem bloqueados para evitar
                   inativacao ou rebaixamento do master raiz.
+                </div>
+              ) : null}
+
+              {mode === "create" ? (
+                <div className="rounded-2xl border border-border bg-[color:var(--surface-base)] px-4 py-3 text-sm leading-6 text-muted-foreground">
+                  Administradores da plataforma podem criar novos usuarios master.
+                  Operadores permanecem restritos a ambientes e nao criam outros
+                  usuarios da plataforma.
                 </div>
               ) : null}
 

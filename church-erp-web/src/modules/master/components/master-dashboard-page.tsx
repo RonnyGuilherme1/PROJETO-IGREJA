@@ -126,7 +126,7 @@ export function MasterDashboardPage() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="bg-[color:var(--surface-soft)]">
+        <Card className="overflow-hidden bg-[color:var(--surface-soft)]">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Ambientes totais</p>
@@ -140,7 +140,7 @@ export function MasterDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[color:var(--surface-soft)]">
+        <Card className="overflow-hidden bg-[color:var(--surface-soft)]">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Ambientes ativos</p>
@@ -154,7 +154,7 @@ export function MasterDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[color:var(--surface-soft)]">
+        <Card className="overflow-hidden bg-[color:var(--surface-soft)]">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Ambientes inativos</p>
@@ -168,7 +168,7 @@ export function MasterDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[color:var(--surface-soft)]">
+        <Card className="overflow-hidden bg-[color:var(--surface-soft)]">
           <CardContent className="flex items-start justify-between gap-4 p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Logos customizadas</p>
@@ -191,12 +191,15 @@ export function MasterDashboardPage() {
               Ambientes criados recentemente com autoria visivel da operacao.
             </CardDescription>
           </div>
-          <Button asChild variant="outline">
-            <Link href="/master/tenants">
-              Ver ambientes
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">Ultimos 5 cadastros</Badge>
+            <Button asChild variant="outline">
+              <Link href="/master/tenants">
+                Ver ambientes
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-hidden rounded-3xl border border-border bg-[color:var(--surface-base)]">

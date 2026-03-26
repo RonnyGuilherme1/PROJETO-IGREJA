@@ -34,44 +34,46 @@ export function MasterShell({ children, user }: MasterShellProps) {
 
   return (
     <MasterThemeScope>
-      <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
-        <aside className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
-          <MasterSidebar user={user} />
-        </aside>
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,var(--master-shell-glow),transparent_28%),linear-gradient(180deg,var(--master-shell-start),var(--master-shell-end))]">
+        <div className="grid min-h-screen lg:grid-cols-[272px_1fr]">
+          <aside className="hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex lg:flex-col">
+            <MasterSidebar user={user} />
+          </aside>
 
-        <div className="flex min-h-screen flex-col">
-          <MasterHeader
-            title={currentPage.title}
-            description={currentPage.description}
-            user={user}
-            mobileNavigation={
-              <Sheet open={open} onOpenChange={setOpen}>
-                <SheetTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="bg-[color:var(--surface-base)] lg:hidden"
+          <div className="flex min-h-screen flex-col">
+            <MasterHeader
+              title={currentPage.title}
+              description={currentPage.description}
+              user={user}
+              mobileNavigation={
+                <Sheet open={open} onOpenChange={setOpen}>
+                  <SheetTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="bg-[color:var(--surface-base)] lg:hidden"
+                    >
+                      <Menu className="size-5" />
+                      <span className="sr-only">Abrir navegacao</span>
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent
+                    side="left"
+                    className="w-[290px] border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
                   >
-                    <Menu className="size-5" />
-                    <span className="sr-only">Abrir navegacao</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent
-                  side="left"
-                  className="w-[290px] border-sidebar-border bg-sidebar p-0 text-sidebar-foreground"
-                >
-                  <SheetHeader className="sr-only">
-                    <SheetTitle>Menu de navegacao master</SheetTitle>
-                  </SheetHeader>
-                  <MasterSidebar user={user} onNavigate={() => setOpen(false)} />
-                </SheetContent>
-              </Sheet>
-            }
-          />
+                    <SheetHeader className="sr-only">
+                      <SheetTitle>Menu de navegacao master</SheetTitle>
+                    </SheetHeader>
+                    <MasterSidebar user={user} onNavigate={() => setOpen(false)} />
+                  </SheetContent>
+                </Sheet>
+              }
+            />
 
-          <main className="flex-1 px-4 pb-8 pt-6 sm:px-6 lg:px-8">
-            <div className="mx-auto w-full max-w-7xl">{children}</div>
-          </main>
+            <main className="flex-1 px-4 pb-10 pt-5 sm:px-6 lg:px-8">
+              <div className="mx-auto w-full max-w-7xl">{children}</div>
+            </main>
+          </div>
         </div>
       </div>
     </MasterThemeScope>

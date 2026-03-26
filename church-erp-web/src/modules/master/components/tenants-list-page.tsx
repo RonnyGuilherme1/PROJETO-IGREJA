@@ -94,7 +94,7 @@ export function TenantsListPage() {
     void loadTenants();
   }, [loadTenants]);
 
-  async function handleToggleStatus(tenant: MasterTenantItem) {
+  function handleToggleStatus(tenant: MasterTenantItem) {
     setTenantPendingStatusChange(tenant);
   }
 
@@ -158,16 +158,58 @@ export function TenantsListPage() {
       <Card className="bg-[color:var(--surface-soft)]">
         <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
-            <CardTitle>Listagem</CardTitle>
+            <CardTitle>Visao geral</CardTitle>
             <CardDescription>
-              Ambientes cadastrados com acoes de edicao, ativacao e identidade visual.
+              Panorama rapido da base de ambientes e da identidade visual aplicada em cada operacao.
             </CardDescription>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Badge variant="secondary">Total: {total}</Badge>
-            <Badge variant="outline">{customLogoCount} com logo propria</Badge>
-            <Badge variant="outline">{customThemeCount} com tema customizado</Badge>
+          <Badge variant="secondary">Total: {total}</Badge>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-3xl border border-border bg-[color:var(--surface-base)] p-5">
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Ambientes
+              </p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+                {total}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Ambientes cadastrados com codigo, status e identidade visual.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-border bg-[color:var(--surface-base)] p-5">
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Logo propria
+              </p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+                {customLogoCount}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Ambientes com marca personalizada aplicada no painel e login.
+              </p>
+            </div>
+            <div className="rounded-3xl border border-border bg-[color:var(--surface-base)] p-5">
+              <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                Tema customizado
+              </p>
+              <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+                {customThemeCount}
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Ambientes com tema visual diferente do padrao principal.
+              </p>
+            </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-[color:var(--surface-soft)]">
+        <CardHeader className="space-y-2">
+          <CardTitle>Listagem</CardTitle>
+          <CardDescription>
+            Visualize ambientes, acompanhe a auditoria operacional e acione edicao ou troca de status com leitura mais limpa.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error ? (
@@ -252,7 +294,9 @@ export function TenantsListPage() {
                         <td className="px-4 py-4">
                           <div className="space-y-3 text-sm">
                             <div className="space-y-1">
-                              <p className="font-medium text-foreground">Criado por</p>
+                              <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                                Criado por
+                              </p>
                               <p className="text-muted-foreground">
                                 {formatAuditName(tenant.createdByName)}
                               </p>
@@ -263,7 +307,7 @@ export function TenantsListPage() {
 
                             {hasAuditUpdate ? (
                               <div className="space-y-1 border-t border-border/70 pt-3">
-                                <p className="font-medium text-foreground">
+                                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                                   Ultima alteracao por
                                 </p>
                                 <p className="text-muted-foreground">

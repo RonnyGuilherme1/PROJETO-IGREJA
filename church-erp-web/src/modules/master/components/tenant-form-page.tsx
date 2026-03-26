@@ -503,7 +503,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
               ) : null}
 
               {mode === "edit" && tenantMetadata ? (
-                <div className="grid gap-4 rounded-3xl border border-border bg-secondary/20 p-5 md:grid-cols-2">
+                <div className="grid gap-4 rounded-3xl border border-border bg-[color:var(--surface-base)] p-5 md:grid-cols-2">
                   <div className="space-y-1">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                       Criado por
@@ -542,7 +542,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
               ) : null}
 
               {mode === "create" ? (
-                <div className="space-y-4 rounded-3xl border border-border bg-secondary/30 p-5">
+                <div className="space-y-4 rounded-3xl border border-border bg-[color:var(--surface-base)] p-5">
                   <div className="space-y-1">
                     <h3 className="text-base font-semibold text-foreground">
                       Acesso inicial
