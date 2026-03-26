@@ -8,7 +8,13 @@ import {
 import { randomUUID } from 'crypto';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { basename, extname, join } from 'path';
-import { Prisma, TenantStatus, UserRole, UserStatus } from '@prisma/client';
+import {
+  PlatformRole,
+  Prisma,
+  TenantStatus,
+  UserRole,
+  UserStatus,
+} from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
@@ -65,7 +71,12 @@ export class TenantsService {
     return new TenantResponseDto(tenant);
   }
 
-  async create(createTenantDto: CreateTenantDto): Promise<TenantResponseDto> {
+  async create(
+    currentUser: AuthenticatedUser,
+    createTenantDto: CreateTenantDto,
+  ): Promise<TenantResponseDto> {
+    this.ensureCanManagePlatformTenants(currentUser);
+
     if (createTenantDto.adminUser) {
       await this.ensureUniqueUsername(createTenantDto.adminUser.username);
       await this.ensureUniqueEmail(createTenantDto.adminUser.email);
@@ -76,6 +87,7 @@ export class TenantsService {
       : null;
 
     const tenant = await this.createTenantWithGeneratedCode(
+      currentUser.id,
       createTenantDto,
       passwordHash,
     );
@@ -84,9 +96,11 @@ export class TenantsService {
   }
 
   async update(
+    currentUser: AuthenticatedUser,
     id: string,
     updateTenantDto: UpdateTenantDto,
   ): Promise<TenantResponseDto> {
+    this.ensureCanManagePlatformTenants(currentUser);
     const existingTenant = await this.findTenantByIdOrThrow(id);
 
     if (
@@ -117,6 +131,8 @@ export class TenantsService {
     if (updateTenantDto.themeKey !== undefined) {
       data.themeKey = updateTenantDto.themeKey;
     }
+
+    data.updatedByPlatformUserId = currentUser.id;
 
     const tenant = await this.prisma.tenant.update({
       where: { id },
@@ -194,13 +210,18 @@ export class TenantsService {
     };
   }
 
-  async inactivate(id: string): Promise<TenantResponseDto> {
+  async inactivate(
+    currentUser: AuthenticatedUser,
+    id: string,
+  ): Promise<TenantResponseDto> {
+    this.ensureCanManagePlatformTenants(currentUser);
     await this.findTenantByIdOrThrow(id);
 
     const tenant = await this.prisma.tenant.update({
       where: { id },
       data: {
         status: TenantStatus.INACTIVE,
+        updatedByPlatformUserId: currentUser.id,
       },
       select: tenantSelect,
     });
@@ -208,13 +229,18 @@ export class TenantsService {
     return new TenantResponseDto(tenant);
   }
 
-  async activate(id: string): Promise<TenantResponseDto> {
+  async activate(
+    currentUser: AuthenticatedUser,
+    id: string,
+  ): Promise<TenantResponseDto> {
+    this.ensureCanManagePlatformTenants(currentUser);
     await this.findTenantByIdOrThrow(id);
 
     const tenant = await this.prisma.tenant.update({
       where: { id },
       data: {
         status: TenantStatus.ACTIVE,
+        updatedByPlatformUserId: currentUser.id,
       },
       select: tenantSelect,
     });
@@ -264,6 +290,7 @@ export class TenantsService {
   }
 
   private async createTenantWithGeneratedCode(
+    createdByPlatformUserId: string,
     createTenantDto: CreateTenantDto,
     passwordHash: string | null,
   ): Promise<TenantEntity> {
@@ -284,6 +311,7 @@ export class TenantsService {
                 logoUrl: this.normalizeLogoUrl(createTenantDto.logoUrl),
                 themeKey:
                   createTenantDto.themeKey ?? DEFAULT_TENANT_THEME_KEY,
+                createdByPlatformUserId,
               },
               select: tenantSelect,
             });
@@ -372,6 +400,20 @@ export class TenantsService {
     }
 
     return currentUser.tenantId;
+  }
+
+  private ensureCanManagePlatformTenants(
+    currentUser: AuthenticatedUser,
+  ): void {
+    if (
+      currentUser.tenantId !== null ||
+      (currentUser.platformRole !== PlatformRole.PLATFORM_ADMIN &&
+        currentUser.platformRole !== PlatformRole.PLATFORM_OPERATOR)
+    ) {
+      throw new ForbiddenException(
+        'Acesso permitido apenas para administradores operacionais da plataforma.',
+      );
+    }
   }
 
   private normalizeLogoUrl(logoUrl?: string | null): string | null {

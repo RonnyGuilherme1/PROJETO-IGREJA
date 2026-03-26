@@ -12,7 +12,9 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { TenantResponseDto } from './dto/tenant-response.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
@@ -38,8 +40,11 @@ export class TenantsController {
   }
 
   @Post()
-  create(@Body() createTenantDto: CreateTenantDto): Promise<TenantResponseDto> {
-    return this.tenantsService.create(createTenantDto);
+  create(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Body() createTenantDto: CreateTenantDto,
+  ): Promise<TenantResponseDto> {
+    return this.tenantsService.create(currentUser, createTenantDto);
   }
 
   @Post(':id/logo')
@@ -53,23 +58,26 @@ export class TenantsController {
 
   @Patch(':id')
   update(
+    @CurrentUser() currentUser: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() updateTenantDto: UpdateTenantDto,
   ): Promise<TenantResponseDto> {
-    return this.tenantsService.update(id, updateTenantDto);
+    return this.tenantsService.update(currentUser, id, updateTenantDto);
   }
 
   @Patch(':id/inactivate')
   inactivate(
+    @CurrentUser() currentUser: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<TenantResponseDto> {
-    return this.tenantsService.inactivate(id);
+    return this.tenantsService.inactivate(currentUser, id);
   }
 
   @Patch(':id/activate')
   activate(
+    @CurrentUser() currentUser: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<TenantResponseDto> {
-    return this.tenantsService.activate(id);
+    return this.tenantsService.activate(currentUser, id);
   }
 }

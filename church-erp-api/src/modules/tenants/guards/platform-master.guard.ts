@@ -18,8 +18,9 @@ export class PlatformMasterGuard implements CanActivate {
 
     if (
       !user ||
-      user.platformRole !== PlatformRole.PLATFORM_ADMIN ||
-      user.tenantId !== null
+      user.tenantId !== null ||
+      (user.platformRole !== PlatformRole.PLATFORM_ADMIN &&
+        user.platformRole !== PlatformRole.PLATFORM_OPERATOR)
     ) {
       throw new ForbiddenException(
         'Acesso permitido apenas para usuario master da plataforma.',

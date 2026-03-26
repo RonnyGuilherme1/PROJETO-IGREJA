@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { TenantStatus, UserStatus } from '@prisma/client';
+import { PlatformRole, TenantStatus, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
@@ -67,7 +67,13 @@ export class AuthService {
       select: authenticatedUserSelect,
     });
 
-    if (!user || user.status !== UserStatus.ACTIVE) {
+    if (!user) {
+      throw new UnauthorizedException('Acesso nao autorizado.');
+    }
+
+    this.ensureProtectedPlatformUserIntegrity(user);
+
+    if (user.status !== UserStatus.ACTIVE) {
       throw new UnauthorizedException('Acesso nao autorizado.');
     }
 
@@ -137,9 +143,6 @@ export class AuthService {
     const user = await this.prisma.user.findFirst({
       where: {
         tenantId: null,
-        platformRole: {
-          not: null,
-        },
         username: {
           equals: username,
           mode: 'insensitive',
@@ -148,9 +151,11 @@ export class AuthService {
       select: userWithCredentialsSelect,
     });
 
-    if (!user) {
+    if (!user || !user.platformRole) {
       throw new UnauthorizedException('Credenciais invalidas.');
     }
+
+    this.ensureProtectedPlatformUserIntegrity(user);
 
     return user;
   }
@@ -164,6 +169,27 @@ export class AuthService {
   private ensureTenantIsActive(status: TenantStatus): void {
     if (status !== TenantStatus.ACTIVE) {
       throw new UnauthorizedException('Tenant inativo.');
+    }
+  }
+
+  private ensureProtectedPlatformUserIntegrity(
+    user: Pick<
+      AuthenticatedUser,
+      'isSystemProtected' | 'platformRole' | 'status' | 'tenantId'
+    >,
+  ): void {
+    if (!user.isSystemProtected) {
+      return;
+    }
+
+    if (
+      user.tenantId !== null ||
+      user.status !== UserStatus.ACTIVE ||
+      user.platformRole !== PlatformRole.PLATFORM_ADMIN
+    ) {
+      throw new UnauthorizedException(
+        'Usuario protegido da plataforma esta em estado invalido.',
+      );
     }
   }
 

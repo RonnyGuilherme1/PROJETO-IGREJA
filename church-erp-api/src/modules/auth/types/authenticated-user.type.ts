@@ -9,6 +9,7 @@ const baseAuthenticatedUserSelect = {
   status: true,
   tenantId: true,
   platformRole: true,
+  isSystemProtected: true,
   churchId: true,
   createdAt: true,
   updatedAt: true,
