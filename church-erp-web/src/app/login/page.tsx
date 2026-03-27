@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
+import Image from "next/image";
 import { redirect } from "next/navigation";
-import { Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -32,51 +32,49 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050816] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.2),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(15,23,42,0.65),transparent_38%),linear-gradient(160deg,#040712_0%,#08111c_46%,#030712_100%)]" />
+    <div className="relative min-h-screen overflow-hidden bg-[#04110d] text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(11,95,63,0.28),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(186,154,74,0.10),transparent_34%),linear-gradient(160deg,#030b09_0%,#071712_46%,#020806_100%)]" />
       <div className="absolute inset-x-0 top-0 h-px bg-white/5" />
 
       <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid w-full gap-10 lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center">
-          <section className="mx-auto max-w-xl space-y-6 lg:mx-0">
-            <div className="inline-flex items-center gap-3 rounded-full border border-white/[0.04] bg-black/15 px-4 py-3 shadow-[0_14px_30px_rgba(0,0,0,0.16)] backdrop-blur">
-              <div className="flex size-10 items-center justify-center rounded-full bg-emerald-400/12 text-emerald-200">
-                <Building2 className="size-5" />
-              </div>
-              <div className="space-y-0.5">
-                <p className="text-sm font-semibold text-white">Church ERP Web</p>
-                <p className="text-xs text-slate-400">
-                  Painel administrativo
+          <section className="max-w-xl">
+            <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-start sm:gap-8 lg:gap-10">
+              <Image
+                src="/platform-logo-full.png"
+                alt="Igreja ERP"
+                width={260}
+                height={173}
+                className="h-auto w-[180px] sm:w-[210px] lg:w-[240px] xl:w-[260px]"
+                priority
+              />
+              <div className="space-y-3 sm:max-w-sm lg:max-w-md">
+                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#d7c06a]">
+                  Acesso ao painel
+                </p>
+                <h1 className="max-w-lg text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                  Gestao da igreja em um fluxo simples e direto.
+                </h1>
+                <p className="max-w-md text-base leading-7 text-[#c6d5cf]">
+                  Entre com as credenciais do seu ambiente para continuar.
                 </p>
               </div>
             </div>
-
-            <div className="space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-emerald-300/80">
-                Acesso ao painel
-              </p>
-              <h1 className="max-w-lg text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                Gestao da igreja em um fluxo simples e direto.
-              </h1>
-              <p className="max-w-md text-base leading-7 text-slate-300">
-                Entre com as credenciais do seu ambiente para continuar.
-              </p>
-            </div>
           </section>
 
-          <Card className="relative overflow-hidden !border-transparent bg-[#101719]/80 text-white shadow-[0_22px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+          <Card className="relative overflow-hidden !border-transparent bg-[#0d1613]/82 text-white shadow-[0_22px_60px_rgba(0,0,0,0.3)] backdrop-blur-xl">
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_32%)] pointer-events-none" />
-            <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/[0.05] to-transparent" />
+            <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-[#d7c06a]/20 to-transparent" />
 
             <CardHeader className="space-y-5 p-6 sm:p-8">
-              <Badge className="w-fit border border-emerald-400/[0.12] bg-emerald-500/[0.08] text-emerald-100 hover:bg-emerald-500/[0.08]">
+              <Badge className="w-fit border border-[#d7c06a]/25 bg-[#d7c06a]/10 text-[#f0df9d] hover:bg-[#d7c06a]/10">
                 Login
               </Badge>
               <div className="space-y-2">
                 <CardTitle className="text-3xl text-white sm:text-[2rem]">
                   Entrar
                 </CardTitle>
-                <CardDescription className="text-sm leading-6 text-slate-400">
+                <CardDescription className="text-sm leading-6 text-[#9eb1a9]">
                   Use banco, usuario e senha para acessar o painel.
                 </CardDescription>
               </div>

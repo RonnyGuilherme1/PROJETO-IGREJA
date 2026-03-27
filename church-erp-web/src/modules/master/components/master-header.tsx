@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { AuthUserPanel } from "@/modules/auth/components/auth-user-panel";
 import { MasterThemeToggle } from "@/modules/master/components/master-theme-toggle";
@@ -19,18 +19,12 @@ export function MasterHeader({
   mobileNavigation,
   user,
 }: MasterHeaderProps) {
-  const [formattedDate, setFormattedDate] = useState("");
-
-  useEffect(() => {
-    setFormattedDate(
-      new Intl.DateTimeFormat("pt-BR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-        timeZone: "America/Fortaleza",
-      }).format(new Date()),
-    );
-  }, []);
+  const formattedDate = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "America/Fortaleza",
+  }).format(new Date());
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/80 bg-[color:var(--surface-soft)]/95 backdrop-blur-xl">
@@ -38,13 +32,13 @@ export function MasterHeader({
         <div className="flex min-w-0 items-start gap-3">
           <div className="lg:hidden">{mobileNavigation}</div>
           <BrandLogo
-            alt="Logo da plataforma Church ERP"
-            className="hidden size-16 shrink-0 sm:flex"
-            imageClassName="object-contain"
+            alt="Logo da plataforma Igreja ERP"
+            className="hidden size-16 shrink-0 rounded-3xl bg-[color:var(--surface-base)] sm:flex"
+            imageClassName="object-contain p-2"
           />
           <div className="min-w-0 space-y-1.5">
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground/80">
-              Plataforma Church ERP
+              Igreja ERP
             </p>
             <h2 className="text-xl font-semibold tracking-tight text-foreground">
               {title}
@@ -60,9 +54,7 @@ export function MasterHeader({
             <p className="text-[0.7rem] font-medium uppercase tracking-[0.22em] text-muted-foreground">
               Hoje
             </p>
-            <p className="text-sm text-foreground">
-              {formattedDate || "Carregando data"}
-            </p>
+            <p className="text-sm text-foreground">{formattedDate}</p>
           </div>
           <MasterThemeToggle />
           <AuthUserPanel user={user} />

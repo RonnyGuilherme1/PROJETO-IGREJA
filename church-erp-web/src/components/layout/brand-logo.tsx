@@ -5,7 +5,7 @@ import { Building2, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { normalizeTenantLogoUrl } from "@/lib/tenant-branding";
 
-const PLATFORM_LOGO_FALLBACK_SRC = "/platform-logo.svg";
+const PLATFORM_LOGO_FALLBACK_SRC = "/platform-logo.png";
 
 interface BrandLogoProps {
   alt: string;

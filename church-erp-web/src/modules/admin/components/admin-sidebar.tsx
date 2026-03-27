@@ -19,7 +19,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
   const navigationItems = getAdminNavItems(user);
   const tenantLabel =
     getTenantLabel(user?.tenantName, user?.tenantCode) ?? "Painel da igreja";
-  const tenantTitle = user?.tenantName?.trim() || "Church ERP";
+  const tenantTitle = user?.tenantName?.trim() || "Igreja ERP";
   const tenantSubtitle = user?.tenantCode?.trim()
     ? `Acesso ${user.tenantCode}`
     : tenantLabel;
@@ -37,6 +37,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
             logoUrl={user?.tenantLogoUrl}
             icon={Building2}
             className="size-11 shrink-0 rounded-xl bg-white/10 ring-1 ring-white/10"
+            imageClassName="object-contain p-1"
             iconClassName="size-5"
           />
           <div className="min-w-0 space-y-0.5">

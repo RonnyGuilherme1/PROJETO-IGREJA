@@ -14,14 +14,14 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Church ERP Web",
-    template: "%s | Church ERP Web",
+    default: "Igreja ERP",
+    template: "%s | Igreja ERP",
   },
   description: "Painel administrativo para a operacao da igreja.",
   icons: {
-    icon: [{ url: "/platform-logo.svg", type: "image/svg+xml" }],
-    shortcut: [{ url: "/platform-logo.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/platform-logo.svg", type: "image/svg+xml" }],
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/platform-logo.png", type: "image/png" }],
   },
 };
 

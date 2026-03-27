@@ -1,37 +1,37 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f6f1;
-  --foreground: #17211d;
+  --background: #f7f6f1;
+  --foreground: #10261d;
   --card: #ffffff;
-  --card-foreground: #17211d;
+  --card-foreground: #10261d;
   --popover: #ffffff;
-  --popover-foreground: #17211d;
-  --primary: #1f5b49;
+  --popover-foreground: #10261d;
+  --primary: #0f4a36;
   --primary-foreground: #f8fbf9;
-  --secondary: #e7ede8;
-  --secondary-foreground: #173126;
-  --muted: #edf2ee;
-  --muted-foreground: #65716c;
-  --accent: #dfe9e2;
-  --accent-foreground: #183127;
+  --secondary: #f2ecd8;
+  --secondary-foreground: #3f3520;
+  --muted: #f6f2e7;
+  --muted-foreground: #6f6a5b;
+  --accent: #c7a64a;
+  --accent-foreground: #1f1a10;
   --destructive: #b93831;
   --destructive-foreground: #ffffff;
-  --border: #d7ded8;
-  --input: #d7ded8;
-  --ring: #1f5b49;
+  --border: #e3dcc8;
+  --input: #ddd5c0;
+  --ring: #c7a64a;
   --radius: 1.25rem;
-  --sidebar: #17362d;
-  --sidebar-foreground: #eef5f1;
-  --sidebar-accent: #24483c;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar: #0d3327;
+  --sidebar-foreground: #eef6f1;
+  --sidebar-accent: #124636;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
   --surface-base: #ffffff;
-  --surface-soft: rgb(255 255 255 / 0.86);
-  --surface-muted: rgb(255 255 255 / 0.72);
+  --surface-soft: rgb(255 255 255 / 0.88);
+  --surface-muted: rgb(255 255 255 / 0.76);
   --surface-strong: #ffffff;
-  --tenant-shell-glow: rgb(31 91 73 / 0.12);
-  --tenant-shell-start: #fbfcfa;
-  --tenant-shell-end: #f3f5f1;
+  --tenant-shell-glow: rgb(15 74 54 / 0.1);
+  --tenant-shell-start: #fbfaf6;
+  --tenant-shell-end: #f4f0e4;
 }
 
 @theme inline {

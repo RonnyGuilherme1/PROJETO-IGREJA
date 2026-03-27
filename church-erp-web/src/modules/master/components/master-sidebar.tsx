@@ -16,10 +16,6 @@ interface MasterSidebarProps {
 export function MasterSidebar({ user, onNavigate }: MasterSidebarProps) {
   const pathname = usePathname();
   const masterNavItems = getMasterNavItems(user);
-  const accessLabel =
-    user.platformRole === "PLATFORM_ADMIN"
-      ? "Administracao da plataforma"
-      : "Operacao de ambientes";
 
   return (
     <div className="flex h-full flex-col">
@@ -30,16 +26,16 @@ export function MasterSidebar({ user, onNavigate }: MasterSidebarProps) {
           className="flex items-center gap-3"
         >
           <BrandLogo
-            alt="Logo da plataforma Church ERP"
-            className="size-16 shrink-0"
-            imageClassName="object-contain"
+            alt="Logo da plataforma Igreja ERP"
+            className="size-16 shrink-0 rounded-3xl bg-white/5"
+            imageClassName="object-contain p-2"
           />
           <div className="space-y-1">
             <p className="text-sm font-semibold tracking-wide text-sidebar-foreground">
-              Plataforma Church ERP
+              Igreja ERP
             </p>
             <p className="text-xs uppercase tracking-[0.22em] text-sidebar-foreground/55">
-              Area master
+              Painel master
             </p>
           </div>
         </Link>

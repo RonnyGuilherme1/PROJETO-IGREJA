@@ -32,15 +32,16 @@ export function AdminHeader({
         <div className="flex min-w-0 items-center gap-3">
           <div className="lg:hidden">{mobileNavigation}</div>
           <BrandLogo
-            alt={tenantLabel ? `Logo do ambiente ${tenantLabel}` : "Logo do Church ERP"}
+            alt={tenantLabel ? `Logo do ambiente ${tenantLabel}` : "Logo do Igreja ERP"}
             logoUrl={user.tenantLogoUrl}
             icon={Building2}
             className="size-10 shrink-0 rounded-xl border border-border bg-card shadow-xs"
+            imageClassName="object-contain p-1"
             iconClassName="size-5 text-primary"
           />
           <div className="min-w-0 space-y-0.5">
             <p className="truncate text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground/80">
-              {tenantLabel ?? "Church ERP Web"}
+              {tenantLabel ?? "Igreja ERP"}
             </p>
             <h2 className="truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl">
               {title}
