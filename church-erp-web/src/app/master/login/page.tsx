@@ -38,26 +38,26 @@ export default async function MasterLoginPage() {
         <div className="master-login-backdrop absolute inset-0" />
         <div className="master-login-top-line absolute inset-x-0 top-0 h-px" />
 
-        <div className="relative mx-auto flex min-h-screen max-w-5xl items-center px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid w-full gap-10 lg:grid-cols-[minmax(0,0.9fr)_420px] lg:items-center">
-            <section className="hidden max-w-lg lg:block">
-              <div className="flex items-start gap-8 xl:gap-10">
+        <div className="relative mx-auto flex min-h-screen max-w-[1500px] items-center px-4 py-10 sm:px-6 lg:px-8">
+          <div className="grid w-full gap-10 lg:grid-cols-[minmax(0,1.28fr)_420px] lg:items-center lg:gap-14 xl:grid-cols-[minmax(0,1.38fr)_430px] xl:gap-16">
+            <section className="hidden w-full justify-self-start self-center lg:block">
+              <div className="grid w-full grid-cols-[300px_minmax(0,1fr)] items-center gap-x-14 xl:grid-cols-[340px_minmax(0,1fr)] xl:gap-x-16">
                 <Image
                   src="/platform-logo-full.png"
                   alt="Igreja ERP"
-                  width={250}
-                  height={167}
-                  className="h-auto w-[200px] xl:w-[230px]"
+                  width={340}
+                  height={227}
+                  className="h-auto w-[300px] shrink-0 xl:w-[340px]"
                   priority
                 />
-                <div className="space-y-3 xl:max-w-sm">
+                <div className="min-w-0 w-full max-w-none space-y-3 sm:space-y-4 lg:space-y-5">
                   <p className="master-login-eyebrow text-xs font-semibold uppercase tracking-[0.32em]">
                     Area reservada
                   </p>
-                  <h1 className="master-login-hero-title max-w-md text-4xl font-semibold tracking-tight">
+                  <h1 className="master-login-hero-title text-4xl font-semibold tracking-tight xl:text-[3.1rem]">
                     Entrada dedicada para a administracao da plataforma.
                   </h1>
-                  <p className="master-login-hero-body max-w-md text-base leading-7">
+                  <p className="master-login-hero-body max-w-2xl text-base leading-7">
                     Use suas credenciais master para acessar o painel global.
                   </p>
                 </div>
@@ -73,9 +73,9 @@ export default async function MasterLoginPage() {
                   <Image
                     src="/platform-logo-full.png"
                     alt="Igreja ERP"
-                    width={200}
-                    height={133}
-                    className="h-auto w-[150px] sm:w-[180px]"
+                    width={220}
+                    height={147}
+                    className="h-auto w-[170px] sm:w-[200px]"
                     priority
                   />
                 </div>

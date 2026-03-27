@@ -26,22 +26,23 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-sidebar-border px-4 py-4">
+      <div className="border-b border-sidebar-border px-4 py-5">
         <Link
           href="/dashboard"
           onClick={onNavigate}
-          className="flex items-center gap-2.5"
+          className="flex items-center gap-3.5"
         >
           <BrandLogo
             alt={`Logo do ambiente ${tenantLabel}`}
             logoUrl={user?.tenantLogoUrl}
             icon={Building2}
-            className="size-11 shrink-0 rounded-xl bg-white/10 ring-1 ring-white/10"
-            imageClassName="object-contain p-1"
-            iconClassName="size-5"
+            className="size-14 shrink-0 rounded-2xl bg-white/12 ring-1 ring-white/12 shadow-[0_10px_24px_rgba(0,0,0,0.14)]"
+            imageClassName="object-contain p-2"
+            fallbackImageClassName="scale-[1.08]"
+            iconClassName="size-6"
           />
           <div className="min-w-0 space-y-0.5">
-            <p className="truncate text-sm font-semibold leading-5 tracking-wide text-sidebar-foreground">
+            <p className="truncate text-[0.95rem] font-semibold leading-5 tracking-wide text-sidebar-foreground">
               {tenantTitle}
             </p>
             <p className="truncate text-[11px] leading-4 text-sidebar-foreground/60">

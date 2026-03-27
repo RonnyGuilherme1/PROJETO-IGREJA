@@ -19,19 +19,20 @@ export function MasterSidebar({ user, onNavigate }: MasterSidebarProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-sidebar-border px-5 py-5">
+      <div className="border-b border-sidebar-border px-5 py-6">
         <Link
           href="/master/dashboard"
           onClick={onNavigate}
-          className="flex items-center gap-3"
+          className="flex items-center gap-4"
         >
           <BrandLogo
             alt="Logo da plataforma Igreja ERP"
-            className="size-16 shrink-0 rounded-3xl bg-white/5"
-            imageClassName="object-contain p-2"
+            className="size-20 shrink-0 rounded-[2rem] bg-white/6 ring-1 ring-white/10 shadow-[0_12px_28px_rgba(0,0,0,0.18)]"
+            imageClassName="object-contain p-3"
+            fallbackImageClassName="scale-[1.1]"
           />
           <div className="space-y-1">
-            <p className="text-sm font-semibold tracking-wide text-sidebar-foreground">
+            <p className="text-base font-semibold tracking-wide text-sidebar-foreground">
               Igreja ERP
             </p>
             <p className="text-xs uppercase tracking-[0.22em] text-sidebar-foreground/55">

@@ -29,12 +29,13 @@ export function MasterHeader({
   return (
     <header className="sticky top-0 z-20 border-b border-border/80 bg-[color:var(--surface-soft)]/95 backdrop-blur-xl">
       <div className="mx-auto flex min-h-24 w-full max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 items-start gap-4">
           <div className="lg:hidden">{mobileNavigation}</div>
           <BrandLogo
             alt="Logo da plataforma Igreja ERP"
-            className="hidden size-16 shrink-0 rounded-3xl bg-[color:var(--surface-base)] sm:flex"
-            imageClassName="object-contain p-2"
+            className="hidden size-[4.5rem] shrink-0 rounded-[2rem] bg-[color:var(--surface-base)] shadow-[0_12px_28px_rgba(15,74,54,0.08)] sm:flex lg:size-20"
+            imageClassName="object-contain p-2.5 lg:p-3"
+            fallbackImageClassName="scale-[1.1]"
           />
           <div className="min-w-0 space-y-1.5">
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground/80">

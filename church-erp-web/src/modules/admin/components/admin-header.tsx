@@ -29,15 +29,16 @@ export function AdminHeader({
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6 lg:px-8">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 items-center gap-4">
           <div className="lg:hidden">{mobileNavigation}</div>
           <BrandLogo
             alt={tenantLabel ? `Logo do ambiente ${tenantLabel}` : "Logo do Igreja ERP"}
             logoUrl={user.tenantLogoUrl}
             icon={Building2}
-            className="size-10 shrink-0 rounded-xl border border-border bg-card shadow-xs"
-            imageClassName="object-contain p-1"
-            iconClassName="size-5 text-primary"
+            className="size-12 shrink-0 rounded-2xl border border-border bg-card shadow-[0_10px_24px_rgba(15,74,54,0.08)]"
+            imageClassName="object-contain p-1.5"
+            fallbackImageClassName="scale-[1.08]"
+            iconClassName="size-6 text-primary"
           />
           <div className="min-w-0 space-y-0.5">
             <p className="truncate text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground/80">

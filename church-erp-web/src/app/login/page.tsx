@@ -36,26 +36,26 @@ export default async function LoginPage() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(11,95,63,0.28),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(186,154,74,0.10),transparent_34%),linear-gradient(160deg,#030b09_0%,#071712_46%,#020806_100%)]" />
       <div className="absolute inset-x-0 top-0 h-px bg-white/5" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid w-full gap-10 lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center">
-          <section className="max-w-xl">
-            <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-start sm:gap-8 lg:gap-10">
+      <div className="relative mx-auto flex min-h-screen max-w-[1500px] items-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid w-full gap-10 lg:grid-cols-[minmax(0,1.35fr)_420px] lg:items-center lg:gap-14 xl:grid-cols-[minmax(0,1.45fr)_430px] xl:gap-16">
+          <section className="w-full justify-self-start self-center">
+            <div className="flex w-full flex-col items-start gap-6 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-center lg:gap-x-14 xl:grid-cols-[360px_minmax(0,1fr)] xl:gap-x-16">
               <Image
                 src="/platform-logo-full.png"
                 alt="Igreja ERP"
-                width={260}
-                height={173}
-                className="h-auto w-[180px] sm:w-[210px] lg:w-[240px] xl:w-[260px]"
+                width={360}
+                height={240}
+                className="h-auto w-[190px] shrink-0 sm:w-[230px] lg:w-[320px] xl:w-[360px]"
                 priority
               />
-              <div className="space-y-3 sm:max-w-sm lg:max-w-md">
+              <div className="min-w-0 w-full max-w-none space-y-3 sm:space-y-4 lg:space-y-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#d7c06a]">
                   Acesso ao painel
                 </p>
-                <h1 className="max-w-lg text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl xl:text-[3.35rem]">
                   Gestao da igreja em um fluxo simples e direto.
                 </h1>
-                <p className="max-w-md text-base leading-7 text-[#c6d5cf]">
+                <p className="max-w-2xl text-base leading-7 text-[#c6d5cf]">
                   Entre com as credenciais do seu ambiente para continuar.
                 </p>
               </div>

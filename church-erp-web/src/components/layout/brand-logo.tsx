@@ -13,6 +13,7 @@ interface BrandLogoProps {
   icon?: LucideIcon;
   className?: string;
   imageClassName?: string;
+  fallbackImageClassName?: string;
   iconClassName?: string;
 }
 
@@ -22,6 +23,7 @@ export function BrandLogo({
   icon: Icon = Building2,
   className,
   imageClassName,
+  fallbackImageClassName,
   iconClassName,
 }: BrandLogoProps) {
   const normalizedLogoUrl = normalizeTenantLogoUrl(logoUrl);
@@ -46,7 +48,11 @@ export function BrandLogo({
           <img
             src={PLATFORM_LOGO_FALLBACK_SRC}
             alt={alt}
-            className={cn("h-full w-full object-contain", imageClassName)}
+            className={cn(
+              "h-full w-full object-contain",
+              imageClassName,
+              fallbackImageClassName,
+            )}
             onError={() => setHasFallbackLogoError(true)}
           />
         </div>
