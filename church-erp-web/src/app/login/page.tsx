@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
 import Image from "next/image";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -49,6 +51,17 @@ export default async function LoginPage() {
                 priority
               />
               <div className="min-w-0 w-full max-w-none space-y-3 sm:space-y-4 lg:space-y-5">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="border-white/12 bg-white/5 text-white shadow-[0_12px_30px_rgba(0,0,0,0.12)] hover:bg-white/10"
+                >
+                  <Link href="/">
+                    <ArrowLeft className="size-4" />
+                    Voltar ao inicio
+                  </Link>
+                </Button>
                 <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#d7c06a]">
                   Acesso ao painel
                 </p>
@@ -66,10 +79,7 @@ export default async function LoginPage() {
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),transparent_32%)] pointer-events-none" />
             <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-[#d7c06a]/20 to-transparent" />
 
-            <CardHeader className="space-y-5 p-6 sm:p-8">
-              <Badge className="w-fit border border-[#d7c06a]/25 bg-[#d7c06a]/10 text-[#f0df9d] hover:bg-[#d7c06a]/10">
-                Login
-              </Badge>
+            <CardHeader className="space-y-3 p-6 sm:p-8">
               <div className="space-y-2">
                 <CardTitle className="text-3xl text-white sm:text-[2rem]">
                   Entrar

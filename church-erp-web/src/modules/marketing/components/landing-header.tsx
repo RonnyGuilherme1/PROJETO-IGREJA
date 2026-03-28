@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import {
   Sheet,
   SheetClose,
@@ -81,11 +82,8 @@ export function LandingHeader({
         )}
       >
         <div className="flex w-full items-center justify-between gap-4 px-5 py-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl border border-[#d8bb7b]/25 bg-[#123227]/92 text-[#d8bb7b] shadow-[0_16px_36px_rgba(0,0,0,0.18)]">
-              <Building2 className="size-5" />
-            </div>
-
+          <Link href="/" className="flex items-center gap-3.5">
+            <BrandLogo variant="icon" className="size-16 sm:size-[4.5rem]" />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold uppercase tracking-[0.18em] text-white">
                 {brandName}

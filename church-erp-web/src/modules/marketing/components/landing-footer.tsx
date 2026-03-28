@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Building2, MessageCircle } from "lucide-react";
+import { ArrowRight, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/shared/brand-logo";
 import { Separator } from "@/components/ui/separator";
 import {
   getWhatsappHref,
@@ -41,9 +42,7 @@ export function LandingFooter({
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between lg:gap-12">
           <div className="max-w-lg space-y-4">
             <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-2xl border border-[#c7a76a]/25 bg-[#123227] text-[#d8bb7b]">
-                <Building2 className="size-5" />
-              </div>
+              <BrandLogo variant="icon" className="size-14 sm:size-16" />
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/90">
                   {brandName}
