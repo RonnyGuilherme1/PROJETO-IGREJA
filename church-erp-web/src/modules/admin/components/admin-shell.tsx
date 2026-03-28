@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { TenantThemeScope } from "@/components/layout/tenant-theme-scope";
@@ -14,23 +14,28 @@ import {
 } from "@/components/ui/sheet";
 import { AdminHeader } from "@/modules/admin/components/admin-header";
 import { AdminSidebar } from "@/modules/admin/components/admin-sidebar";
-import { adminNavItems, getAdminNavItems } from "@/modules/admin/config/navigation";
+import {
+  adminNavItems,
+  flattenAdminNavItems,
+  getAdminLeafNavItems,
+} from "@/modules/admin/config/navigation";
 import type { AuthUser } from "@/modules/auth/types/auth";
 
 interface AdminShellProps {
-  children: React.ReactNode;
+  children: ReactNode;
   user: AuthUser;
 }
 
 export function AdminShell({ children, user }: AdminShellProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const navigationItems = getAdminNavItems(user);
+  const navigationItems = getAdminLeafNavItems(user);
+  const fallbackPage = navigationItems[0] ?? flattenAdminNavItems(adminNavItems)[0]!;
 
   const currentPage =
     navigationItems.find(
       (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-    ) ?? navigationItems[0] ?? adminNavItems[0];
+    ) ?? fallbackPage;
 
   return (
     <TenantThemeScope themeKey={user.tenantThemeKey}>

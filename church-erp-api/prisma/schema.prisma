@@ -50,6 +50,22 @@ enum FinanceTransactionStatus {
   CANCELLED
 }
 
+enum CampaignStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum CampaignInstallmentStatus {
+  PAID
+  UNPAID
+}
+
+enum NoticeStatus {
+  DRAFT
+  READY
+  SENT
+}
+
 model Tenant {
   id                      String               @id @default(uuid()) @db.Uuid
   name                    String
@@ -64,6 +80,10 @@ model Tenant {
   users                   User[]
   churches                Church[]
   members                 Member[]
+  leadershipRoles         LeadershipRole[]
+  departments             Department[]
+  campaigns               Campaign[]
+  notices                 Notice[]
   financeCategories       FinanceCategory[]
   financeTransactions     FinanceTransaction[]
 
@@ -111,33 +131,148 @@ model Church {
   updatedAt           DateTime             @updatedAt
   users               User[]
   members             Member[]
+  campaigns           Campaign[]
+  notices             Notice[]
   financeTransactions FinanceTransaction[]
 
   @@index([tenantId])
 }
 
 model Member {
-  id            String       @id @default(uuid()) @db.Uuid
-  tenantId      String?      @db.Uuid
-  tenant        Tenant?      @relation(fields: [tenantId], references: [id])
-  fullName      String
-  birthDate     DateTime?
-  gender        String?
-  phone         String?
-  email         String?
-  address       String?
-  maritalStatus String?
-  joinedAt      DateTime?
-  status        MemberStatus @default(ACTIVE)
-  notes         String?
-  churchId      String       @db.Uuid
-  church        Church       @relation(fields: [churchId], references: [id])
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id               String          @id @default(uuid()) @db.Uuid
+  tenantId         String?         @db.Uuid
+  tenant           Tenant?         @relation(fields: [tenantId], references: [id])
+  fullName         String
+  birthDate        DateTime?
+  gender           String?
+  phone            String?
+  email            String?
+  address          String?
+  maritalStatus    String?
+  joinedAt         DateTime?
+  status           MemberStatus    @default(ACTIVE)
+  notes            String?
+  churchId         String          @db.Uuid
+  leadershipRoleId String?         @db.Uuid
+  departmentId     String?         @db.Uuid
+  church           Church          @relation(fields: [churchId], references: [id])
+  leadershipRole   LeadershipRole? @relation(fields: [leadershipRoleId], references: [id])
+  department       Department?     @relation(fields: [departmentId], references: [id])
+  campaignMembers  CampaignMember[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([tenantId])
+  @@index([churchId])
+  @@index([leadershipRoleId])
+  @@index([departmentId])
+  @@index([status])
+}
+
+model LeadershipRole {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String?   @db.Uuid
+  tenant      Tenant?   @relation(fields: [tenantId], references: [id])
+  name        String
+  description String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  members     Member[]
+
+  @@index([tenantId])
+  @@index([active])
+  @@unique([tenantId, name])
+}
+
+model Department {
+  id          String    @id @default(uuid()) @db.Uuid
+  tenantId    String?   @db.Uuid
+  tenant      Tenant?   @relation(fields: [tenantId], references: [id])
+  name        String
+  description String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  members     Member[]
+
+  @@index([tenantId])
+  @@index([active])
+  @@unique([tenantId, name])
+}
+
+model Campaign {
+  id                String          @id @default(uuid()) @db.Uuid
+  tenantId          String?         @db.Uuid
+  churchId          String          @db.Uuid
+  tenant            Tenant?         @relation(fields: [tenantId], references: [id])
+  church            Church          @relation(fields: [churchId], references: [id])
+  title             String
+  description       String?
+  installmentCount  Int
+  installmentAmount Decimal         @db.Decimal(14, 2)
+  startDate         DateTime?
+  status            CampaignStatus  @default(ACTIVE)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  members           CampaignMember[]
 
   @@index([tenantId])
   @@index([churchId])
   @@index([status])
+}
+
+model CampaignMember {
+  id           String               @id @default(uuid()) @db.Uuid
+  campaignId   String               @db.Uuid
+  memberId     String               @db.Uuid
+  joinedAt     DateTime             @default(now())
+  notes        String?
+  campaign     Campaign             @relation(fields: [campaignId], references: [id])
+  member       Member               @relation(fields: [memberId], references: [id])
+  installments CampaignInstallment[]
+
+  @@index([campaignId])
+  @@index([memberId])
+  @@unique([campaignId, memberId])
+}
+
+model CampaignInstallment {
+  id               String                    @id @default(uuid()) @db.Uuid
+  campaignMemberId String                    @db.Uuid
+  installmentNumber Int
+  amount           Decimal                   @db.Decimal(14, 2)
+  dueDate          DateTime?
+  status           CampaignInstallmentStatus @default(UNPAID)
+  paidAt           DateTime?
+  notes            String?
+  campaignMember   CampaignMember            @relation(fields: [campaignMemberId], references: [id])
+
+  @@index([campaignMemberId])
+  @@index([status])
+  @@index([dueDate])
+  @@unique([campaignMemberId, installmentNumber])
+}
+
+model Notice {
+  id          String       @id @default(uuid()) @db.Uuid
+  tenantId    String?      @db.Uuid
+  churchId    String?      @db.Uuid
+  tenant      Tenant?      @relation(fields: [tenantId], references: [id])
+  church      Church?      @relation(fields: [churchId], references: [id])
+  title       String
+  message     String
+  imageUrl    String?
+  targetLabel String?
+  scheduledAt DateTime?
+  status      NoticeStatus @default(DRAFT)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([tenantId])
+  @@index([churchId])
+  @@index([status])
+  @@index([scheduledAt])
 }
 
 model FinanceCategory {

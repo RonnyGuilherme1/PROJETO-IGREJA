@@ -14,6 +14,18 @@ export const memberSelect = Prisma.validator<Prisma.MemberSelect>()({
   status: true,
   notes: true,
   churchId: true,
+  leadershipRoleId: true,
+  departmentId: true,
+  leadershipRole: {
+    select: {
+      name: true,
+    },
+  },
+  department: {
+    select: {
+      name: true,
+    },
+  },
   createdAt: true,
   updatedAt: true,
 });

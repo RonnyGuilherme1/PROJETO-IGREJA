@@ -44,4 +44,12 @@ export class FindMembersQueryDto {
   @IsOptional()
   @IsUUID('4')
   churchId?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  leadershipRoleId?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  departmentId?: string;
 }

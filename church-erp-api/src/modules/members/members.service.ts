@@ -72,6 +72,17 @@ export class MembersService {
     const tenantId = this.ensureTenantAccess(currentUser);
     await this.ensureChurchExists(createMemberDto.churchId, tenantId);
 
+    if (createMemberDto.leadershipRoleId) {
+      await this.ensureLeadershipRoleExists(
+        createMemberDto.leadershipRoleId,
+        tenantId,
+      );
+    }
+
+    if (createMemberDto.departmentId) {
+      await this.ensureDepartmentExists(createMemberDto.departmentId, tenantId);
+    }
+
     const member = await this.prisma.member.create({
       data: {
         tenantId,
@@ -86,6 +97,8 @@ export class MembersService {
         status: createMemberDto.status ?? MemberStatus.ACTIVE,
         notes: createMemberDto.notes ?? null,
         churchId: createMemberDto.churchId,
+        leadershipRoleId: createMemberDto.leadershipRoleId ?? null,
+        departmentId: createMemberDto.departmentId ?? null,
       },
       select: memberSelect,
     });
@@ -104,6 +117,23 @@ export class MembersService {
 
     if (updateMemberDto.churchId !== undefined) {
       await this.ensureChurchExists(updateMemberDto.churchId, tenantId);
+    }
+
+    if (
+      updateMemberDto.leadershipRoleId !== undefined &&
+      updateMemberDto.leadershipRoleId !== null
+    ) {
+      await this.ensureLeadershipRoleExists(
+        updateMemberDto.leadershipRoleId,
+        tenantId,
+      );
+    }
+
+    if (
+      updateMemberDto.departmentId !== undefined &&
+      updateMemberDto.departmentId !== null
+    ) {
+      await this.ensureDepartmentExists(updateMemberDto.departmentId, tenantId);
     }
 
     const data: Prisma.MemberUncheckedUpdateInput = {};
@@ -150,6 +180,14 @@ export class MembersService {
 
     if (updateMemberDto.churchId !== undefined) {
       data.churchId = updateMemberDto.churchId;
+    }
+
+    if ('leadershipRoleId' in updateMemberDto) {
+      data.leadershipRoleId = updateMemberDto.leadershipRoleId ?? null;
+    }
+
+    if ('departmentId' in updateMemberDto) {
+      data.departmentId = updateMemberDto.departmentId ?? null;
     }
 
     const member = await this.prisma.member.update({
@@ -203,6 +241,14 @@ export class MembersService {
       where.churchId = query.churchId;
     }
 
+    if (query.leadershipRoleId) {
+      where.leadershipRoleId = query.leadershipRoleId;
+    }
+
+    if (query.departmentId) {
+      where.departmentId = query.departmentId;
+    }
+
     return where;
   }
 
@@ -249,6 +295,44 @@ export class MembersService {
 
     if (!church) {
       throw new NotFoundException('Igreja vinculada nao encontrada.');
+    }
+  }
+
+  private async ensureLeadershipRoleExists(
+    leadershipRoleId: string,
+    tenantId: string,
+  ): Promise<void> {
+    const leadershipRole = await this.prisma.leadershipRole.findFirst({
+      where: {
+        id: leadershipRoleId,
+        tenantId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!leadershipRole) {
+      throw new NotFoundException('Cargo de lideranca vinculado nao encontrado.');
+    }
+  }
+
+  private async ensureDepartmentExists(
+    departmentId: string,
+    tenantId: string,
+  ): Promise<void> {
+    const department = await this.prisma.department.findFirst({
+      where: {
+        id: departmentId,
+        tenantId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!department) {
+      throw new NotFoundException('Departamento vinculado nao encontrado.');
     }
   }
 

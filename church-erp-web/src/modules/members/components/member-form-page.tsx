@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { listChurches } from "@/modules/churches/services/churches-service";
+import { listDepartments } from "@/modules/departments/services/departments-service";
+import { listLeadershipRoles } from "@/modules/leadership-roles/services/leadership-roles-service";
 import {
   createMember,
   getMemberById,
@@ -43,6 +45,18 @@ interface ChurchOption {
   name: string;
 }
 
+interface LeadershipRoleOption {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
+interface DepartmentOption {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
 const initialFormValues: MemberFormValues = {
   fullName: "",
   birthDate: "",
@@ -55,6 +69,8 @@ const initialFormValues: MemberFormValues = {
   status: "ACTIVE",
   notes: "",
   churchId: "",
+  leadershipRoleId: "",
+  departmentId: "",
 };
 
 const textareaClassName =
@@ -64,6 +80,12 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
   const router = useRouter();
   const [formValues, setFormValues] = useState<MemberFormValues>(initialFormValues);
   const [churchOptions, setChurchOptions] = useState<ChurchOption[]>([]);
+  const [leadershipRoleOptions, setLeadershipRoleOptions] = useState<
+    LeadershipRoleOption[]
+  >([]);
+  const [departmentOptions, setDepartmentOptions] = useState<DepartmentOption[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -78,8 +100,15 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
       setLoadError(null);
 
       try {
-        const [churchesResponse, memberResponse] = await Promise.all([
+        const [
+          churchesResponse,
+          leadershipRolesResponse,
+          departmentsResponse,
+          memberResponse,
+        ] = await Promise.all([
           listChurches({ name: "", status: "" }),
+          listLeadershipRoles({ name: "", active: "" }),
+          listDepartments({ name: "", active: "" }),
           mode === "edit" && memberId ? getMemberById(memberId) : Promise.resolve(null),
         ]);
 
@@ -95,6 +124,20 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
           nextChurchOptions.length === 1 ? nextChurchOptions[0].id : "";
 
         setChurchOptions(nextChurchOptions);
+        setLeadershipRoleOptions(
+          leadershipRolesResponse.items.map((leadershipRole) => ({
+            id: leadershipRole.id,
+            name: leadershipRole.name,
+            active: leadershipRole.active,
+          })),
+        );
+        setDepartmentOptions(
+          departmentsResponse.items.map((department) => ({
+            id: department.id,
+            name: department.name,
+            active: department.active,
+          })),
+        );
 
         if (memberResponse) {
           setFormValues({
@@ -109,6 +152,8 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
             status: memberResponse.status || "ACTIVE",
             notes: memberResponse.notes ?? "",
             churchId: memberResponse.churchId,
+            leadershipRoleId: memberResponse.leadershipRoleId ?? "",
+            departmentId: memberResponse.departmentId ?? "",
           });
         } else {
           setFormValues((current) => ({
@@ -167,6 +212,8 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
           status: formValues.status,
           notes: formValues.notes,
           churchId: formValues.churchId,
+          leadershipRoleId: formValues.leadershipRoleId,
+          departmentId: formValues.departmentId,
         };
 
         await createMember(payload);
@@ -183,6 +230,8 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
           status: formValues.status,
           notes: formValues.notes,
           churchId: formValues.churchId,
+          leadershipRoleId: formValues.leadershipRoleId,
+          departmentId: formValues.departmentId,
         };
 
         await updateMember(memberId, payload);
@@ -242,13 +291,14 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
             {mode === "create" ? "Cadastro de membro" : "Edicao de membro"}
           </CardTitle>
           <CardDescription>
-            Preencha os dados do membro e selecione a igreja vinculada para manter o cadastro organizado.
+            Preencha os dados do membro e selecione igreja, cargo e departamento
+            para manter o cadastro organizado.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="space-y-4">
-              {Array.from({ length: 7 }).map((_, index) => (
+              {Array.from({ length: 9 }).map((_, index) => (
                 <div
                   key={index}
                   className="h-16 animate-pulse rounded-2xl bg-secondary/60"
@@ -387,6 +437,46 @@ export function MemberFormPage({ mode, memberId }: MemberFormPageProps) {
                     {churchOptions.map((church) => (
                       <option key={church.id} value={church.id}>
                         {church.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="member-leadershipRoleId">
+                    Cargo de lideranca
+                  </Label>
+                  <Select
+                    id="member-leadershipRoleId"
+                    value={formValues.leadershipRoleId}
+                    onChange={(event) =>
+                      handleFieldChange("leadershipRoleId", event.target.value)
+                    }
+                  >
+                    <option value="">Nenhum cargo</option>
+                    {leadershipRoleOptions.map((leadershipRole) => (
+                      <option key={leadershipRole.id} value={leadershipRole.id}>
+                        {leadershipRole.name}
+                        {leadershipRole.active ? "" : " (Inativo)"}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="member-departmentId">Departamento</Label>
+                  <Select
+                    id="member-departmentId"
+                    value={formValues.departmentId}
+                    onChange={(event) =>
+                      handleFieldChange("departmentId", event.target.value)
+                    }
+                  >
+                    <option value="">Nenhum departamento</option>
+                    {departmentOptions.map((department) => (
+                      <option key={department.id} value={department.id}>
+                        {department.name}
+                        {department.active ? "" : " (Inativo)"}
                       </option>
                     ))}
                   </Select>

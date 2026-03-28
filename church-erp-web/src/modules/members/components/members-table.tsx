@@ -73,6 +73,12 @@ export function MembersTable({
                 Igreja
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                Cargo
+              </th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                Departamento
+              </th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 Telefone
               </th>
               <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
@@ -93,7 +99,7 @@ export function MembersTable({
             {isLoading && members.length === 0
               ? Array.from({ length: 5 }).map((_, index) => (
                   <tr key={index}>
-                    <td className="px-4 py-4" colSpan={7}>
+                    <td className="px-4 py-4" colSpan={9}>
                       <div className="h-12 animate-pulse rounded-2xl bg-secondary/60" />
                     </td>
                   </tr>
@@ -103,7 +109,7 @@ export function MembersTable({
             {!isLoading && members.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={9}
                   className="px-4 py-14 text-center text-sm text-muted-foreground"
                 >
                   Nenhum membro encontrado com os filtros informados.
@@ -129,6 +135,12 @@ export function MembersTable({
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
                     {churchNamesById[member.churchId] || member.churchId || "-"}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-muted-foreground">
+                    {member.leadershipRoleName || "-"}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-muted-foreground">
+                    {member.departmentName || "-"}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted-foreground">
                     {formatPhone(member.phone || "")}

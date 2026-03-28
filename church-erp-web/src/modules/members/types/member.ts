@@ -21,6 +21,10 @@ export interface MemberItem {
   status: MemberStatus;
   notes: string | null;
   churchId: string;
+  leadershipRoleId: string | null;
+  leadershipRoleName: string | null;
+  departmentId: string | null;
+  departmentName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -29,6 +33,8 @@ export interface MemberFilters {
   name: string;
   status: MemberStatus | "";
   churchId: string;
+  leadershipRoleId: string;
+  departmentId: string;
 }
 
 export interface MemberListResult {
@@ -51,6 +57,8 @@ export interface CreateMemberPayload {
   status: MemberStatus;
   notes: string;
   churchId: string;
+  leadershipRoleId: string;
+  departmentId: string;
 }
 
 export interface UpdateMemberPayload {
@@ -65,6 +73,8 @@ export interface UpdateMemberPayload {
   status?: MemberStatus;
   notes?: string | null;
   churchId?: string;
+  leadershipRoleId?: string | null;
+  departmentId?: string | null;
 }
 
 export interface MemberFormValues {
@@ -79,6 +89,8 @@ export interface MemberFormValues {
   status: MemberStatus;
   notes: string;
   churchId: string;
+  leadershipRoleId: string;
+  departmentId: string;
 }
 
 export const MEMBER_STATUS_OPTIONS = [

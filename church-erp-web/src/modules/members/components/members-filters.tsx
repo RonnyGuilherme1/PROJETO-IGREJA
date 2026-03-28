@@ -12,9 +12,21 @@ interface ChurchOption {
   name: string;
 }
 
+interface LeadershipRoleOption {
+  id: string;
+  name: string;
+}
+
+interface DepartmentOption {
+  id: string;
+  name: string;
+}
+
 interface MembersFiltersProps {
   filters: MemberFilters;
   churchOptions: ChurchOption[];
+  leadershipRoleOptions: LeadershipRoleOption[];
+  departmentOptions: DepartmentOption[];
   isLoading: boolean;
   onChange: (field: keyof MemberFilters, value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
@@ -24,6 +36,8 @@ interface MembersFiltersProps {
 export function MembersFilters({
   filters,
   churchOptions,
+  leadershipRoleOptions,
+  departmentOptions,
   isLoading,
   onChange,
   onSubmit,
@@ -31,7 +45,7 @@ export function MembersFilters({
 }: MembersFiltersProps) {
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div className="space-y-2">
           <Label htmlFor="filter-member-name">Nome</Label>
           <Input
@@ -69,6 +83,40 @@ export function MembersFilters({
             {churchOptions.map((church) => (
               <option key={church.id} value={church.id}>
                 {church.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="filter-member-leadership-role">Cargo</Label>
+          <Select
+            id="filter-member-leadership-role"
+            value={filters.leadershipRoleId}
+            onChange={(event) =>
+              onChange("leadershipRoleId", event.target.value)
+            }
+          >
+            <option value="">Todos</option>
+            {leadershipRoleOptions.map((leadershipRole) => (
+              <option key={leadershipRole.id} value={leadershipRole.id}>
+                {leadershipRole.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="filter-member-department">Departamento</Label>
+          <Select
+            id="filter-member-department"
+            value={filters.departmentId}
+            onChange={(event) => onChange("departmentId", event.target.value)}
+          >
+            <option value="">Todos</option>
+            {departmentOptions.map((department) => (
+              <option key={department.id} value={department.id}>
+                {department.name}
               </option>
             ))}
           </Select>

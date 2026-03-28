@@ -17,6 +17,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { listChurches } from "@/modules/churches/services/churches-service";
+import { listDepartments } from "@/modules/departments/services/departments-service";
+import { listLeadershipRoles } from "@/modules/leadership-roles/services/leadership-roles-service";
 import { MembersFilters } from "@/modules/members/components/members-filters";
 import { MembersTable } from "@/modules/members/components/members-table";
 import { getMembersAccessLabel } from "@/modules/members/lib/members-permissions";
@@ -34,10 +36,22 @@ interface ChurchOption {
   name: string;
 }
 
+interface LeadershipRoleOption {
+  id: string;
+  name: string;
+}
+
+interface DepartmentOption {
+  id: string;
+  name: string;
+}
+
 const initialFilters: MemberFilters = {
   name: "",
   status: "",
   churchId: "",
+  leadershipRoleId: "",
+  departmentId: "",
 };
 
 export function MembersListPage({
@@ -48,9 +62,15 @@ export function MembersListPage({
   const [appliedFilters, setAppliedFilters] = useState<MemberFilters>(initialFilters);
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [churchOptions, setChurchOptions] = useState<ChurchOption[]>([]);
+  const [leadershipRoleOptions, setLeadershipRoleOptions] = useState<
+    LeadershipRoleOption[]
+  >([]);
+  const [departmentOptions, setDepartmentOptions] = useState<DepartmentOption[]>(
+    [],
+  );
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [churchesError, setChurchesError] = useState<string | null>(null);
+  const [referenceDataError, setReferenceDataError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inactivatingId, setInactivatingId] = useState<string | null>(null);
   const [memberPendingInactivation, setMemberPendingInactivation] =
@@ -86,33 +106,78 @@ export function MembersListPage({
   useEffect(() => {
     let isActive = true;
 
-    async function loadChurchOptions() {
-      try {
-        const response = await listChurches({ name: "", status: "" });
+    async function loadReferenceData() {
+      const [churchesResult, leadershipRolesResult, departmentsResult] =
+        await Promise.allSettled([
+          listChurches({ name: "", status: "" }),
+          listLeadershipRoles({ name: "", active: "" }),
+          listDepartments({ name: "", active: "" }),
+        ]);
 
-        if (!isActive) {
-          return;
-        }
+      if (!isActive) {
+        return;
+      }
 
+      if (churchesResult.status === "fulfilled") {
         setChurchOptions(
-          response.items.map((church) => ({
+          churchesResult.value.items.map((church) => ({
             id: church.id,
             name: church.name,
           })),
         );
-      } catch (loadError) {
-        if (isActive) {
-          setChurchesError(
-            getApiErrorMessage(
-              loadError,
-              "Nao foi possivel carregar a lista de igrejas para filtro.",
-            ),
-          );
-        }
       }
+
+      if (leadershipRolesResult.status === "fulfilled") {
+        setLeadershipRoleOptions(
+          leadershipRolesResult.value.items.map((leadershipRole) => ({
+            id: leadershipRole.id,
+            name: leadershipRole.name,
+          })),
+        );
+      }
+
+      if (departmentsResult.status === "fulfilled") {
+        setDepartmentOptions(
+          departmentsResult.value.items.map((department) => ({
+            id: department.id,
+            name: department.name,
+          })),
+        );
+      }
+
+      const errors: string[] = [];
+
+      if (churchesResult.status === "rejected") {
+        errors.push(
+          getApiErrorMessage(
+            churchesResult.reason,
+            "Nao foi possivel carregar a lista de igrejas para filtro.",
+          ),
+        );
+      }
+
+      if (leadershipRolesResult.status === "rejected") {
+        errors.push(
+          getApiErrorMessage(
+            leadershipRolesResult.reason,
+            "Nao foi possivel carregar a lista de cargos para filtro.",
+          ),
+        );
+      }
+
+      if (departmentsResult.status === "rejected") {
+        errors.push(
+          getApiErrorMessage(
+            departmentsResult.reason,
+            "Nao foi possivel carregar a lista de departamentos para filtro.",
+          ),
+        );
+      }
+
+      setReferenceDataError(errors[0] ?? null);
     }
 
-    void loadChurchOptions();
+    void loadReferenceData();
 
     return () => {
       isActive = false;
@@ -197,21 +262,23 @@ export function MembersListPage({
           <div className="space-y-2">
             <CardTitle>Filtros</CardTitle>
             <CardDescription>
-              Filtre por nome, status e igreja para localizar membros.
+              Filtre por nome, status, igreja, cargo e departamento para localizar membros.
             </CardDescription>
           </div>
           <Badge variant="secondary">Total: {total}</Badge>
         </CardHeader>
         <CardContent className="space-y-4">
-          {churchesError ? (
+          {referenceDataError ? (
             <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              {churchesError}
+              {referenceDataError}
             </div>
           ) : null}
 
           <MembersFilters
             filters={filters}
             churchOptions={churchOptions}
+            leadershipRoleOptions={leadershipRoleOptions}
+            departmentOptions={departmentOptions}
             isLoading={isLoading}
             onChange={handleFilterChange}
             onSubmit={handleFilterSubmit}
@@ -224,7 +291,7 @@ export function MembersListPage({
         <CardHeader className="space-y-2">
           <CardTitle>Listagem</CardTitle>
           <CardDescription>
-            Visualize membros cadastrados, acompanhe a igreja vinculada e gerencie o status.
+            Visualize membros cadastrados, acompanhe igreja, cargo, departamento e gerencie o status.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

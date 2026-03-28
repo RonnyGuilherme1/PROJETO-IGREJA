@@ -1,7 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Building2,
+  FolderKanban,
+  FolderTree,
   LayoutDashboard,
+  Megaphone,
   Palette,
   ShieldUser,
   Users,
@@ -9,13 +12,24 @@ import {
 } from "lucide-react";
 import type { AuthUser } from "@/modules/auth/types/auth";
 
-export interface AdminNavItem {
+interface AdminNavBaseItem {
   title: string;
-  href: string;
   description: string;
   icon: LucideIcon;
   adminOnly?: boolean;
 }
+
+export interface AdminNavLeafItem extends AdminNavBaseItem {
+  href: string;
+  children?: never;
+}
+
+export interface AdminNavGroupItem extends AdminNavBaseItem {
+  children: AdminNavItem[];
+  href?: never;
+}
+
+export type AdminNavItem = AdminNavLeafItem | AdminNavGroupItem;
 
 export const adminNavItems: AdminNavItem[] = [
   {
@@ -25,22 +39,60 @@ export const adminNavItems: AdminNavItem[] = [
     icon: LayoutDashboard,
   },
   {
-    title: "Membros",
-    href: "/membros",
-    description: "Cadastro de membros",
-    icon: Users,
+    title: "Cadastros",
+    description: "Cadastros principais do painel",
+    icon: FolderTree,
+    children: [
+      {
+        title: "Igrejas",
+        href: "/igrejas",
+        description: "Unidades cadastradas",
+        icon: Building2,
+      },
+      {
+        title: "Membros",
+        href: "/membros",
+        description: "Cadastro de membros",
+        icon: Users,
+      },
+      {
+        title: "Cargos de lideranca",
+        href: "/cargos-lideranca",
+        description: "Funcoes de lideranca",
+        icon: ShieldUser,
+      },
+      {
+        title: "Departamentos",
+        href: "/departamentos",
+        description: "Areas e departamentos",
+        icon: FolderKanban,
+      },
+    ],
   },
   {
-    title: "Igrejas",
-    href: "/igrejas",
-    description: "Unidades cadastradas",
-    icon: Building2,
-  },
-  {
-    title: "Tesouraria",
-    href: "/tesouraria",
-    description: "Fluxo financeiro",
+    title: "Financeiro",
+    description: "Operacoes financeiras",
     icon: Wallet,
+    children: [
+      {
+        title: "Lancamentos",
+        href: "/tesouraria",
+        description: "Fluxo financeiro",
+        icon: Wallet,
+      },
+      {
+        title: "Campanhas",
+        href: "/campanhas",
+        description: "Campanhas parceladas",
+        icon: FolderKanban,
+      },
+    ],
+  },
+  {
+    title: "Avisos",
+    href: "/avisos",
+    description: "Comunicados e avisos",
+    icon: Megaphone,
   },
   {
     title: "Usuarios",
@@ -58,10 +110,54 @@ export const adminNavItems: AdminNavItem[] = [
   },
 ];
 
-export function getAdminNavItems(user?: AuthUser | null) {
-  return adminNavItems.filter(
-    (item) =>
-      !item.adminOnly ||
-      (user?.accessType === "TENANT" && user.role === "ADMIN"),
+function hasAdminAccess(user?: AuthUser | null) {
+  return user?.accessType === "TENANT" && user.role === "ADMIN";
+}
+
+export function isAdminNavGroup(item: AdminNavItem): item is AdminNavGroupItem {
+  return "children" in item;
+}
+
+function canAccessAdminNavItem(item: AdminNavItem, user?: AuthUser | null) {
+  return !item.adminOnly || hasAdminAccess(user);
+}
+
+export function flattenAdminNavItems(items: AdminNavItem[]): AdminNavLeafItem[] {
+  return items.flatMap((item) =>
+    isAdminNavGroup(item) ? flattenAdminNavItems(item.children) : [item],
   );
+}
+
+export function getAdminNavItems(user?: AuthUser | null): AdminNavItem[] {
+  return adminNavItems.reduce<AdminNavItem[]>((items, item) => {
+    if (!canAccessAdminNavItem(item, user)) {
+      return items;
+    }
+
+    if (!isAdminNavGroup(item)) {
+      items.push(item);
+      return items;
+    }
+
+    const children = item.children.filter((child) =>
+      canAccessAdminNavItem(child, user),
+    );
+
+    if (children.length === 0) {
+      return items;
+    }
+
+    items.push({
+      ...item,
+      children,
+    });
+
+    return items;
+  }, []);
+}
+
+export function getAdminLeafNavItems(
+  user?: AuthUser | null,
+): AdminNavLeafItem[] {
+  return flattenAdminNavItems(getAdminNavItems(user));
 }

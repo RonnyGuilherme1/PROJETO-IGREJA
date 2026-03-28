@@ -54,6 +54,14 @@ function sanitizeMemberPayload(
       "churchId" in payload && payload.churchId !== undefined
         ? payload.churchId.trim()
         : undefined,
+    leadershipRoleId:
+      "leadershipRoleId" in payload && payload.leadershipRoleId !== undefined
+        ? payload.leadershipRoleId?.trim() || null
+        : undefined,
+    departmentId:
+      "departmentId" in payload && payload.departmentId !== undefined
+        ? payload.departmentId?.trim() || null
+        : undefined,
   };
 
   return Object.fromEntries(
@@ -73,6 +81,8 @@ export async function listMembers(
       name: filters.name || undefined,
       status: filters.status || undefined,
       churchId: filters.churchId || undefined,
+      leadershipRoleId: filters.leadershipRoleId || undefined,
+      departmentId: filters.departmentId || undefined,
     },
   });
 

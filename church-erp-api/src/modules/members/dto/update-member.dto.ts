@@ -70,4 +70,12 @@ export class UpdateMemberDto {
   @IsOptional()
   @IsUUID('4')
   churchId?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  leadershipRoleId?: string | null;
+
+  @IsOptional()
+  @IsUUID('4')
+  departmentId?: string | null;
 }

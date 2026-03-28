@@ -15,6 +15,10 @@ export class MemberResponseDto {
   status!: MemberStatus;
   notes!: string | null;
   churchId!: string;
+  leadershipRoleId!: string | null;
+  leadershipRoleName!: string | null;
+  departmentId!: string | null;
+  departmentName!: string | null;
   createdAt!: Date;
   updatedAt!: Date;
 
@@ -31,6 +35,10 @@ export class MemberResponseDto {
     this.status = member.status;
     this.notes = member.notes;
     this.churchId = member.churchId;
+    this.leadershipRoleId = member.leadershipRoleId;
+    this.leadershipRoleName = member.leadershipRole?.name ?? null;
+    this.departmentId = member.departmentId;
+    this.departmentName = member.department?.name ?? null;
     this.createdAt = member.createdAt;
     this.updatedAt = member.updatedAt;
   }
