@@ -26,40 +26,39 @@ export function BrandLogo({
   fallbackImageClassName,
   iconClassName,
 }: BrandLogoProps) {
-  const normalizedLogoUrl = normalizeTenantLogoUrl(logoUrl);
+  const normalizedLogoUrl = normalizeTenantLogoUrl(logoUrl, {
+    resolveRelative: true,
+  });
   const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
   const [hasFallbackLogoError, setHasFallbackLogoError] = useState(false);
   const canRenderCustomLogo =
     Boolean(normalizedLogoUrl) && failedLogoUrl !== normalizedLogoUrl;
 
   return (
-    <div className={cn("relative overflow-hidden", className)}>
+    <div className={cn("relative flex items-center justify-center", className)}>
       {normalizedLogoUrl && canRenderCustomLogo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          key={normalizedLogoUrl}
           src={normalizedLogoUrl}
           alt={alt}
-          className={cn("h-full w-full object-cover", imageClassName)}
+          className={cn("h-full w-full object-contain", imageClassName)}
           onError={() => setFailedLogoUrl(normalizedLogoUrl)}
         />
       ) : !hasFallbackLogoError ? (
-        <div className="flex h-full w-full items-center justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={PLATFORM_LOGO_FALLBACK_SRC}
-            alt={alt}
-            className={cn(
-              "h-full w-full object-contain",
-              imageClassName,
-              fallbackImageClassName,
-            )}
-            onError={() => setHasFallbackLogoError(true)}
-          />
-        </div>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={PLATFORM_LOGO_FALLBACK_SRC}
+          alt={alt}
+          className={cn(
+            "h-full w-full object-contain",
+            imageClassName,
+            fallbackImageClassName,
+          )}
+          onError={() => setHasFallbackLogoError(true)}
+        />
       ) : (
-        <div className="flex h-full w-full items-center justify-center">
-          <Icon className={cn("size-5", iconClassName)} />
-        </div>
+        <Icon className={cn("size-5", iconClassName)} />
       )}
     </div>
   );

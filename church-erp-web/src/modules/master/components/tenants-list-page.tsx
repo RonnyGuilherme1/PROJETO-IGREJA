@@ -271,7 +271,7 @@ export function TenantsListPage() {
                             <BrandLogo
                               alt={`Logo do ambiente ${tenant.name}`}
                               logoUrl={tenant.logoUrl}
-                              className="size-14 shrink-0 rounded-2xl border border-border bg-card shadow-sm"
+                              className="h-14 w-24 shrink-0"
                               iconClassName="size-6 text-primary"
                             />
 

@@ -33,9 +33,7 @@ export function MasterHeader({
           <div className="lg:hidden">{mobileNavigation}</div>
           <BrandLogo
             alt="Logo da plataforma Igreja ERP"
-            className="hidden size-[4.5rem] shrink-0 rounded-[2rem] bg-[color:var(--surface-base)] shadow-[0_12px_28px_rgba(15,74,54,0.08)] sm:flex lg:size-20"
-            imageClassName="object-contain p-2.5 lg:p-3"
-            fallbackImageClassName="scale-[1.1]"
+            className="hidden h-16 w-28 shrink-0 sm:flex lg:h-20 lg:w-36"
           />
           <div className="min-w-0 space-y-1.5">
             <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground/80">

@@ -27,9 +27,7 @@ export function MasterSidebar({ user, onNavigate }: MasterSidebarProps) {
         >
           <BrandLogo
             alt="Logo da plataforma Igreja ERP"
-            className="size-20 shrink-0 rounded-[2rem] bg-white/6 ring-1 ring-white/10 shadow-[0_12px_28px_rgba(0,0,0,0.18)]"
-            imageClassName="object-contain p-3"
-            fallbackImageClassName="scale-[1.1]"
+            className="h-16 w-28 shrink-0"
           />
           <div className="space-y-1">
             <p className="text-base font-semibold tracking-wide text-sidebar-foreground">

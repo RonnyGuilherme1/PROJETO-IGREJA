@@ -5,7 +5,10 @@ import { useEffect, useState, useTransition } from "react";
 import { ArrowLeft, LoaderCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
-import { getTenantThemeLabel } from "@/lib/tenant-branding";
+import {
+  getTenantThemeLabel,
+  normalizeTenantLogoUrl,
+} from "@/lib/tenant-branding";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
@@ -338,7 +341,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
   const selectedThemeLabel = getTenantThemeLabel(formValues.themeKey);
   const previewTitle = formValues.name.trim() || "Preview da identidade";
   const previewLogoUrl = selectedLogoPreviewUrl ?? formValues.logoUrl;
-  const hasCustomLogo = previewLogoUrl.trim().length > 0;
+  const hasCustomLogo = Boolean(normalizeTenantLogoUrl(previewLogoUrl));
 
   return (
     <div className="space-y-6">
@@ -474,8 +477,8 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                   <BrandLogo
                     alt={`Logo do ambiente ${previewTitle}`}
                     logoUrl={previewLogoUrl}
-                    className="size-[5.5rem] shrink-0 rounded-2xl border border-border bg-card shadow-sm"
-                    iconClassName="size-8 text-primary"
+                    className="h-20 w-full max-w-[12rem] shrink-0 sm:w-[12rem]"
+                    iconClassName="size-9 text-primary"
                   />
 
                   <div className="space-y-1">

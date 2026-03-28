@@ -176,6 +176,52 @@ const TENANT_THEME_TOKENS: Record<TenantThemeKey, TenantThemeTokens> = {
 };
 
 type TenantThemeStyle = CSSProperties & Record<`--${string}`, string>;
+type NormalizeTenantLogoUrlOptions = {
+  resolveRelative?: boolean;
+};
+
+function hasAbsoluteLogoUrl(value: string) {
+  return /^[a-z][a-z\d+.-]*:/i.test(value) || value.startsWith("//");
+}
+
+function normalizeRelativeLogoPath(value: string) {
+  const normalizedValue = value.replace(/^\.\/+/, "");
+
+  if (!normalizedValue) {
+    return "/";
+  }
+
+  return normalizedValue.startsWith("/") ? normalizedValue : `/${normalizedValue}`;
+}
+
+function resolveTenantLogoUrl(value: string) {
+  if (hasAbsoluteLogoUrl(value)) {
+    return value;
+  }
+
+  const normalizedPath = normalizeRelativeLogoPath(value);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+  if (!apiBaseUrl) {
+    return normalizedPath;
+  }
+
+  try {
+    if (apiBaseUrl.startsWith("/")) {
+      if (typeof window === "undefined") {
+        return normalizedPath;
+      }
+
+      return new URL(normalizedPath, window.location.origin).toString();
+    }
+
+    const apiUrl = new URL(apiBaseUrl);
+
+    return new URL(normalizedPath, `${apiUrl.origin}/`).toString();
+  } catch {
+    return normalizedPath;
+  }
+}
 
 export function normalizeTenantTheme(value: unknown): TenantThemeKey {
   if (typeof value !== "string") {
@@ -189,14 +235,23 @@ export function normalizeTenantTheme(value: unknown): TenantThemeKey {
     : DEFAULT_TENANT_THEME_KEY;
 }
 
-export function normalizeTenantLogoUrl(value: unknown): string | null {
+export function normalizeTenantLogoUrl(
+  value: unknown,
+  options?: NormalizeTenantLogoUrlOptions,
+): string | null {
   if (typeof value !== "string") {
     return null;
   }
 
   const normalizedValue = value.trim();
 
-  return normalizedValue.length > 0 ? normalizedValue : null;
+  if (normalizedValue.length === 0) {
+    return null;
+  }
+
+  return options?.resolveRelative
+    ? resolveTenantLogoUrl(normalizedValue)
+    : normalizedValue;
 }
 
 export function getTenantThemeLabel(themeKey?: TenantThemeKey | string | null) {
