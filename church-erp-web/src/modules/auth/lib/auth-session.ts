@@ -10,6 +10,10 @@ const MASTER_PATH_PREFIX = "/master";
 const LEGACY_AUTH_TOKEN_COOKIE = "church-erp.access-token";
 const LEGACY_AUTH_SESSION_COOKIE = "church-erp.session";
 
+interface JwtPayload {
+  exp?: number;
+}
+
 const AUTH_COOKIE_CONFIG: Record<
   AuthAccessType,
   {
@@ -81,6 +85,75 @@ function parseJsonCookie<T>(cookieValue: string | undefined) {
       return null;
     }
   }
+}
+
+function decodeBase64UrlSegment(segment: string) {
+  const normalizedSegment = segment.replace(/-/g, "+").replace(/_/g, "/");
+  const padding =
+    normalizedSegment.length % 4 === 0
+      ? ""
+      : "=".repeat(4 - (normalizedSegment.length % 4));
+
+  try {
+    const binaryValue =
+      typeof window !== "undefined" && typeof window.atob === "function"
+        ? window.atob(`${normalizedSegment}${padding}`)
+        : Buffer.from(`${normalizedSegment}${padding}`, "base64").toString(
+            "binary",
+          );
+
+    const bytes = Uint8Array.from(binaryValue, (character) =>
+      character.charCodeAt(0),
+    );
+
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+function parseJwtPayload(token?: string): JwtPayload | null {
+  if (!token) {
+    return null;
+  }
+
+  const [, payloadSegment] = token.split(".");
+
+  if (!payloadSegment) {
+    return null;
+  }
+
+  const decodedPayload = decodeBase64UrlSegment(payloadSegment);
+
+  if (!decodedPayload) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(decodedPayload) as JwtPayload;
+
+    if (
+      typeof payload !== "object" ||
+      payload === null ||
+      Array.isArray(payload)
+    ) {
+      return null;
+    }
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+export function isAuthTokenActive(token?: string) {
+  const payload = parseJwtPayload(token);
+
+  if (!payload || typeof payload.exp !== "number") {
+    return false;
+  }
+
+  return payload.exp * 1000 > Date.now();
 }
 
 export function parseAuthSession(response: unknown): AuthSession {
@@ -171,7 +244,11 @@ export function getClientAccessToken(accessType?: AuthAccessType) {
       typeof window !== "undefined" ? window.location.pathname : undefined,
     );
 
-  return getCookieValue(getAuthCookieConfig(resolvedAccessType).tokenCookieName);
+  const accessToken = getCookieValue(
+    getAuthCookieConfig(resolvedAccessType).tokenCookieName,
+  );
+
+  return isAuthTokenActive(accessToken) ? accessToken : undefined;
 }
 
 export function getAuthSessionMetaFromCookie(cookieValue?: string) {
@@ -179,9 +256,13 @@ export function getAuthSessionMetaFromCookie(cookieValue?: string) {
 }
 
 export function getStoredAuthUser(
-  _token?: string,
+  token?: string,
   sessionCookieValue?: string,
 ): AuthUser | null {
+  if (!isAuthTokenActive(token)) {
+    return null;
+  }
+
   return getAuthSessionMetaFromCookie(sessionCookieValue)?.user ?? null;
 }
 

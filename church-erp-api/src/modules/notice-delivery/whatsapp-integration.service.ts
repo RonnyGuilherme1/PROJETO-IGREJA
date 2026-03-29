@@ -1,9 +1,12 @@
 import {
-  BadRequestException,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { Prisma, UserRole } from '@prisma/client';
+import {
+  Prisma,
+  UserRole,
+  WhatsappConnectionStatus,
+} from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
@@ -14,10 +17,14 @@ import {
   WhatsappIntegrationConfigEntity,
   whatsappIntegrationConfigSelect,
 } from './types/whatsapp-integration.type';
+import { WhatsappDestinationsService } from './whatsapp-destinations.service';
 
 @Injectable()
 export class WhatsappIntegrationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly whatsappDestinationsService: WhatsappDestinationsService,
+  ) {}
 
   async getStatus(
     currentUser: AuthenticatedUser,
@@ -29,6 +36,8 @@ export class WhatsappIntegrationService {
       config?.destinations.filter((destination) => destination.enabled).length ?? 0;
     const hasAccessToken = Boolean(config?.accessToken);
     const hasPhoneNumberId = Boolean(config?.phoneNumberId);
+    const hasConnectedSession =
+      config?.connectionStatus === WhatsappConnectionStatus.CONNECTED;
     const hasDestinations = activeDestinationsCount > 0;
     const enabled = config?.enabled ?? false;
     const fallbackToManual = config?.fallbackToManual ?? true;
@@ -46,6 +55,10 @@ export class WhatsappIntegrationService {
       missingRequirements.push('ao menos um destino ativo');
     }
 
+    if (!hasConnectedSession) {
+      missingRequirements.push('conexao ativa do WhatsApp');
+    }
+
     const configured = missingRequirements.length === 0;
     const available = enabled && configured;
 
@@ -54,6 +67,8 @@ export class WhatsappIntegrationService {
       enabled,
       configured,
       available,
+      connectionStatus:
+        config?.connectionStatus ?? WhatsappConnectionStatus.NOT_CONFIGURED,
       hasAccessToken,
       hasDestinations,
       destinationsCount: activeDestinationsCount,
@@ -63,6 +78,8 @@ export class WhatsappIntegrationService {
         enabled,
         available,
         configured,
+        connectionStatus:
+          config?.connectionStatus ?? WhatsappConnectionStatus.NOT_CONFIGURED,
         fallbackToManual,
         missingRequirements,
       }),
@@ -86,14 +103,6 @@ export class WhatsappIntegrationService {
     this.ensureCanManage(currentUser);
     const tenantId = this.ensureTenantAccess(currentUser);
     const existingConfig = await this.findConfigByTenantId(tenantId);
-    const normalizedDestinations =
-      updateWhatsappIntegrationConfigDto.destinations?.map((destination) => ({
-        label: destination.label.trim(),
-        phoneNumber: this.normalizeWhatsappPhoneNumber(destination.phoneNumber),
-        enabled: destination.enabled ?? true,
-      })) ?? null;
-
-    this.ensureNoDuplicateDestinations(normalizedDestinations);
 
     const nextAccessToken = updateWhatsappIntegrationConfigDto.clearAccessToken
       ? null
@@ -102,81 +111,31 @@ export class WhatsappIntegrationService {
         : existingConfig?.accessToken ?? null;
 
     const persistedConfig = await this.prisma.$transaction(async (transaction) => {
-      const baseData: Prisma.WhatsappIntegrationConfigUncheckedCreateInput = {
-        tenantId,
-        enabled: updateWhatsappIntegrationConfigDto.enabled ?? false,
-        businessAccountId: this.normalizeOptionalString(
-          updateWhatsappIntegrationConfigDto.businessAccountId,
-        ),
-        phoneNumberId: this.normalizeOptionalString(
-          updateWhatsappIntegrationConfigDto.phoneNumberId,
-        ),
-        accessToken: nextAccessToken,
-        fallbackToManual:
-          updateWhatsappIntegrationConfigDto.fallbackToManual ?? true,
-      };
-
       if (existingConfig) {
         await transaction.whatsappIntegrationConfig.update({
           where: { tenantId },
-          data: {
-            ...(updateWhatsappIntegrationConfigDto.enabled !== undefined
-              ? { enabled: updateWhatsappIntegrationConfigDto.enabled }
-              : {}),
-            ...(updateWhatsappIntegrationConfigDto.businessAccountId !== undefined
-              ? {
-                  businessAccountId: this.normalizeOptionalString(
-                    updateWhatsappIntegrationConfigDto.businessAccountId,
-                  ),
-                }
-              : {}),
-            ...(updateWhatsappIntegrationConfigDto.phoneNumberId !== undefined
-              ? {
-                  phoneNumberId: this.normalizeOptionalString(
-                    updateWhatsappIntegrationConfigDto.phoneNumberId,
-                  ),
-                }
-              : {}),
-            ...(updateWhatsappIntegrationConfigDto.accessToken !== undefined ||
-            updateWhatsappIntegrationConfigDto.clearAccessToken
-              ? { accessToken: nextAccessToken }
-              : {}),
-            ...(updateWhatsappIntegrationConfigDto.fallbackToManual !== undefined
-              ? {
-                  fallbackToManual:
-                    updateWhatsappIntegrationConfigDto.fallbackToManual,
-                }
-              : {}),
-          },
+          data: this.buildConfigUpdateData(
+            existingConfig,
+            updateWhatsappIntegrationConfigDto,
+            nextAccessToken,
+          ),
         });
       } else {
         await transaction.whatsappIntegrationConfig.create({
-          data: baseData,
+          data: this.buildConfigCreateData(
+            tenantId,
+            updateWhatsappIntegrationConfigDto,
+            nextAccessToken,
+          ),
         });
       }
 
-      if (normalizedDestinations) {
-        const configRecord = await transaction.whatsappIntegrationConfig.findUniqueOrThrow(
-          {
-            where: { tenantId },
-            select: { id: true },
-          },
+      if (updateWhatsappIntegrationConfigDto.destinations) {
+        await this.whatsappDestinationsService.replaceAllForTenant(
+          tenantId,
+          updateWhatsappIntegrationConfigDto.destinations,
+          transaction,
         );
-
-        await transaction.whatsappIntegrationDestination.deleteMany({
-          where: { configId: configRecord.id },
-        });
-
-        if (normalizedDestinations.length > 0) {
-          await transaction.whatsappIntegrationDestination.createMany({
-            data: normalizedDestinations.map((destination) => ({
-              configId: configRecord.id,
-              label: destination.label,
-              phoneNumber: destination.phoneNumber,
-              enabled: destination.enabled,
-            })),
-          });
-        }
       }
 
       return transaction.whatsappIntegrationConfig.findUniqueOrThrow({
@@ -186,6 +145,91 @@ export class WhatsappIntegrationService {
     });
 
     return new WhatsappIntegrationConfigResponseDto(persistedConfig);
+  }
+
+  async findConfigByTenantId(
+    tenantId: string,
+  ): Promise<WhatsappIntegrationConfigEntity | null> {
+    return this.prisma.whatsappIntegrationConfig.findUnique({
+      where: { tenantId },
+      select: whatsappIntegrationConfigSelect,
+    });
+  }
+
+  private buildConfigCreateData(
+    tenantId: string,
+    updateWhatsappIntegrationConfigDto: UpdateWhatsappIntegrationConfigDto,
+    nextAccessToken: string | null,
+  ): Prisma.WhatsappIntegrationConfigUncheckedCreateInput {
+    return {
+      tenantId,
+      enabled: updateWhatsappIntegrationConfigDto.enabled ?? false,
+      businessAccountId: this.normalizeOptionalString(
+        updateWhatsappIntegrationConfigDto.businessAccountId,
+      ),
+      phoneNumberId: this.normalizeOptionalString(
+        updateWhatsappIntegrationConfigDto.phoneNumberId,
+      ),
+      requestedPhoneNumber: this.normalizeOptionalString(
+        updateWhatsappIntegrationConfigDto.requestedPhoneNumber,
+      ),
+      accessToken: nextAccessToken,
+      fallbackToManual:
+        updateWhatsappIntegrationConfigDto.fallbackToManual ?? true,
+    };
+  }
+
+  private buildConfigUpdateData(
+    existingConfig: WhatsappIntegrationConfigEntity,
+    updateWhatsappIntegrationConfigDto: UpdateWhatsappIntegrationConfigDto,
+    nextAccessToken: string | null,
+  ): Prisma.WhatsappIntegrationConfigUncheckedUpdateInput {
+    const data: Prisma.WhatsappIntegrationConfigUncheckedUpdateInput = {};
+
+    if (updateWhatsappIntegrationConfigDto.enabled !== undefined) {
+      data.enabled = updateWhatsappIntegrationConfigDto.enabled;
+    }
+
+    if (updateWhatsappIntegrationConfigDto.businessAccountId !== undefined) {
+      data.businessAccountId = this.normalizeOptionalString(
+        updateWhatsappIntegrationConfigDto.businessAccountId,
+      );
+    }
+
+    if (updateWhatsappIntegrationConfigDto.phoneNumberId !== undefined) {
+      data.phoneNumberId = this.normalizeOptionalString(
+        updateWhatsappIntegrationConfigDto.phoneNumberId,
+      );
+    }
+
+    if (updateWhatsappIntegrationConfigDto.requestedPhoneNumber !== undefined) {
+      data.requestedPhoneNumber = this.normalizeOptionalString(
+        updateWhatsappIntegrationConfigDto.requestedPhoneNumber,
+      );
+    }
+
+    if (
+      updateWhatsappIntegrationConfigDto.accessToken !== undefined ||
+      updateWhatsappIntegrationConfigDto.clearAccessToken
+    ) {
+      data.accessToken = nextAccessToken;
+    }
+
+    if (updateWhatsappIntegrationConfigDto.fallbackToManual !== undefined) {
+      data.fallbackToManual = updateWhatsappIntegrationConfigDto.fallbackToManual;
+    }
+
+    if (
+      !existingConfig.requestedPhoneNumber &&
+      data.requestedPhoneNumber === undefined &&
+      updateWhatsappIntegrationConfigDto.phoneNumberId !== undefined
+    ) {
+      data.requestedPhoneNumber = this.normalizeOptionalString(
+        updateWhatsappIntegrationConfigDto.phoneNumberId,
+      );
+    }
+
+    return data;
   }
 
   private ensureCanView(currentUser: AuthenticatedUser): void {
@@ -212,15 +256,6 @@ export class WhatsappIntegrationService {
     return currentUser.tenantId;
   }
 
-  private async findConfigByTenantId(
-    tenantId: string,
-  ): Promise<WhatsappIntegrationConfigEntity | null> {
-    return this.prisma.whatsappIntegrationConfig.findUnique({
-      where: { tenantId },
-      select: whatsappIntegrationConfigSelect,
-    });
-  }
-
   private normalizeOptionalString(value?: string | null): string | null {
     if (typeof value !== 'string') {
       return null;
@@ -231,63 +266,23 @@ export class WhatsappIntegrationService {
     return trimmedValue.length > 0 ? trimmedValue : null;
   }
 
-  private normalizeWhatsappPhoneNumber(phoneNumber: string): string {
-    const digits = phoneNumber.replace(/\D/g, '');
-
-    if (digits.length < 10 || digits.length > 15) {
-      throw new BadRequestException(
-        'Informe um numero de destino em formato internacional com 10 a 15 digitos.',
-      );
-    }
-
-    return `+${digits}`;
-  }
-
-  private ensureNoDuplicateDestinations(
-    destinations: Array<{ label: string; phoneNumber: string; enabled: boolean }> | null,
-  ): void {
-    if (!destinations) {
-      return;
-    }
-
-    const labels = new Set<string>();
-    const phoneNumbers = new Set<string>();
-
-    destinations.forEach((destination) => {
-      const normalizedLabel = destination.label.trim().toLowerCase();
-
-      if (labels.has(normalizedLabel)) {
-        throw new BadRequestException(
-          'Existem destinos duplicados com o mesmo nome.',
-        );
-      }
-
-      if (phoneNumbers.has(destination.phoneNumber)) {
-        throw new BadRequestException(
-          'Existem destinos duplicados com o mesmo numero.',
-        );
-      }
-
-      labels.add(normalizedLabel);
-      phoneNumbers.add(destination.phoneNumber);
-    });
-  }
-
   private buildStatusSummary({
     enabled,
     available,
     configured,
+    connectionStatus,
     fallbackToManual,
     missingRequirements,
   }: {
     enabled: boolean;
     available: boolean;
     configured: boolean;
+    connectionStatus: WhatsappConnectionStatus;
     fallbackToManual: boolean;
     missingRequirements: string[];
   }): string {
     if (available) {
-      return 'Integracao oficial pronta para ser conectada a um fluxo futuro de envio desacoplado, mantendo o fallback manual ativo.';
+      return 'Integracao oficial pronta para envio automatico pelo WhatsApp, mantendo o fallback manual ativo quando necessario.';
     }
 
     if (!enabled) {
@@ -298,6 +293,18 @@ export class WhatsappIntegrationService {
 
     if (!configured) {
       const missingRequirementsLabel = missingRequirements.join(', ');
+
+      if (connectionStatus === WhatsappConnectionStatus.PENDING_AUTHORIZATION) {
+        return fallbackToManual
+          ? `Integracao oficial aguardando autorizacao. Ajuste ${missingRequirementsLabel}. Enquanto isso, o fluxo manual permanece disponivel.`
+          : `Integracao oficial aguardando autorizacao. Ajuste ${missingRequirementsLabel}.`;
+      }
+
+      if (connectionStatus === WhatsappConnectionStatus.ERROR) {
+        return fallbackToManual
+          ? `Integracao oficial com erro de conexao. Ajuste ${missingRequirementsLabel}. Enquanto isso, o fluxo manual permanece disponivel.`
+          : `Integracao oficial com erro de conexao. Ajuste ${missingRequirementsLabel}.`;
+      }
 
       return fallbackToManual
         ? `Integracao oficial ainda incompleta. Ajuste ${missingRequirementsLabel}. Enquanto isso, o fluxo manual permanece disponivel.`

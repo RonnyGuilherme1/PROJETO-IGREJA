@@ -6,9 +6,10 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-  MinLength,
   ValidateNested,
 } from 'class-validator';
+
+import { CreateWhatsappDestinationDto } from './create-whatsapp-destination.dto';
 
 function normalizeNullableString(value: unknown) {
   if (typeof value !== 'string') {
@@ -18,29 +19,6 @@ function normalizeNullableString(value: unknown) {
   const trimmedValue = value.trim();
 
   return trimmedValue.length > 0 ? trimmedValue : null;
-}
-
-export class UpdateWhatsappIntegrationDestinationDto {
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
-  @IsString()
-  @MinLength(2)
-  @MaxLength(120)
-  label!: string;
-
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
-  @IsString()
-  @MinLength(8)
-  @MaxLength(30)
-  phoneNumber!: string;
-
-  @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  enabled?: boolean;
 }
 
 export class UpdateWhatsappIntegrationConfigDto {
@@ -78,9 +56,15 @@ export class UpdateWhatsappIntegrationConfigDto {
   fallbackToManual?: boolean;
 
   @IsOptional()
+  @Transform(({ value }) => normalizeNullableString(value))
+  @IsString()
+  @MaxLength(30)
+  requestedPhoneNumber?: string | null;
+
+  @IsOptional()
   @IsArray()
   @ArrayMaxSize(50)
   @ValidateNested({ each: true })
-  @Type(() => UpdateWhatsappIntegrationDestinationDto)
-  destinations?: UpdateWhatsappIntegrationDestinationDto[];
+  @Type(() => CreateWhatsappDestinationDto)
+  destinations?: CreateWhatsappDestinationDto[];
 }

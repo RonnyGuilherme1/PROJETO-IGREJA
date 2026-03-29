@@ -1,37 +1,27 @@
-import { WhatsappIntegrationProvider } from '@prisma/client';
+import {
+  WhatsappConnectionStatus,
+  WhatsappIntegrationProvider,
+} from '@prisma/client';
 
+import { WhatsappDestinationResponseDto } from './whatsapp-destination-response.dto';
 import { WhatsappIntegrationConfigEntity } from '../types/whatsapp-integration.type';
-
-class WhatsappIntegrationDestinationResponseDto {
-  id: string;
-  label: string;
-  phoneNumber: string;
-  enabled: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-
-  constructor(
-    destination: WhatsappIntegrationConfigEntity['destinations'][number],
-  ) {
-    this.id = destination.id;
-    this.label = destination.label;
-    this.phoneNumber = destination.phoneNumber;
-    this.enabled = destination.enabled;
-    this.createdAt = destination.createdAt;
-    this.updatedAt = destination.updatedAt;
-  }
-}
 
 export class WhatsappIntegrationConfigResponseDto {
   id: string | null;
   provider: WhatsappIntegrationProvider;
   enabled: boolean;
+  connectionStatus: WhatsappConnectionStatus;
   businessAccountId: string | null;
   phoneNumberId: string | null;
+  requestedPhoneNumber: string | null;
+  connectedPhoneDisplay: string | null;
+  onboardingState: string | null;
+  lastConnectedAt: Date | null;
+  lastErrorMessage: string | null;
   hasAccessToken: boolean;
   accessTokenMask: string | null;
   fallbackToManual: boolean;
-  destinations: WhatsappIntegrationDestinationResponseDto[];
+  destinations: WhatsappDestinationResponseDto[];
   createdAt: Date | null;
   updatedAt: Date | null;
 
@@ -42,8 +32,17 @@ export class WhatsappIntegrationConfigResponseDto {
     this.provider =
       normalizedConfig?.provider ?? WhatsappIntegrationProvider.WHATSAPP_CLOUD_API;
     this.enabled = normalizedConfig?.enabled ?? false;
+    this.connectionStatus =
+      normalizedConfig?.connectionStatus ??
+      WhatsappConnectionStatus.NOT_CONFIGURED;
     this.businessAccountId = normalizedConfig?.businessAccountId ?? null;
     this.phoneNumberId = normalizedConfig?.phoneNumberId ?? null;
+    this.requestedPhoneNumber = normalizedConfig?.requestedPhoneNumber ?? null;
+    this.connectedPhoneDisplay =
+      normalizedConfig?.connectedPhoneDisplay ?? null;
+    this.onboardingState = normalizedConfig?.onboardingState ?? null;
+    this.lastConnectedAt = normalizedConfig?.lastConnectedAt ?? null;
+    this.lastErrorMessage = normalizedConfig?.lastErrorMessage ?? null;
     this.hasAccessToken = Boolean(normalizedConfig?.accessToken);
     this.accessTokenMask = normalizedConfig?.accessToken
       ? this.maskAccessToken(normalizedConfig.accessToken)
@@ -51,8 +50,7 @@ export class WhatsappIntegrationConfigResponseDto {
     this.fallbackToManual = normalizedConfig?.fallbackToManual ?? true;
     this.destinations =
       normalizedConfig?.destinations.map(
-        (destination) =>
-          new WhatsappIntegrationDestinationResponseDto(destination),
+        (destination) => new WhatsappDestinationResponseDto(destination),
       ) ?? [];
     this.createdAt = normalizedConfig?.createdAt ?? null;
     this.updatedAt = normalizedConfig?.updatedAt ?? null;

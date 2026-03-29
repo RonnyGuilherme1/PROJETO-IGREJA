@@ -15,6 +15,12 @@ import { MembersModule } from './modules/members/members.module';
 import { NoticeDeliveryModule } from './modules/notice-delivery/notice-delivery.module';
 import { NoticesModule } from './modules/notices/notices.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
+import {
+  PublicWhatsappOnboardingController,
+  TenantWhatsappOnboardingController,
+} from './modules/tenants/tenant-whatsapp-onboarding.controller';
+import { PlatformMasterGuard } from './modules/tenants/guards/platform-master.guard';
+import { TenantWhatsappOnboardingService } from './modules/tenants/tenant-whatsapp-onboarding.service';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -40,5 +46,10 @@ import { UsersModule } from './modules/users/users.module';
     FinanceModule,
     DashboardModule,
   ],
+  controllers: [
+    TenantWhatsappOnboardingController,
+    PublicWhatsappOnboardingController,
+  ],
+  providers: [TenantWhatsappOnboardingService, PlatformMasterGuard],
 })
 export class AppModule {}

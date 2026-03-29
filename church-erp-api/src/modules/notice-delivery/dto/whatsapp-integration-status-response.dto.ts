@@ -1,10 +1,14 @@
-import { WhatsappIntegrationProvider } from '@prisma/client';
+import {
+  WhatsappConnectionStatus,
+  WhatsappIntegrationProvider,
+} from '@prisma/client';
 
 interface WhatsappIntegrationStatusResponseDtoParams {
   provider?: WhatsappIntegrationProvider;
   enabled: boolean;
   configured: boolean;
   available: boolean;
+  connectionStatus: WhatsappConnectionStatus;
   hasAccessToken: boolean;
   hasDestinations: boolean;
   destinationsCount: number;
@@ -18,6 +22,7 @@ export class WhatsappIntegrationStatusResponseDto {
   enabled: boolean;
   configured: boolean;
   available: boolean;
+  connectionStatus: WhatsappConnectionStatus;
   hasAccessToken: boolean;
   hasDestinations: boolean;
   destinationsCount: number;
@@ -31,6 +36,7 @@ export class WhatsappIntegrationStatusResponseDto {
     enabled,
     configured,
     available,
+    connectionStatus,
     hasAccessToken,
     hasDestinations,
     destinationsCount,
@@ -42,6 +48,7 @@ export class WhatsappIntegrationStatusResponseDto {
     this.enabled = enabled;
     this.configured = configured;
     this.available = available;
+    this.connectionStatus = connectionStatus;
     this.hasAccessToken = hasAccessToken;
     this.hasDestinations = hasDestinations;
     this.destinationsCount = destinationsCount;

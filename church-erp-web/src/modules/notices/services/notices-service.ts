@@ -1,13 +1,16 @@
 import { ensureApiConfigured, http } from "@/lib/http";
 import type {
   CreateNoticePayload,
+  NoticeDeliveryResult,
   NoticeImageUploadResponse,
   NoticeItem,
   NoticeListResult,
+  SendNoticePayload,
   UpdateNoticePayload,
 } from "@/modules/notices/types/notices";
 
 const NOTICES_ENDPOINT = "/notices";
+const NOTICE_DELIVERY_ENDPOINT = "/notice-delivery/notices";
 const NOTICE_IMAGE_UPLOAD_FIELD = "image";
 
 function sanitizeNoticePayload(
@@ -104,6 +107,23 @@ export async function uploadNoticeImage(
   const response = await http.postForm<NoticeImageUploadResponse>(
     `${NOTICES_ENDPOINT}/${id}/image`,
     formData,
+  );
+
+  return response.data;
+}
+
+export async function sendNotice(
+  id: string,
+  payload: SendNoticePayload,
+): Promise<NoticeDeliveryResult> {
+  ensureApiConfigured();
+
+  const response = await http.post<NoticeDeliveryResult>(
+    `${NOTICE_DELIVERY_ENDPOINT}/${id}/send`,
+    {
+      destinationId: payload.destinationId,
+      finalCaption: payload.finalCaption?.trim() || undefined,
+    },
   );
 
   return response.data;

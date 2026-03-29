@@ -1,4 +1,5 @@
 export type NoticeStatus = "DRAFT" | "READY" | "SENT";
+export type NoticeDeliveryStatus = "PENDING" | "SENT" | "FAILED";
 
 export interface NoticeItem {
   id: string;
@@ -51,6 +52,29 @@ export interface NoticeFormValues {
 
 export interface NoticeImageUploadResponse {
   imageUrl: string;
+}
+
+export interface SendNoticePayload {
+  destinationId: string;
+  finalCaption?: string | null;
+}
+
+export interface NoticeDeliveryResult {
+  id: string;
+  noticeId: string;
+  noticeTitle: string;
+  destinationId: string;
+  destinationLabel: string;
+  destinationType: "GROUP" | "PERSON";
+  channel: string;
+  status: NoticeDeliveryStatus;
+  success: boolean;
+  providerMessageId: string | null;
+  sentAt: string | null;
+  errorMessage: string | null;
+  message: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const NOTICE_STATUS_OPTIONS = [

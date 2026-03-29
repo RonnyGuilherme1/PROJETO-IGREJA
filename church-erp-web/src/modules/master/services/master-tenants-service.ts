@@ -5,7 +5,10 @@ import {
 } from "@/lib/tenant-branding";
 import type {
   CreateMasterTenantPayload,
+  GenerateMasterTenantWhatsappOnboardingLinkPayload,
   MasterTenantItem,
+  MasterTenantWhatsappIntegrationStatus,
+  MasterTenantWhatsappOnboardingLinkResult,
   MasterTenantsListResult,
   UpdateMasterTenantPayload,
 } from "@/modules/master/types/tenant";
@@ -133,4 +136,32 @@ export async function activateMasterTenant(id: string): Promise<void> {
 export async function inactivateMasterTenant(id: string): Promise<void> {
   ensureApiConfigured();
   await http.patch(`${MASTER_TENANTS_ENDPOINT}/${id}/inactivate`);
+}
+
+export async function getMasterTenantWhatsappIntegrationStatus(
+  id: string,
+): Promise<MasterTenantWhatsappIntegrationStatus> {
+  ensureApiConfigured();
+
+  const response = await http.get<MasterTenantWhatsappIntegrationStatus>(
+    `${MASTER_TENANTS_ENDPOINT}/${id}/whatsapp`,
+  );
+
+  return response.data;
+}
+
+export async function generateMasterTenantWhatsappOnboardingLink(
+  id: string,
+  payload: GenerateMasterTenantWhatsappOnboardingLinkPayload,
+): Promise<MasterTenantWhatsappOnboardingLinkResult> {
+  ensureApiConfigured();
+
+  const response = await http.post<MasterTenantWhatsappOnboardingLinkResult>(
+    `${MASTER_TENANTS_ENDPOINT}/${id}/whatsapp/onboarding-link`,
+    {
+      requestedPhoneNumber: payload.requestedPhoneNumber.trim(),
+    },
+  );
+
+  return response.data;
 }

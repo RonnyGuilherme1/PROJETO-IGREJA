@@ -1,7 +1,8 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, ExternalLink, ImageOff, MessageCircle } from "lucide-react";
+import { ImageOff, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,8 +13,8 @@ import {
 } from "@/components/ui/card";
 import { getApiErrorMessage } from "@/lib/http";
 import { normalizeTenantLogoUrl } from "@/lib/tenant-branding";
-import { getWhatsappIntegrationStatus } from "@/modules/notice-delivery/services/whatsapp-delivery-service";
-import type { WhatsappIntegrationStatusItem } from "@/modules/notice-delivery/types/whatsapp-delivery";
+import { getWhatsappIntegrationStatus } from "@/modules/notice-delivery/services/whatsapp-service";
+import type { WhatsappIntegrationStatusItem } from "@/modules/notice-delivery/types/whatsapp";
 import type { NoticeStatus } from "@/modules/notices/types/notices";
 
 interface NoticePreviewCardProps {
@@ -25,6 +26,9 @@ interface NoticePreviewCardProps {
   status: NoticeStatus;
   churchName?: string | null;
   imageMessage?: string | null;
+  onSendClick?: () => void;
+  sendDisabled?: boolean;
+  sendHelperText?: string | null;
 }
 
 function formatDateTime(value: string) {
@@ -55,7 +59,11 @@ function getStatusLabel(status: NoticeStatus) {
   }
 }
 
-function buildNoticeCaption(title: string, message: string, scheduledAt: string) {
+export function buildNoticeCaption(
+  title: string,
+  message: string,
+  scheduledAt: string,
+) {
   const normalizedTitle = title.trim();
   const normalizedMessage = message.trim();
   const formattedScheduledAt = formatDateTime(scheduledAt);
@@ -85,10 +93,10 @@ export function NoticePreviewCard({
   status,
   churchName,
   imageMessage,
+  onSendClick,
+  sendDisabled = false,
+  sendHelperText,
 }: NoticePreviewCardProps) {
-  const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
-    "idle",
-  );
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
   const [whatsappStatus, setWhatsappStatus] =
     useState<WhatsappIntegrationStatusItem | null>(null);
@@ -101,7 +109,6 @@ export function NoticePreviewCard({
     normalizeTenantLogoUrl(imageUrl, { resolveRelative: true }) ?? "";
   const hasPreviewImage =
     Boolean(resolvedImageUrl) && resolvedImageUrl !== failedImageUrl;
-  const hasResolvedImage = Boolean(resolvedImageUrl);
 
   useEffect(() => {
     let isActive = true;
@@ -125,7 +132,7 @@ export function NoticePreviewCard({
         setWhatsappStatusError(
           getApiErrorMessage(
             error,
-            "Nao foi possivel verificar a integracao oficial do WhatsApp. O fluxo manual segue disponivel.",
+            "Nao foi possivel verificar a integracao do WhatsApp neste momento.",
           ),
         );
       }
@@ -138,36 +145,6 @@ export function NoticePreviewCard({
     };
   }, []);
 
-  async function handleCopyCaption() {
-    if (!captionText) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(captionText);
-      setCopyStatus("success");
-    } catch {
-      setCopyStatus("error");
-    }
-  }
-
-  function handleOpenImage() {
-    if (!resolvedImageUrl) {
-      return;
-    }
-
-    window.open(resolvedImageUrl, "_blank", "noopener,noreferrer");
-  }
-
-  function handleOpenWhatsApp() {
-    if (!captionText) {
-      return;
-    }
-
-    const whatsappUrl = `https://web.whatsapp.com/send?text=${encodeURIComponent(captionText)}`;
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-  }
-
   return (
     <Card className="bg-white/85">
       <CardHeader className="space-y-3">
@@ -175,44 +152,24 @@ export function NoticePreviewCard({
           <div className="space-y-2">
             <CardTitle>Preview do aviso</CardTitle>
             <CardDescription>
-              Visualizacao manual da mensagem com fallback preservado para o WhatsApp.
+              Visualizacao do aviso com envio centralizado pelo sistema.
             </CardDescription>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
             <Button
               type="button"
-              variant="outline"
               size="sm"
-              onClick={() => void handleCopyCaption()}
-              disabled={!captionText}
+              onClick={onSendClick}
+              disabled={!captionText || sendDisabled}
             >
-              <Copy className="size-4" />
-              {copyStatus === "success"
-                ? "Legenda copiada"
-                : copyStatus === "error"
-                  ? "Falha ao copiar"
-                  : "Copiar legenda"}
+              <Send className="size-4" />
+              Enviar aviso
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleOpenImage}
-              disabled={!hasResolvedImage}
-            >
-              <ExternalLink className="size-4" />
-              Abrir imagem
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleOpenWhatsApp}
-              disabled={!captionText}
-            >
-              <MessageCircle className="size-4" />
-              Abrir no WhatsApp
-            </Button>
+            {sendHelperText ? (
+              <p className="max-w-xs text-xs leading-5 text-muted-foreground sm:text-right">
+                {sendHelperText}
+              </p>
+            ) : null}
           </div>
         </div>
       </CardHeader>
@@ -234,7 +191,7 @@ export function NoticePreviewCard({
           </div>
         ) : (
           <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-3 text-sm text-muted-foreground">
-            Verificando a disponibilidade da integracao oficial do WhatsApp.
+            Verificando a disponibilidade da integracao do WhatsApp.
           </div>
         )}
 
@@ -284,7 +241,8 @@ export function NoticePreviewCard({
 
           <div className="rounded-2xl border border-border bg-secondary/20 p-4">
             <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">
-              {message.trim() || "A mensagem aparecera aqui conforme voce preencher o formulario."}
+              {message.trim() ||
+                "A mensagem aparecera aqui conforme voce preencher o formulario."}
             </p>
           </div>
 

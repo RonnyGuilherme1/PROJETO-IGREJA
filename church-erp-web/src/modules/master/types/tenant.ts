@@ -5,6 +5,11 @@ import {
 } from "@/lib/tenant-branding";
 
 export type MasterTenantStatus = "ACTIVE" | "INACTIVE";
+export type MasterTenantWhatsappConnectionStatus =
+  | "NOT_CONFIGURED"
+  | "PENDING_AUTHORIZATION"
+  | "CONNECTED"
+  | "ERROR";
 
 export interface MasterTenantItem {
   id: string;
@@ -22,6 +27,29 @@ export interface MasterTenantItem {
 export interface MasterTenantsListResult {
   items: MasterTenantItem[];
   total: number;
+}
+
+export interface MasterTenantWhatsappIntegrationStatus {
+  tenantId: string;
+  provider: "WHATSAPP_CLOUD_API";
+  connectionStatus: MasterTenantWhatsappConnectionStatus;
+  requestedPhoneNumber: string | null;
+  connectedPhoneDisplay: string | null;
+  businessAccountId: string | null;
+  phoneNumberId: string | null;
+  onboardingState: string | null;
+  lastConnectedAt: string | null;
+  lastErrorMessage: string | null;
+  updatedAt: string | null;
+}
+
+export interface MasterTenantWhatsappOnboardingLinkResult
+  extends MasterTenantWhatsappIntegrationStatus {
+  onboardingLink: string;
+}
+
+export interface GenerateMasterTenantWhatsappOnboardingLinkPayload {
+  requestedPhoneNumber: string;
 }
 
 export interface CreateMasterTenantPayload {

@@ -1,5 +1,7 @@
 import axios from "axios";
 import {
+  clearAuthSession,
+  getAuthLoginPath,
   getAccessTypeFromPathname,
   getClientAccessToken,
 } from "@/modules/auth/lib/auth-session";
@@ -14,6 +16,8 @@ export const http = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+let isHandlingUnauthorizedRedirect = false;
 
 function isAuthLoginRequest(url?: string) {
   const normalizedUrl = String(url ?? "");
@@ -55,6 +59,36 @@ http.interceptors.request.use((config) => {
 
   return config;
 });
+
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (
+      typeof window !== "undefined" &&
+      axios.isAxiosError(error) &&
+      error.response?.status === 401 &&
+      !isAuthLoginRequest(error.config?.url)
+    ) {
+      const accessType = getRequestAccessType(
+        error.config?.url,
+        window.location.pathname,
+      );
+      const loginPath = getAuthLoginPath(accessType);
+
+      clearAuthSession(accessType);
+
+      if (
+        !isHandlingUnauthorizedRedirect &&
+        window.location.pathname !== loginPath
+      ) {
+        isHandlingUnauthorizedRedirect = true;
+        window.location.replace(loginPath);
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
 
 export function ensureApiConfigured() {
   if (!http.defaults.baseURL) {

@@ -70,6 +70,24 @@ enum WhatsappIntegrationProvider {
   WHATSAPP_CLOUD_API
 }
 
+enum WhatsappDestinationType {
+  GROUP
+  PERSON
+}
+
+enum WhatsappConnectionStatus {
+  NOT_CONFIGURED
+  PENDING_AUTHORIZATION
+  CONNECTED
+  ERROR
+}
+
+enum NoticeDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 model Tenant {
   id                      String               @id @default(uuid()) @db.Uuid
   name                    String
@@ -88,6 +106,7 @@ model Tenant {
   departments             Department[]
   campaigns               Campaign[]
   notices                 Notice[]
+  noticeDeliveries        NoticeDelivery[]
   whatsappIntegrationConfig WhatsappIntegrationConfig?
   financeCategories       FinanceCategory[]
   financeTransactions     FinanceTransaction[]
@@ -138,6 +157,7 @@ model Church {
   members             Member[]
   campaigns           Campaign[]
   notices             Notice[]
+  whatsappDestinations WhatsappIntegrationDestination[]
   financeTransactions FinanceTransaction[]
 
   @@index([tenantId])
@@ -274,6 +294,7 @@ model Notice {
   status      NoticeStatus @default(DRAFT)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  deliveries  NoticeDelivery[]
 
   @@index([tenantId])
   @@index([churchId])
@@ -281,36 +302,75 @@ model Notice {
   @@index([scheduledAt])
 }
 
+model NoticeDelivery {
+  id                String                        @id @default(uuid()) @db.Uuid
+  tenantId          String?                       @db.Uuid
+  noticeId          String                        @db.Uuid
+  destinationId     String                        @db.Uuid
+  channel           String
+  status            NoticeDeliveryStatus          @default(PENDING)
+  providerMessageId String?
+  sentAt            DateTime?
+  errorMessage      String?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+  tenant            Tenant?                       @relation(fields: [tenantId], references: [id])
+  notice            Notice                        @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  destination       WhatsappIntegrationDestination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([noticeId])
+  @@index([destinationId])
+  @@index([status])
+  @@index([sentAt])
+}
+
 model WhatsappIntegrationConfig {
-  id                String                      @id @default(uuid()) @db.Uuid
-  tenantId          String                      @unique @db.Uuid
-  tenant            Tenant                      @relation(fields: [tenantId], references: [id])
-  provider          WhatsappIntegrationProvider @default(WHATSAPP_CLOUD_API)
-  enabled           Boolean                     @default(false)
-  businessAccountId String?
-  phoneNumberId     String?
-  accessToken       String?                     @db.Text
-  fallbackToManual  Boolean                     @default(true)
-  createdAt         DateTime                    @default(now())
-  updatedAt         DateTime                    @updatedAt
-  destinations      WhatsappIntegrationDestination[]
+  id                    String                      @id @default(uuid()) @db.Uuid
+  tenantId              String                      @unique @db.Uuid
+  tenant                Tenant                      @relation(fields: [tenantId], references: [id])
+  provider              WhatsappIntegrationProvider @default(WHATSAPP_CLOUD_API)
+  enabled               Boolean                     @default(false)
+  connectionStatus      WhatsappConnectionStatus    @default(NOT_CONFIGURED)
+  businessAccountId     String?
+  phoneNumberId         String?
+  requestedPhoneNumber  String?
+  connectedPhoneDisplay String?
+  accessToken           String?                     @db.Text
+  onboardingState       String?
+  lastConnectedAt       DateTime?
+  lastErrorMessage      String?
+  fallbackToManual      Boolean                     @default(true)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  destinations          WhatsappIntegrationDestination[]
 
   @@index([tenantId])
   @@index([enabled])
+  @@index([connectionStatus])
 }
 
 model WhatsappIntegrationDestination {
-  id          String                    @id @default(uuid()) @db.Uuid
-  configId    String                    @db.Uuid
-  label       String
-  phoneNumber String
-  enabled     Boolean                   @default(true)
-  createdAt   DateTime                  @default(now())
-  updatedAt   DateTime                  @updatedAt
-  config      WhatsappIntegrationConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  id               String                        @id @default(uuid()) @db.Uuid
+  configId         String                        @db.Uuid
+  churchId         String?                       @db.Uuid
+  type             WhatsappDestinationType       @default(PERSON)
+  label            String
+  groupId          String?
+  phoneNumber      String?
+  enabled          Boolean                       @default(true)
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+  config           WhatsappIntegrationConfig     @relation(fields: [configId], references: [id], onDelete: Cascade)
+  church           Church?                       @relation(fields: [churchId], references: [id])
+  noticeDeliveries NoticeDelivery[]
 
   @@index([configId])
+  @@index([churchId])
+  @@index([type])
   @@index([enabled])
+  @@index([configId, type])
+  @@index([configId, churchId])
 }
 
 model FinanceCategory {

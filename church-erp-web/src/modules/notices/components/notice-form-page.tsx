@@ -22,6 +22,7 @@ import { getCampaignById } from "@/modules/campaigns/services/campaigns-service"
 import type { CampaignDetailItem } from "@/modules/campaigns/types/campaign";
 import { listChurches } from "@/modules/churches/services/churches-service";
 import { NoticePreviewCard } from "@/modules/notices/components/notice-preview-card";
+import { NoticeSendDialog } from "@/modules/notices/components/notice-send-dialog";
 import {
   createNotice,
   getNoticeById,
@@ -167,6 +168,7 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
     null,
   );
   const [imageInputKey, setImageInputKey] = useState(0);
+  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
   const [isRedirecting, startTransition] = useTransition();
 
   useEffect(() => {
@@ -281,6 +283,17 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
     : formValues.imageUrl.trim()
       ? "Imagem atual configurada para este aviso."
       : "Sem imagem configurada para este aviso.";
+  const sendDisabledReason = useMemo(() => {
+    if (mode !== "edit" || !noticeId) {
+      return "Salve o aviso antes de enviar pelo fluxo centralizado.";
+    }
+
+    if (selectedImageFile) {
+      return "Salve o aviso para enviar a imagem selecionada nesta edicao.";
+    }
+
+    return null;
+  }, [mode, noticeId, selectedImageFile]);
 
   function handleFieldChange(field: keyof NoticeFormValues, value: string) {
     setFormValues((current) => ({
@@ -427,8 +440,8 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
         title={mode === "create" ? "Novo aviso" : "Editar aviso"}
         description={
           mode === "create"
-            ? "Monte avisos manuais com texto, imagem por arquivo, publico alvo e agendamento."
-            : "Atualize o aviso mantendo o preview manual e sem qualquer envio automatico."
+            ? "Monte avisos com texto, imagem por arquivo, publico alvo e agendamento."
+            : "Atualize o aviso mantendo o preview visual e o envio centralizado pelo sistema."
         }
         badge="Avisos"
         action={
@@ -448,7 +461,7 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
               {mode === "create" ? "Cadastro de aviso" : "Edicao de aviso"}
             </CardTitle>
             <CardDescription>
-              Defina a mensagem, a imagem do aviso e o agendamento. O uso permanece manual neste passo.
+              Defina a mensagem, a imagem do aviso e o agendamento. O envio pode ser acionado pelo preview quando o aviso ja existir.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -621,9 +634,28 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
             status={formValues.status}
             churchName={selectedChurchName}
             imageMessage={previewImageMessage}
+            onSendClick={() => setIsSendDialogOpen(true)}
+            sendDisabled={
+              isLoading ||
+              isSubmitting ||
+              isRedirecting ||
+              Boolean(sendDisabledReason)
+            }
+            sendHelperText={sendDisabledReason}
           />
         </div>
       </div>
+
+      <NoticeSendDialog
+        open={isSendDialogOpen}
+        noticeId={noticeId}
+        title={formValues.title}
+        message={formValues.message}
+        imageUrl={formValues.imageUrl}
+        scheduledAt={formValues.scheduledAt}
+        onOpenChange={setIsSendDialogOpen}
+        sendBlockedReason={sendDisabledReason}
+      />
     </div>
   );
 }

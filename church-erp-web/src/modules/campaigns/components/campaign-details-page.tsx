@@ -12,6 +12,7 @@ import {
   LoaderCircle,
   Pencil,
   Search,
+  Send,
   UserPlus,
   X,
   XCircle,
@@ -46,6 +47,9 @@ import type {
 } from "@/modules/campaigns/types/campaign";
 import { listMembers } from "@/modules/members/services/members-service";
 import type { MemberItem } from "@/modules/members/types/member";
+import { NoticeSendDialog } from "@/modules/notices/components/notice-send-dialog";
+import { createNotice } from "@/modules/notices/services/notices-service";
+import type { CreateNoticePayload } from "@/modules/notices/types/notices";
 
 interface CampaignDetailsPageProps {
   campaignId: string;
@@ -138,6 +142,25 @@ function getInstallmentStatusLabel(status: CampaignInstallmentItem["status"]) {
   return status === "PAID" ? "Paga" : "Em aberto";
 }
 
+function buildCampaignNoticeMessage(campaign: CampaignDetailItem) {
+  const normalizedDescription = campaign.description?.trim() ?? "";
+  const campaignDetails = [
+    `Contribuicao: ${campaign.installmentCount}x de ${formatCurrency(campaign.installmentAmount)}.`,
+  ];
+
+  if (campaign.startDate) {
+    campaignDetails.push(`Inicio previsto em ${formatDate(campaign.startDate)}.`);
+  }
+
+  return [
+    `Participe da campanha ${campaign.title}.`,
+    normalizedDescription,
+    campaignDetails.join(" "),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 export function CampaignDetailsPage({
   campaignId,
   canEdit,
@@ -165,6 +188,7 @@ export function CampaignDetailsPage({
     paidAt: getTodayDateInputValue(),
     notes: "",
   });
+  const [isSendCampaignDialogOpen, setIsSendCampaignDialogOpen] = useState(false);
   const [pendingPaidInstallment, setPendingPaidInstallment] =
     useState<InstallmentSelectionState | null>(null);
   const [pendingUnpayInstallment, setPendingUnpayInstallment] =
@@ -299,6 +323,28 @@ export function CampaignDetailsPage({
   const hasCampaignImage =
     Boolean(resolvedCampaignImageUrl) &&
     resolvedCampaignImageUrl !== failedCampaignImageUrl;
+  const campaignNoticeMessage = useMemo(
+    () => (campaign ? buildCampaignNoticeMessage(campaign) : ""),
+    [campaign],
+  );
+  const createNoticeFromCampaign = useCallback(async () => {
+    if (!campaign) {
+      throw new Error("Nao foi possivel carregar a campanha para envio.");
+    }
+
+    const payload: CreateNoticePayload = {
+      churchId: campaign.churchId,
+      title: campaign.title,
+      message: campaignNoticeMessage,
+      imageUrl: campaign.imageUrl,
+      targetLabel: "",
+      scheduledAt: "",
+      status: "READY",
+    };
+
+    const createdNotice = await createNotice(payload);
+    return createdNotice.id;
+  }, [campaign, campaignNoticeMessage]);
 
   const filteredMembers = useMemo(() => {
     if (!campaign) {
@@ -509,6 +555,16 @@ export function CampaignDetailsPage({
                 <Link href={`/avisos/novo?campaignId=${campaign.id}`}>
                   Criar aviso desta campanha
                 </Link>
+              </Button>
+            ) : null}
+            {canEdit && campaign ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsSendCampaignDialogOpen(true)}
+              >
+                <Send className="size-4" />
+                Enviar campanha
               </Button>
             ) : null}
             {canEdit && campaign ? (
@@ -969,6 +1025,21 @@ export function CampaignDetailsPage({
           )}
         </CardContent>
       </Card>
+
+      <NoticeSendDialog
+        open={isSendCampaignDialogOpen}
+        title={campaign?.title ?? ""}
+        message={campaignNoticeMessage}
+        imageUrl={campaign?.imageUrl ?? ""}
+        scheduledAt=""
+        onOpenChange={setIsSendCampaignDialogOpen}
+        sendBlockedReason={
+          campaign
+            ? null
+            : "Carregue a campanha antes de iniciar o envio."
+        }
+        resolveNoticeId={createNoticeFromCampaign}
+      />
 
       <DialogPrimitive.Root
         open={Boolean(pendingPaidInstallment)}

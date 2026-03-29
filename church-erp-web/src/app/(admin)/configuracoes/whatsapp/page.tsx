@@ -1,5 +1,5 @@
-import { WhatsappIntegrationPage } from "@/modules/admin/components/whatsapp-integration-page";
+import { WhatsappSettingsPage } from "@/modules/notice-delivery/components/whatsapp-settings-page";
 
 export default function ConfiguracoesWhatsappPage() {
-  return <WhatsappIntegrationPage />;
+  return <WhatsappSettingsPage />;
 }

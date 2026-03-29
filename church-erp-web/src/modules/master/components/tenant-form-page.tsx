@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { ArrowLeft, LoaderCircle, Save } from "lucide-react";
+import {
+  ArrowLeft,
+  Copy,
+  Link2,
+  LoaderCircle,
+  RefreshCw,
+  Save,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import {
@@ -25,12 +32,16 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import {
   createMasterTenant,
+  generateMasterTenantWhatsappOnboardingLink,
   getMasterTenantById,
+  getMasterTenantWhatsappIntegrationStatus,
   updateMasterTenant,
   uploadMasterTenantLogo,
 } from "@/modules/master/services/master-tenants-service";
 import {
   DEFAULT_TENANT_THEME_KEY,
+  type MasterTenantWhatsappConnectionStatus,
+  type MasterTenantWhatsappIntegrationStatus,
   MASTER_TENANT_STATUS_OPTIONS,
   MASTER_TENANT_THEME_OPTIONS,
   type CreateMasterTenantPayload,
@@ -108,19 +119,59 @@ function formatDateTime(value: string) {
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 }
 
+function getWhatsappStatusLabel(status: MasterTenantWhatsappConnectionStatus) {
+  switch (status) {
+    case "CONNECTED":
+      return "Conectado";
+    case "PENDING_AUTHORIZATION":
+      return "Aguardando autorizacao";
+    case "ERROR":
+      return "Com erro";
+    default:
+      return "Nao configurado";
+  }
+}
+
+function getWhatsappStatusTone(status: MasterTenantWhatsappConnectionStatus) {
+  switch (status) {
+    case "CONNECTED":
+      return "border-emerald-500/20 bg-emerald-500/10 text-emerald-700";
+    case "PENDING_AUTHORIZATION":
+      return "border-amber-500/20 bg-amber-500/10 text-amber-700";
+    case "ERROR":
+      return "border-destructive/20 bg-destructive/10 text-destructive";
+    default:
+      return "border-border bg-secondary/50 text-muted-foreground";
+  }
+}
+
 export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
   const router = useRouter();
   const [formValues, setFormValues] = useState<MasterTenantFormValues>(initialFormValues);
   const [tenantMetadata, setTenantMetadata] = useState<MasterTenantItem | null>(null);
+  const [whatsappIntegration, setWhatsappIntegration] =
+    useState<MasterTenantWhatsappIntegrationStatus | null>(null);
   const [isLoading, setIsLoading] = useState(mode === "edit");
+  const [isWhatsappLoading, setIsWhatsappLoading] = useState(mode === "edit");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingWhatsappLink, setIsGeneratingWhatsappLink] = useState(false);
+  const [isRefreshingWhatsappStatus, setIsRefreshingWhatsappStatus] =
+    useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [whatsappError, setWhatsappError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
   const [selectedLogoPreviewUrl, setSelectedLogoPreviewUrl] = useState<
     string | null
   >(null);
+  const [requestedPhoneNumber, setRequestedPhoneNumber] = useState("");
+  const [generatedWhatsappLink, setGeneratedWhatsappLink] = useState<string | null>(
+    null,
+  );
+  const [copyLinkStatus, setCopyLinkStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
   const [isRedirecting, startTransition] = useTransition();
 
   useEffect(() => {
@@ -141,6 +192,11 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
     setSelectedLogoFile(null);
     setLogoError(null);
     setTenantMetadata(null);
+    setWhatsappIntegration(null);
+    setWhatsappError(null);
+    setRequestedPhoneNumber("");
+    setGeneratedWhatsappLink(null);
+    setCopyLinkStatus("idle");
   }, [mode, tenantId]);
 
   useEffect(() => {
@@ -199,6 +255,54 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
     };
   }, [mode, tenantId]);
 
+  useEffect(() => {
+    if (mode !== "edit" || !tenantId) {
+      return;
+    }
+
+    const currentTenantId = tenantId;
+    let isActive = true;
+
+    async function loadWhatsappIntegration() {
+      setIsWhatsappLoading(true);
+      setWhatsappError(null);
+
+      try {
+        const integration = await getMasterTenantWhatsappIntegrationStatus(
+          currentTenantId,
+        );
+
+        if (!isActive) {
+          return;
+        }
+
+        setWhatsappIntegration(integration);
+        setRequestedPhoneNumber(integration.requestedPhoneNumber ?? "");
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setWhatsappError(
+          getApiErrorMessage(
+            error,
+            "Nao foi possivel carregar o status da integracao WhatsApp deste ambiente.",
+          ),
+        );
+      } finally {
+        if (isActive) {
+          setIsWhatsappLoading(false);
+        }
+      }
+    }
+
+    void loadWhatsappIntegration();
+
+    return () => {
+      isActive = false;
+    };
+  }, [mode, tenantId]);
+
   function handleFieldChange(field: keyof MasterTenantFormValues, value: string) {
     setFormValues((current) => ({
       ...current,
@@ -240,6 +344,77 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
     setSubmitError(null);
     setLogoError(null);
     setSelectedLogoFile(file);
+  }
+
+  async function handleRefreshWhatsappStatus() {
+    if (!tenantId) {
+      return;
+    }
+
+    setWhatsappError(null);
+    setIsRefreshingWhatsappStatus(true);
+
+    try {
+      const integration = await getMasterTenantWhatsappIntegrationStatus(tenantId);
+      setWhatsappIntegration(integration);
+      setRequestedPhoneNumber(
+        integration.requestedPhoneNumber ?? requestedPhoneNumber,
+      );
+    } catch (error) {
+      setWhatsappError(
+        getApiErrorMessage(
+          error,
+          "Nao foi possivel atualizar o status da integracao WhatsApp.",
+        ),
+      );
+    } finally {
+      setIsRefreshingWhatsappStatus(false);
+    }
+  }
+
+  async function handleGenerateWhatsappLink() {
+    if (!tenantId) {
+      return;
+    }
+
+    setWhatsappError(null);
+    setCopyLinkStatus("idle");
+    setIsGeneratingWhatsappLink(true);
+
+    try {
+      const integration = await generateMasterTenantWhatsappOnboardingLink(
+        tenantId,
+        {
+          requestedPhoneNumber,
+        },
+      );
+
+      setWhatsappIntegration(integration);
+      setRequestedPhoneNumber(integration.requestedPhoneNumber ?? "");
+      setGeneratedWhatsappLink(integration.onboardingLink);
+    } catch (error) {
+      setWhatsappError(
+        getApiErrorMessage(
+          error,
+          "Nao foi possivel gerar o link de conexao do WhatsApp para este ambiente.",
+        ),
+      );
+    } finally {
+      setIsGeneratingWhatsappLink(false);
+    }
+  }
+
+  async function handleCopyWhatsappLink() {
+    if (!generatedWhatsappLink) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(generatedWhatsappLink);
+      setCopyLinkStatus("success");
+    } catch {
+      setCopyLinkStatus("error");
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -342,6 +517,8 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
   const previewTitle = formValues.name.trim() || "Preview da identidade";
   const previewLogoUrl = selectedLogoPreviewUrl ?? formValues.logoUrl;
   const hasCustomLogo = Boolean(normalizeTenantLogoUrl(previewLogoUrl));
+  const whatsappStatus =
+    whatsappIntegration?.connectionStatus ?? "NOT_CONFIGURED";
 
   return (
     <div className="space-y-6">
@@ -540,6 +717,178 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                         Ainda nao ha alteracoes registradas apos a criacao.
                       </p>
                     </div>
+                  )}
+                </div>
+              ) : null}
+
+              {mode === "edit" ? (
+                <div className="space-y-4 rounded-3xl border border-border bg-[color:var(--surface-base)] p-5">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="space-y-1">
+                      <h3 className="text-base font-semibold text-foreground">
+                        Integracao WhatsApp
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Gere o link de conexao oficial deste ambiente e acompanhe o retorno do onboarding.
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex w-fit rounded-full border px-3 py-1 text-xs font-semibold ${getWhatsappStatusTone(
+                        whatsappStatus,
+                      )}`}
+                    >
+                      {getWhatsappStatusLabel(whatsappStatus)}
+                    </span>
+                  </div>
+
+                  {isWhatsappLoading ? (
+                    <div className="space-y-3">
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <div
+                          key={index}
+                          className="h-14 animate-pulse rounded-2xl bg-secondary/60"
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="tenant-whatsapp-phone">
+                            Numero do cliente
+                          </Label>
+                          <Input
+                            id="tenant-whatsapp-phone"
+                            value={requestedPhoneNumber}
+                            onChange={(event) =>
+                              setRequestedPhoneNumber(event.target.value)
+                            }
+                            placeholder="+5585988887777"
+                          />
+                          <p className="text-xs leading-5 text-muted-foreground">
+                            Numero usado para iniciar o onboarding oficial deste ambiente.
+                          </p>
+                        </div>
+
+                        <div className="grid gap-3 rounded-2xl border border-border bg-secondary/20 p-4">
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                              Numero solicitado
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {whatsappIntegration?.requestedPhoneNumber ?? "-"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                              Numero conectado
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {whatsappIntegration?.connectedPhoneDisplay ?? "-"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                              Ultima atualizacao
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {whatsappIntegration?.updatedAt
+                                ? formatDateTime(whatsappIntegration.updatedAt)
+                                : "-"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {generatedWhatsappLink ? (
+                        <div className="space-y-2">
+                          <Label htmlFor="tenant-whatsapp-link">
+                            Link de conexao gerado
+                          </Label>
+                          <Input
+                            id="tenant-whatsapp-link"
+                            value={generatedWhatsappLink}
+                            readOnly
+                          />
+                          <p className="text-xs leading-5 text-muted-foreground">
+                            Este link aponta para o fluxo desacoplado da plataforma e fica pronto para receber o Hosted/Embedded Signup.
+                          </p>
+                        </div>
+                      ) : null}
+
+                      {whatsappIntegration?.lastConnectedAt ? (
+                        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-800">
+                          Conectado em{" "}
+                          <strong>
+                            {formatDateTime(whatsappIntegration.lastConnectedAt)}
+                          </strong>
+                          .
+                        </div>
+                      ) : null}
+
+                      {whatsappIntegration?.lastErrorMessage ? (
+                        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                          {whatsappIntegration.lastErrorMessage}
+                        </div>
+                      ) : null}
+
+                      {whatsappError ? (
+                        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                          {whatsappError}
+                        </div>
+                      ) : null}
+
+                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void handleGenerateWhatsappLink()}
+                          disabled={
+                            isGeneratingWhatsappLink ||
+                            isRefreshingWhatsappStatus ||
+                            requestedPhoneNumber.trim().length === 0
+                          }
+                        >
+                          {isGeneratingWhatsappLink ? (
+                            <LoaderCircle className="size-4 animate-spin" />
+                          ) : (
+                            <Link2 className="size-4" />
+                          )}
+                          Gerar link de conexao
+                        </Button>
+
+                        {generatedWhatsappLink ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => void handleCopyWhatsappLink()}
+                          >
+                            <Copy className="size-4" />
+                            {copyLinkStatus === "success"
+                              ? "Link copiado"
+                              : copyLinkStatus === "error"
+                                ? "Falha ao copiar"
+                                : "Copiar link"}
+                          </Button>
+                        ) : null}
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void handleRefreshWhatsappStatus()}
+                          disabled={isGeneratingWhatsappLink || isRefreshingWhatsappStatus}
+                        >
+                          {isRefreshingWhatsappStatus ? (
+                            <LoaderCircle className="size-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="size-4" />
+                          )}
+                          Atualizar status
+                        </Button>
+                      </div>
+                    </>
                   )}
                 </div>
               ) : null}
