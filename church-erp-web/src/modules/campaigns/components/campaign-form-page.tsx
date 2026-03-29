@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { ArrowLeft, LoaderCircle, Save } from "lucide-react";
+import { ArrowLeft, ImageOff, LoaderCircle, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import { ErrorView } from "@/components/shared/error-view";
@@ -18,9 +18,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { normalizeTenantLogoUrl } from "@/lib/tenant-branding";
 import {
   createCampaign,
   getCampaignById,
+  uploadCampaignImage,
   updateCampaign,
 } from "@/modules/campaigns/services/campaigns-service";
 import {
@@ -46,6 +48,7 @@ const initialFormValues: CampaignFormValues = {
   churchId: "",
   title: "",
   description: "",
+  imageUrl: "",
   installmentCount: "12",
   installmentAmount: "",
   startDate: "",
@@ -54,6 +57,14 @@ const initialFormValues: CampaignFormValues = {
 
 const textareaClassName =
   "flex min-h-28 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+const CAMPAIGN_IMAGE_MAX_FILE_SIZE = 1024 * 1024;
+const CAMPAIGN_IMAGE_INPUT_ACCEPT = ".png,.jpg,.jpeg,.webp";
+const CAMPAIGN_IMAGE_ALLOWED_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+const CAMPAIGN_IMAGE_ALLOWED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp"];
 
 function formatDateInput(value: string | null) {
   if (!value) {
@@ -61,6 +72,31 @@ function formatDateInput(value: string | null) {
   }
 
   return value.includes("T") ? value.slice(0, 10) : value;
+}
+
+function validateCampaignImageFile(file: File): string | null {
+  if (file.size > CAMPAIGN_IMAGE_MAX_FILE_SIZE) {
+    return "A imagem da campanha deve ter no maximo 1 MB.";
+  }
+
+  const normalizedMimeType = file.type.trim().toLowerCase();
+  const normalizedName = file.name.trim().toLowerCase();
+  const hasAllowedMimeType =
+    normalizedMimeType.length > 0 &&
+    CAMPAIGN_IMAGE_ALLOWED_MIME_TYPES.has(normalizedMimeType);
+  const hasAllowedExtension = CAMPAIGN_IMAGE_ALLOWED_EXTENSIONS.some((extension) =>
+    normalizedName.endsWith(extension),
+  );
+
+  if (
+    (normalizedMimeType && !hasAllowedMimeType) ||
+    (!normalizedMimeType && !hasAllowedExtension) ||
+    !hasAllowedExtension
+  ) {
+    return "Selecione uma imagem PNG, JPG, JPEG ou WEBP.";
+  }
+
+  return null;
 }
 
 export function CampaignFormPage({
@@ -75,6 +111,15 @@ export function CampaignFormPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = useState<string | null>(
+    null,
+  );
+  const [imageInputKey, setImageInputKey] = useState(0);
+  const [failedPreviewImageUrl, setFailedPreviewImageUrl] = useState<string | null>(
+    null,
+  );
   const [isRedirecting, startTransition] = useTransition();
 
   useEffect(() => {
@@ -109,6 +154,7 @@ export function CampaignFormPage({
             churchId: campaignResponse.churchId,
             title: campaignResponse.title,
             description: campaignResponse.description ?? "",
+            imageUrl: campaignResponse.imageUrl ?? "",
             installmentCount: String(campaignResponse.installmentCount),
             installmentAmount: campaignResponse.installmentAmount,
             startDate: formatDateInput(campaignResponse.startDate),
@@ -145,10 +191,30 @@ export function CampaignFormPage({
     };
   }, [mode, campaignId]);
 
+  useEffect(() => {
+    return () => {
+      if (selectedImagePreviewUrl) {
+        URL.revokeObjectURL(selectedImagePreviewUrl);
+      }
+    };
+  }, [selectedImagePreviewUrl]);
+
   const isStructureLocked = useMemo(
     () => mode === "edit" && (campaign?.membersCount ?? 0) > 0,
     [campaign?.membersCount, mode],
   );
+  const previewCampaignImageUrl =
+    normalizeTenantLogoUrl(selectedImagePreviewUrl ?? formValues.imageUrl, {
+      resolveRelative: true,
+    }) ?? "";
+  const hasPreviewImage =
+    Boolean(previewCampaignImageUrl) &&
+    previewCampaignImageUrl !== failedPreviewImageUrl;
+  const previewImageMessage = selectedImageFile
+    ? "Preview pronto. Salve para enviar a imagem selecionada para esta campanha."
+    : formValues.imageUrl.trim()
+      ? "Banner atual configurado para esta campanha."
+      : "Sem banner configurado para esta campanha.";
 
   function handleFieldChange(field: keyof CampaignFormValues, value: string) {
     setFormValues((current) => ({
@@ -157,10 +223,53 @@ export function CampaignFormPage({
     }));
   }
 
+  function resetSelectedImageState() {
+    setSelectedImageFile(null);
+    setImageError(null);
+    setImageInputKey((current) => current + 1);
+    setSelectedImagePreviewUrl((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+
+      return null;
+    });
+  }
+
+  function handleImageFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setSubmitError(null);
+
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const validationMessage = validateCampaignImageFile(file);
+
+    if (validationMessage) {
+      setImageError(validationMessage);
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedImageFile(file);
+    setImageError(null);
+    setSelectedImagePreviewUrl((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+
+      return URL.createObjectURL(file);
+    });
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
     setIsSubmitting(true);
+
+    let persistedCampaignId: string | null = null;
 
     try {
       let savedCampaignId = campaignId ?? "";
@@ -177,7 +286,21 @@ export function CampaignFormPage({
         };
 
         const createdCampaign = await createCampaign(payload);
+        persistedCampaignId = createdCampaign.id;
         savedCampaignId = createdCampaign.id;
+
+        if (selectedImageFile) {
+          const uploadResult = await uploadCampaignImage(
+            createdCampaign.id,
+            selectedImageFile,
+          );
+
+          setFormValues((current) => ({
+            ...current,
+            imageUrl: uploadResult.imageUrl,
+          }));
+          resetSelectedImageState();
+        }
       } else if (campaignId) {
         const payload: UpdateCampaignPayload = {
           churchId: formValues.churchId,
@@ -190,7 +313,21 @@ export function CampaignFormPage({
         };
 
         const updatedCampaign = await updateCampaign(campaignId, payload);
+        persistedCampaignId = updatedCampaign.id;
         savedCampaignId = updatedCampaign.id;
+
+        if (selectedImageFile) {
+          const uploadResult = await uploadCampaignImage(
+            campaignId,
+            selectedImageFile,
+          );
+
+          setFormValues((current) => ({
+            ...current,
+            imageUrl: uploadResult.imageUrl,
+          }));
+          resetSelectedImageState();
+        }
       }
 
       startTransition(() => {
@@ -201,9 +338,13 @@ export function CampaignFormPage({
       setSubmitError(
         getApiErrorMessage(
           error,
-          mode === "create"
-            ? "Nao foi possivel criar a campanha."
-            : "Nao foi possivel salvar as alteracoes da campanha.",
+          persistedCampaignId && selectedImageFile
+            ? mode === "create"
+              ? "A campanha foi criada, mas nao foi possivel concluir o envio da imagem. Abra a edicao da campanha para tentar novamente."
+              : "As alteracoes da campanha foram salvas, mas nao foi possivel concluir o envio da imagem. Tente novamente na edicao."
+            : mode === "create"
+              ? "Nao foi possivel criar a campanha."
+              : "Nao foi possivel salvar as alteracoes da campanha.",
         ),
       );
     } finally {
@@ -227,8 +368,8 @@ export function CampaignFormPage({
         title={mode === "create" ? "Nova campanha" : "Editar campanha"}
         description={
           mode === "create"
-            ? "Cadastre uma campanha parcelada definindo igreja, quantidade de parcelas e valor de contribuicao."
-            : "Atualize os dados da campanha. O vinculo de membros e o controle de parcelas ficam na tela de detalhe."
+            ? "Cadastre uma campanha parcelada definindo igreja, banner, quantidade de parcelas e valor de contribuicao."
+            : "Atualize os dados da campanha, incluindo o banner. O vinculo de membros e o controle de parcelas ficam na tela de detalhe."
         }
         badge="Campanhas"
         action={
@@ -247,7 +388,7 @@ export function CampaignFormPage({
             {mode === "create" ? "Cadastro de campanha" : "Edicao de campanha"}
           </CardTitle>
           <CardDescription>
-            Defina a estrutura da campanha. Apos salvar, use o detalhe para vincular membros e acompanhar parcelas.
+            Defina a estrutura da campanha e o banner opcional. Apos salvar, use o detalhe para vincular membros e acompanhar parcelas.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -368,6 +509,36 @@ export function CampaignFormPage({
                     disabled={isStructureLocked}
                   />
                 </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="campaign-image-file">Banner da campanha</Label>
+                  <Input
+                    key={imageInputKey}
+                    id="campaign-image-file"
+                    type="file"
+                    accept={CAMPAIGN_IMAGE_INPUT_ACCEPT}
+                    onChange={handleImageFileChange}
+                    disabled={isSubmitting || isRedirecting}
+                  />
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Envie PNG, JPG, JPEG ou WEBP com ate 1 MB. O upload da imagem
+                    sera feito ao salvar a campanha.
+                  </p>
+                  {selectedImageFile ? (
+                    <p className="text-xs leading-5 text-primary">
+                      Arquivo selecionado: <strong>{selectedImageFile.name}</strong>.
+                      Salve para aplicar o banner da campanha.
+                    </p>
+                  ) : formValues.imageUrl.trim() ? (
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Esta campanha ja possui um banner. Selecione outro arquivo para
+                      substituir a imagem atual.
+                    </p>
+                  ) : null}
+                  {imageError ? (
+                    <p className="text-sm text-destructive">{imageError}</p>
+                  ) : null}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -381,6 +552,39 @@ export function CampaignFormPage({
                   }
                   placeholder="Contextualize objetivo, publico e observacoes da campanha"
                 />
+              </div>
+
+              <div className="rounded-3xl border border-border bg-secondary/20 p-5">
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <p className="font-semibold text-foreground">
+                      Preview do banner
+                    </p>
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      {previewImageMessage}
+                    </p>
+                  </div>
+
+                  <div className="overflow-hidden rounded-3xl border border-border bg-white">
+                    {hasPreviewImage ? (
+                      <img
+                        src={previewCampaignImageUrl}
+                        alt={formValues.title.trim() || "Banner da campanha"}
+                        className="h-56 w-full object-cover"
+                        onError={() => setFailedPreviewImageUrl(previewCampaignImageUrl)}
+                      />
+                    ) : (
+                      <div className="flex h-56 flex-col items-center justify-center gap-3 text-muted-foreground">
+                        <ImageOff className="size-8" />
+                        <p className="text-sm">
+                          {previewCampaignImageUrl
+                            ? "Nao foi possivel carregar a imagem do banner."
+                            : "Sem banner para esta campanha."}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {submitError ? (

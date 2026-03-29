@@ -12,6 +12,7 @@ import { FinanceModule } from './modules/finance/finance.module';
 import { HealthModule } from './modules/health/health.module';
 import { LeadershipRolesModule } from './modules/leadership-roles/leadership-roles.module';
 import { MembersModule } from './modules/members/members.module';
+import { NoticeDeliveryModule } from './modules/notice-delivery/notice-delivery.module';
 import { NoticesModule } from './modules/notices/notices.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { UsersModule } from './modules/users/users.module';
@@ -34,6 +35,7 @@ import { UsersModule } from './modules/users/users.module';
     LeadershipRolesModule,
     DepartmentsModule,
     MembersModule,
+    NoticeDeliveryModule,
     NoticesModule,
     FinanceModule,
     DashboardModule,

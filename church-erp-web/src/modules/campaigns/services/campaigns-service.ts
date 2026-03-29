@@ -3,6 +3,7 @@ import type {
   AddCampaignMemberPayload,
   CampaignDetailItem,
   CampaignFilters,
+  CampaignImageUploadResponse,
   CampaignItem,
   CampaignListResult,
   CreateCampaignPayload,
@@ -12,6 +13,7 @@ import type {
 } from "@/modules/campaigns/types/campaign";
 
 const CAMPAIGNS_ENDPOINT = "/campaigns";
+const CAMPAIGN_IMAGE_UPLOAD_FIELD = "image";
 
 function normalizeSearchValue(value: string) {
   return value.trim().toLocaleLowerCase("pt-BR");
@@ -49,6 +51,10 @@ function sanitizeCampaignPayload(
     description:
       "description" in payload && payload.description !== undefined
         ? payload.description?.trim() || null
+        : undefined,
+    imageUrl:
+      "imageUrl" in payload && payload.imageUrl !== undefined
+        ? payload.imageUrl?.trim() || null
         : undefined,
     installmentCount:
       "installmentCount" in payload && payload.installmentCount !== undefined
@@ -159,6 +165,23 @@ export async function updateCampaign(
   const response = await http.patch<CampaignItem>(
     `${CAMPAIGNS_ENDPOINT}/${id}`,
     sanitizeCampaignPayload(payload),
+  );
+
+  return response.data;
+}
+
+export async function uploadCampaignImage(
+  id: string,
+  file: File,
+): Promise<CampaignImageUploadResponse> {
+  ensureApiConfigured();
+
+  const formData = new FormData();
+  formData.append(CAMPAIGN_IMAGE_UPLOAD_FIELD, file);
+
+  const response = await http.postForm<CampaignImageUploadResponse>(
+    `${CAMPAIGNS_ENDPOINT}/${id}/image`,
+    formData,
   );
 
   return response.data;

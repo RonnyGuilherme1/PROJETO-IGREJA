@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { ArrowLeft, LoaderCircle, Save } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getApiErrorMessage } from "@/lib/http";
 import { ErrorView } from "@/components/shared/error-view";
 import { PageHeader } from "@/components/shared/page-header";
@@ -18,11 +18,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { getCampaignById } from "@/modules/campaigns/services/campaigns-service";
+import type { CampaignDetailItem } from "@/modules/campaigns/types/campaign";
 import { listChurches } from "@/modules/churches/services/churches-service";
 import { NoticePreviewCard } from "@/modules/notices/components/notice-preview-card";
 import {
   createNotice,
   getNoticeById,
+  uploadNoticeImage,
   updateNotice,
 } from "@/modules/notices/services/notices-service";
 import {
@@ -54,6 +57,14 @@ const initialFormValues: NoticeFormValues = {
 
 const textareaClassName =
   "flex min-h-36 w-full rounded-xl border border-input bg-white px-3 py-2 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+const NOTICE_IMAGE_MAX_FILE_SIZE = 1024 * 1024;
+const NOTICE_IMAGE_INPUT_ACCEPT = ".png,.jpg,.jpeg,.webp";
+const NOTICE_IMAGE_ALLOWED_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+const NOTICE_IMAGE_ALLOWED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp"];
 
 function formatDateTimeInput(value: string | null) {
   if (!value) {
@@ -70,14 +81,92 @@ function formatDateTimeInput(value: string | null) {
   return new Date(parsed.getTime() - timezoneOffset).toISOString().slice(0, 16);
 }
 
+function validateNoticeImageFile(file: File): string | null {
+  if (file.size > NOTICE_IMAGE_MAX_FILE_SIZE) {
+    return "A imagem do aviso deve ter no maximo 1 MB.";
+  }
+
+  const normalizedMimeType = file.type.trim().toLowerCase();
+  const normalizedName = file.name.trim().toLowerCase();
+  const hasAllowedMimeType =
+    normalizedMimeType.length > 0 &&
+    NOTICE_IMAGE_ALLOWED_MIME_TYPES.has(normalizedMimeType);
+  const hasAllowedExtension = NOTICE_IMAGE_ALLOWED_EXTENSIONS.some((extension) =>
+    normalizedName.endsWith(extension),
+  );
+
+  if (
+    (normalizedMimeType && !hasAllowedMimeType) ||
+    (!normalizedMimeType && !hasAllowedExtension) ||
+    !hasAllowedExtension
+  ) {
+    return "Selecione uma imagem PNG, JPG, JPEG ou WEBP.";
+  }
+
+  return null;
+}
+
+function formatCurrency(value: string) {
+  const amount = Number(value);
+
+  if (Number.isNaN(amount)) {
+    return value;
+  }
+
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(amount);
+}
+
+function formatDate(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("pt-BR").format(parsed);
+}
+
+function buildNoticeMessageFromCampaign(campaign: CampaignDetailItem) {
+  const normalizedDescription = campaign.description?.trim() ?? "";
+  const campaignDetails = [`Contribuicao: ${campaign.installmentCount}x de ${formatCurrency(campaign.installmentAmount)}.`];
+
+  if (campaign.startDate) {
+    campaignDetails.push(`Inicio previsto em ${formatDate(campaign.startDate)}.`);
+  }
+
+  return [
+    `Participe da campanha ${campaign.title}.`,
+    normalizedDescription,
+    campaignDetails.join(" "),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const campaignIdFromQuery = searchParams.get("campaignId")?.trim() ?? "";
   const [formValues, setFormValues] = useState<NoticeFormValues>(initialFormValues);
   const [churchOptions, setChurchOptions] = useState<ChurchOption[]>([]);
   const [isLoading, setIsLoading] = useState(mode === "edit");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [campaignPrefillError, setCampaignPrefillError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [selectedImagePreviewUrl, setSelectedImagePreviewUrl] = useState<string | null>(
+    null,
+  );
+  const [imageInputKey, setImageInputKey] = useState(0);
   const [isRedirecting, startTransition] = useTransition();
 
   useEffect(() => {
@@ -86,11 +175,26 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
     async function loadData() {
       setIsLoading(true);
       setLoadError(null);
+      setCampaignPrefillError(null);
 
       try {
-        const [churchesResponse, noticeResponse] = await Promise.all([
+        const [churchesResponse, noticeResponse, campaignResponse] = await Promise.all([
           listChurches({ name: "", status: "" }),
           mode === "edit" && noticeId ? getNoticeById(noticeId) : Promise.resolve(null),
+          mode === "create" && campaignIdFromQuery
+            ? getCampaignById(campaignIdFromQuery).catch((error) => {
+                if (isActive) {
+                  setCampaignPrefillError(
+                    getApiErrorMessage(
+                      error,
+                      "Nao foi possivel carregar a campanha para pre-preencher o aviso.",
+                    ),
+                  );
+                }
+
+                return null;
+              })
+            : Promise.resolve(null),
         ]);
 
         if (!isActive) {
@@ -119,7 +223,17 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
         } else {
           setFormValues((current) => ({
             ...current,
-            churchId: singleChurchId,
+            churchId:
+              campaignResponse?.churchId || current.churchId.trim() || singleChurchId,
+            title:
+              current.title.trim() || campaignResponse?.title || current.title,
+            message:
+              current.message.trim() ||
+              (campaignResponse
+                ? buildNoticeMessageFromCampaign(campaignResponse)
+                : current.message),
+            imageUrl:
+              current.imageUrl.trim() || campaignResponse?.imageUrl || current.imageUrl,
           }));
         }
       } catch (error) {
@@ -145,7 +259,15 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
     return () => {
       isActive = false;
     };
-  }, [mode, noticeId]);
+  }, [campaignIdFromQuery, mode, noticeId]);
+
+  useEffect(() => {
+    return () => {
+      if (selectedImagePreviewUrl) {
+        URL.revokeObjectURL(selectedImagePreviewUrl);
+      }
+    };
+  }, [selectedImagePreviewUrl]);
 
   const selectedChurchName = useMemo(
     () =>
@@ -153,6 +275,12 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
       "Geral",
     [churchOptions, formValues.churchId],
   );
+  const previewImageUrl = selectedImagePreviewUrl ?? formValues.imageUrl;
+  const previewImageMessage = selectedImageFile
+    ? "Preview pronto. Salve para enviar a imagem selecionada para este aviso."
+    : formValues.imageUrl.trim()
+      ? "Imagem atual configurada para este aviso."
+      : "Sem imagem configurada para este aviso.";
 
   function handleFieldChange(field: keyof NoticeFormValues, value: string) {
     setFormValues((current) => ({
@@ -161,10 +289,53 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
     }));
   }
 
+  function resetSelectedImageState() {
+    setSelectedImageFile(null);
+    setImageError(null);
+    setImageInputKey((current) => current + 1);
+    setSelectedImagePreviewUrl((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+
+      return null;
+    });
+  }
+
+  function handleImageFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setSubmitError(null);
+
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const validationMessage = validateNoticeImageFile(file);
+
+    if (validationMessage) {
+      setImageError(validationMessage);
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedImageFile(file);
+    setImageError(null);
+    setSelectedImagePreviewUrl((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+
+      return URL.createObjectURL(file);
+    });
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError(null);
     setIsSubmitting(true);
+
+    let persistedNoticeId: string | null = null;
 
     try {
       if (mode === "create") {
@@ -178,7 +349,21 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
           status: formValues.status,
         };
 
-        await createNotice(payload);
+        const createdNotice = await createNotice(payload);
+        persistedNoticeId = createdNotice.id;
+
+        if (selectedImageFile) {
+          const uploadResult = await uploadNoticeImage(
+            createdNotice.id,
+            selectedImageFile,
+          );
+
+          setFormValues((current) => ({
+            ...current,
+            imageUrl: uploadResult.imageUrl,
+          }));
+          resetSelectedImageState();
+        }
       } else if (noticeId) {
         const payload: UpdateNoticePayload = {
           churchId: formValues.churchId,
@@ -190,7 +375,18 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
           status: formValues.status,
         };
 
-        await updateNotice(noticeId, payload);
+        const updatedNotice = await updateNotice(noticeId, payload);
+        persistedNoticeId = updatedNotice.id;
+
+        if (selectedImageFile) {
+          const uploadResult = await uploadNoticeImage(noticeId, selectedImageFile);
+
+          setFormValues((current) => ({
+            ...current,
+            imageUrl: uploadResult.imageUrl,
+          }));
+          resetSelectedImageState();
+        }
       }
 
       startTransition(() => {
@@ -201,9 +397,13 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
       setSubmitError(
         getApiErrorMessage(
           error,
-          mode === "create"
-            ? "Nao foi possivel criar o aviso."
-            : "Nao foi possivel salvar as alteracoes do aviso.",
+          persistedNoticeId && selectedImageFile
+            ? mode === "create"
+              ? "O aviso foi criado, mas nao foi possivel concluir o envio da imagem. Abra a edicao do aviso para tentar novamente."
+              : "As alteracoes do aviso foram salvas, mas nao foi possivel concluir o envio da imagem. Tente novamente na edicao."
+            : mode === "create"
+              ? "Nao foi possivel criar o aviso."
+              : "Nao foi possivel salvar as alteracoes do aviso.",
         ),
       );
     } finally {
@@ -227,7 +427,7 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
         title={mode === "create" ? "Novo aviso" : "Editar aviso"}
         description={
           mode === "create"
-            ? "Monte avisos manuais com texto, imagem por URL, publico alvo e agendamento."
+            ? "Monte avisos manuais com texto, imagem por arquivo, publico alvo e agendamento."
             : "Atualize o aviso mantendo o preview manual e sem qualquer envio automatico."
         }
         badge="Avisos"
@@ -248,7 +448,7 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
               {mode === "create" ? "Cadastro de aviso" : "Edicao de aviso"}
             </CardTitle>
             <CardDescription>
-              Defina a mensagem, a imagem por URL e o agendamento. O uso permanece manual neste passo.
+              Defina a mensagem, a imagem do aviso e o agendamento. O uso permanece manual neste passo.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -263,6 +463,12 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
+                {campaignPrefillError ? (
+                  <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
+                    {campaignPrefillError}
+                  </div>
+                ) : null}
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="notice-title">Titulo</Label>
@@ -337,16 +543,33 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="notice-image-url">Image URL</Label>
+                    <Label htmlFor="notice-image-file">Imagem do aviso</Label>
                     <Input
-                      id="notice-image-url"
-                      type="url"
-                      value={formValues.imageUrl}
-                      onChange={(event) =>
-                        handleFieldChange("imageUrl", event.target.value)
-                      }
-                      placeholder="https://exemplo.com/imagem.jpg"
+                      key={imageInputKey}
+                      id="notice-image-file"
+                      type="file"
+                      accept={NOTICE_IMAGE_INPUT_ACCEPT}
+                      onChange={handleImageFileChange}
+                      disabled={isSubmitting || isRedirecting}
                     />
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Envie PNG, JPG, JPEG ou WEBP com ate 1 MB. O upload da imagem
+                      sera feito ao salvar o aviso.
+                    </p>
+                    {selectedImageFile ? (
+                      <p className="text-xs leading-5 text-primary">
+                        Arquivo selecionado: <strong>{selectedImageFile.name}</strong>.
+                        Salve para aplicar ao aviso.
+                      </p>
+                    ) : formValues.imageUrl.trim() ? (
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        O aviso ja possui uma imagem. Selecione outro arquivo para
+                        substituir a imagem atual.
+                      </p>
+                    ) : null}
+                    {imageError ? (
+                      <p className="text-sm text-destructive">{imageError}</p>
+                    ) : null}
                   </div>
                 </div>
 
@@ -392,11 +615,12 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
           <NoticePreviewCard
             title={formValues.title}
             message={formValues.message}
-            imageUrl={formValues.imageUrl}
+            imageUrl={previewImageUrl}
             targetLabel={formValues.targetLabel}
             scheduledAt={formValues.scheduledAt}
             status={formValues.status}
             churchName={selectedChurchName}
+            imageMessage={previewImageMessage}
           />
         </div>
       </div>

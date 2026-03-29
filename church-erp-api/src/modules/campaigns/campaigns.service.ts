@@ -5,6 +5,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { mkdir, unlink, writeFile } from 'fs/promises';
+import { basename, extname, join } from 'path';
 import {
   CampaignInstallmentStatus,
   CampaignStatus,
@@ -14,6 +17,8 @@ import {
 
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
+import { TENANT_LOGO_UPLOAD_ROOT } from '../tenants/constants/tenant-logo-upload.constants';
+import { UploadedTenantLogoFile } from '../tenants/types/uploaded-tenant-logo-file.type';
 import { AddCampaignMemberDto } from './dto/add-campaign-member.dto';
 import { CampaignDetailResponseDto } from './dto/campaign-detail-response.dto';
 import { CampaignInstallmentResponseDto } from './dto/campaign-installment-response.dto';
@@ -33,6 +38,24 @@ import {
   campaignMemberSelect,
   campaignSelect,
 } from './types/campaign.type';
+
+const CAMPAIGN_IMAGE_MAX_FILE_SIZE = 1024 * 1024;
+const CAMPAIGN_IMAGE_ALLOWED_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+]);
+const CAMPAIGN_IMAGE_ALLOWED_EXTENSIONS = new Set([
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+]);
+const CAMPAIGN_IMAGE_UPLOAD_DIRECTORY = join(
+  TENANT_LOGO_UPLOAD_ROOT,
+  'campaign-images',
+);
+const CAMPAIGN_IMAGE_PUBLIC_BASE_PATH = '/api/uploads/campaign-images';
 
 @Injectable()
 export class CampaignsService {
@@ -81,6 +104,7 @@ export class CampaignsService {
         churchId: createCampaignDto.churchId,
         title: createCampaignDto.title,
         description: createCampaignDto.description ?? null,
+        imageUrl: this.normalizeImageUrl(createCampaignDto.imageUrl),
         installmentCount: createCampaignDto.installmentCount,
         installmentAmount: new Prisma.Decimal(
           createCampaignDto.installmentAmount,
@@ -123,6 +147,10 @@ export class CampaignsService {
       data.description = updateCampaignDto.description ?? null;
     }
 
+    if ('imageUrl' in updateCampaignDto) {
+      data.imageUrl = this.normalizeImageUrl(updateCampaignDto.imageUrl);
+    }
+
     if (updateCampaignDto.installmentCount !== undefined) {
       data.installmentCount = updateCampaignDto.installmentCount;
     }
@@ -147,7 +175,44 @@ export class CampaignsService {
       select: campaignSelect,
     });
 
+    await this.deleteManagedImageIfReplaced(
+      existingCampaign.imageUrl,
+      campaign.imageUrl,
+    );
+
     return new CampaignResponseDto(campaign);
+  }
+
+  async uploadImage(
+    currentUser: AuthenticatedUser,
+    id: string,
+    file?: UploadedTenantLogoFile,
+  ): Promise<{ imageUrl: string }> {
+    this.ensureCanManage(currentUser);
+    const tenantId = this.ensureTenantAccess(currentUser);
+    const existingCampaign = await this.findCampaignByIdOrThrow(id, tenantId);
+    const validatedFile = this.validateCampaignImageFile(file);
+    const filename = await this.saveCampaignImageFile(id, validatedFile);
+    const nextImageUrl = `${CAMPAIGN_IMAGE_PUBLIC_BASE_PATH}/${filename}`;
+
+    const campaign = await this.prisma.campaign.update({
+      where: { id },
+      data: {
+        imageUrl: nextImageUrl,
+      },
+      select: {
+        imageUrl: true,
+      },
+    });
+
+    await this.deleteManagedImageIfReplaced(
+      existingCampaign.imageUrl,
+      campaign.imageUrl,
+    );
+
+    return {
+      imageUrl: campaign.imageUrl ?? nextImageUrl,
+    };
   }
 
   async addMember(
@@ -467,5 +532,144 @@ export class CampaignsService {
     }
 
     return installment;
+  }
+
+  private normalizeImageUrl(imageUrl?: string | null): string | null {
+    if (typeof imageUrl !== 'string') {
+      return null;
+    }
+
+    const trimmedImageUrl = imageUrl.trim();
+
+    return trimmedImageUrl.length > 0 ? trimmedImageUrl : null;
+  }
+
+  private validateCampaignImageFile(
+    file?: UploadedTenantLogoFile,
+  ): UploadedTenantLogoFile {
+    if (!file) {
+      throw new BadRequestException('Envie o arquivo da imagem da campanha.');
+    }
+
+    if (!file.buffer || file.buffer.length === 0) {
+      throw new BadRequestException(
+        'O arquivo enviado para a imagem da campanha esta vazio.',
+      );
+    }
+
+    if (file.size > CAMPAIGN_IMAGE_MAX_FILE_SIZE) {
+      throw new BadRequestException(
+        'A imagem da campanha deve ter no maximo 1 MB.',
+      );
+    }
+
+    const normalizedMimeType = String(file.mimetype ?? '').trim().toLowerCase();
+    const normalizedExtension = extname(file.originalname ?? '')
+      .trim()
+      .toLowerCase();
+
+    const hasAllowedMimeType =
+      normalizedMimeType.length > 0 &&
+      CAMPAIGN_IMAGE_ALLOWED_MIME_TYPES.has(normalizedMimeType);
+    const hasAllowedExtension =
+      normalizedExtension.length > 0 &&
+      CAMPAIGN_IMAGE_ALLOWED_EXTENSIONS.has(normalizedExtension);
+
+    if (
+      (normalizedMimeType && !hasAllowedMimeType) ||
+      (normalizedExtension && !hasAllowedExtension) ||
+      (!normalizedMimeType && !hasAllowedExtension)
+    ) {
+      throw new BadRequestException(
+        'A imagem da campanha deve ser PNG, JPG, JPEG ou WEBP.',
+      );
+    }
+
+    return file;
+  }
+
+  private async saveCampaignImageFile(
+    campaignId: string,
+    file: UploadedTenantLogoFile,
+  ): Promise<string> {
+    const extension = this.resolveCampaignImageExtension(file);
+    const safeCampaignId = campaignId.replace(/[^a-z0-9-]/gi, '').toLowerCase();
+    const filename = `${safeCampaignId}-${Date.now()}-${randomUUID()}.${extension}`;
+    const destination = join(CAMPAIGN_IMAGE_UPLOAD_DIRECTORY, filename);
+
+    await mkdir(CAMPAIGN_IMAGE_UPLOAD_DIRECTORY, { recursive: true });
+    await writeFile(destination, file.buffer);
+
+    return filename;
+  }
+
+  private resolveCampaignImageExtension(file: UploadedTenantLogoFile): string {
+    const normalizedExtension = extname(file.originalname ?? '')
+      .trim()
+      .toLowerCase();
+
+    if (CAMPAIGN_IMAGE_ALLOWED_EXTENSIONS.has(normalizedExtension)) {
+      return normalizedExtension.slice(1);
+    }
+
+    switch (String(file.mimetype ?? '').trim().toLowerCase()) {
+      case 'image/png':
+        return 'png';
+      case 'image/webp':
+        return 'webp';
+      case 'image/jpeg':
+        return 'jpg';
+      default:
+        throw new BadRequestException(
+          'Nao foi possivel determinar a extensao da imagem enviada.',
+        );
+    }
+  }
+
+  private async deleteManagedImageIfReplaced(
+    previousImageUrl?: string | null,
+    nextImageUrl?: string | null,
+  ): Promise<void> {
+    const previousFilePath = this.resolveManagedImageFilePath(previousImageUrl);
+    const normalizedPreviousImageUrl = this.normalizeImageUrl(previousImageUrl);
+    const normalizedNextImageUrl = this.normalizeImageUrl(nextImageUrl);
+
+    if (
+      !previousFilePath ||
+      normalizedPreviousImageUrl === normalizedNextImageUrl
+    ) {
+      return;
+    }
+
+    try {
+      await unlink(previousFilePath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
+
+  private resolveManagedImageFilePath(
+    imageUrl?: string | null,
+  ): string | null {
+    const normalizedImageUrl = this.normalizeImageUrl(imageUrl);
+
+    if (
+      !normalizedImageUrl ||
+      !normalizedImageUrl.startsWith(`${CAMPAIGN_IMAGE_PUBLIC_BASE_PATH}/`)
+    ) {
+      return null;
+    }
+
+    const filename = normalizedImageUrl.slice(
+      CAMPAIGN_IMAGE_PUBLIC_BASE_PATH.length + 1,
+    );
+
+    if (!filename || filename !== basename(filename)) {
+      return null;
+    }
+
+    return join(CAMPAIGN_IMAGE_UPLOAD_DIRECTORY, filename);
   }
 }

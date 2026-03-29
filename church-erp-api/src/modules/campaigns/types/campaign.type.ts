@@ -45,6 +45,7 @@ const campaignBaseSelect = {
   churchId: true,
   title: true,
   description: true,
+  imageUrl: true,
   installmentCount: true,
   installmentAmount: true,
   startDate: true,

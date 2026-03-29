@@ -8,6 +8,7 @@ export interface CampaignItem {
   churchName: string;
   title: string;
   description: string | null;
+  imageUrl: string | null;
   installmentCount: number;
   installmentAmount: string;
   startDate: string | null;
@@ -57,6 +58,7 @@ export interface CreateCampaignPayload {
   churchId: string;
   title: string;
   description: string;
+  imageUrl?: string | null;
   installmentCount: number;
   installmentAmount: string;
   startDate: string | null;
@@ -67,6 +69,7 @@ export interface UpdateCampaignPayload {
   churchId?: string;
   title?: string;
   description?: string | null;
+  imageUrl?: string | null;
   installmentCount?: number;
   installmentAmount?: string;
   startDate?: string | null;
@@ -92,10 +95,15 @@ export interface CampaignFormValues {
   churchId: string;
   title: string;
   description: string;
+  imageUrl: string;
   installmentCount: string;
   installmentAmount: string;
   startDate: string;
   status: CampaignStatus;
+}
+
+export interface CampaignImageUploadResponse {
+  imageUrl: string;
 }
 
 export const CAMPAIGN_STATUS_OPTIONS = [

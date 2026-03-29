@@ -33,6 +33,14 @@ export class CreateCampaignDto {
   @MaxLength(2000)
   description?: string | null;
 
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  imageUrl?: string | null;
+
   @Type(() => Number)
   @IsInt()
   @Min(1)

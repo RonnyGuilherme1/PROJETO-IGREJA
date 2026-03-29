@@ -1,12 +1,14 @@
 import { ensureApiConfigured, http } from "@/lib/http";
 import type {
   CreateNoticePayload,
+  NoticeImageUploadResponse,
   NoticeItem,
   NoticeListResult,
   UpdateNoticePayload,
 } from "@/modules/notices/types/notices";
 
 const NOTICES_ENDPOINT = "/notices";
+const NOTICE_IMAGE_UPLOAD_FIELD = "image";
 
 function sanitizeNoticePayload(
   payload: CreateNoticePayload | UpdateNoticePayload,
@@ -85,6 +87,23 @@ export async function updateNotice(
   const response = await http.patch<NoticeItem>(
     `${NOTICES_ENDPOINT}/${id}`,
     sanitizeNoticePayload(payload),
+  );
+
+  return response.data;
+}
+
+export async function uploadNoticeImage(
+  id: string,
+  file: File,
+): Promise<NoticeImageUploadResponse> {
+  ensureApiConfigured();
+
+  const formData = new FormData();
+  formData.append(NOTICE_IMAGE_UPLOAD_FIELD, file);
+
+  const response = await http.postForm<NoticeImageUploadResponse>(
+    `${NOTICES_ENDPOINT}/${id}/image`,
+    formData,
   );
 
   return response.data;

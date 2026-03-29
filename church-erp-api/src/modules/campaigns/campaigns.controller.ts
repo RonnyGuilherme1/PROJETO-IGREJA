@@ -6,12 +6,16 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
+import { UploadedTenantLogoFile } from '../tenants/types/uploaded-tenant-logo-file.type';
 import { CampaignsService } from './campaigns.service';
 import { AddCampaignMemberDto } from './dto/add-campaign-member.dto';
 import { CampaignDetailResponseDto } from './dto/campaign-detail-response.dto';
@@ -58,6 +62,16 @@ export class CampaignsController {
     @Body() updateCampaignDto: UpdateCampaignDto,
   ): Promise<CampaignResponseDto> {
     return this.campaignsService.update(currentUser, id, updateCampaignDto);
+  }
+
+  @Post(':id/image')
+  @UseInterceptors(FileInterceptor('image'))
+  uploadImage(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @UploadedFile() file?: UploadedTenantLogoFile,
+  ): Promise<{ imageUrl: string }> {
+    return this.campaignsService.uploadImage(currentUser, id, file);
   }
 
   @Post(':id/members')

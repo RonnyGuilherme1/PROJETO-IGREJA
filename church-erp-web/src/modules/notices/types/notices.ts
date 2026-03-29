@@ -23,7 +23,7 @@ export interface CreateNoticePayload {
   churchId: string;
   title: string;
   message: string;
-  imageUrl: string;
+  imageUrl?: string | null;
   targetLabel: string;
   scheduledAt: string;
   status: NoticeStatus;
@@ -47,6 +47,10 @@ export interface NoticeFormValues {
   targetLabel: string;
   scheduledAt: string;
   status: NoticeStatus;
+}
+
+export interface NoticeImageUploadResponse {
+  imageUrl: string;
 }
 
 export const NOTICE_STATUS_OPTIONS = [

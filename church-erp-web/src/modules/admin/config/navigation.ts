@@ -5,6 +5,7 @@ import {
   FolderTree,
   LayoutDashboard,
   Megaphone,
+  MessageCircle,
   Palette,
   ShieldUser,
   Users,
@@ -103,10 +104,23 @@ export const adminNavItems: AdminNavItem[] = [
   },
   {
     title: "Configuracoes",
-    href: "/configuracoes",
-    description: "Identidade visual",
+    description: "Identidade visual e integracoes",
     icon: Palette,
     adminOnly: true,
+    children: [
+      {
+        title: "Identidade visual",
+        href: "/configuracoes",
+        description: "Logo e tema do ambiente",
+        icon: Palette,
+      },
+      {
+        title: "WhatsApp oficial",
+        href: "/configuracoes/whatsapp",
+        description: "Credenciais e destinos",
+        icon: MessageCircle,
+      },
+    ],
   },
 ];
 

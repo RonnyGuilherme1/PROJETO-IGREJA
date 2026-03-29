@@ -66,6 +66,10 @@ enum NoticeStatus {
   SENT
 }
 
+enum WhatsappIntegrationProvider {
+  WHATSAPP_CLOUD_API
+}
+
 model Tenant {
   id                      String               @id @default(uuid()) @db.Uuid
   name                    String
@@ -84,6 +88,7 @@ model Tenant {
   departments             Department[]
   campaigns               Campaign[]
   notices                 Notice[]
+  whatsappIntegrationConfig WhatsappIntegrationConfig?
   financeCategories       FinanceCategory[]
   financeTransactions     FinanceTransaction[]
 
@@ -209,6 +214,7 @@ model Campaign {
   church            Church          @relation(fields: [churchId], references: [id])
   title             String
   description       String?
+  imageUrl          String?
   installmentCount  Int
   installmentAmount Decimal         @db.Decimal(14, 2)
   startDate         DateTime?
@@ -273,6 +279,38 @@ model Notice {
   @@index([churchId])
   @@index([status])
   @@index([scheduledAt])
+}
+
+model WhatsappIntegrationConfig {
+  id                String                      @id @default(uuid()) @db.Uuid
+  tenantId          String                      @unique @db.Uuid
+  tenant            Tenant                      @relation(fields: [tenantId], references: [id])
+  provider          WhatsappIntegrationProvider @default(WHATSAPP_CLOUD_API)
+  enabled           Boolean                     @default(false)
+  businessAccountId String?
+  phoneNumberId     String?
+  accessToken       String?                     @db.Text
+  fallbackToManual  Boolean                     @default(true)
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+  destinations      WhatsappIntegrationDestination[]
+
+  @@index([tenantId])
+  @@index([enabled])
+}
+
+model WhatsappIntegrationDestination {
+  id          String                    @id @default(uuid()) @db.Uuid
+  configId    String                    @db.Uuid
+  label       String
+  phoneNumber String
+  enabled     Boolean                   @default(true)
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  config      WhatsappIntegrationConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+  @@index([enabled])
 }
 
 model FinanceCategory {

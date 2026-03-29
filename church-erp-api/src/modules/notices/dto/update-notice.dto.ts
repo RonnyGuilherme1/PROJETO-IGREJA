@@ -6,10 +6,13 @@ import {
   IsOptional,
   IsString,
   IsUUID,
-  IsUrl,
+  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
+
+const NOTICE_IMAGE_URL_PATTERN =
+  /^(https?:\/\/[^\s]+|\/api\/uploads\/[^\s]+)$/i;
 
 export class UpdateNoticeDto {
   @IsOptional()
@@ -38,8 +41,10 @@ export class UpdateNoticeDto {
     typeof value === 'string' ? value.trim() : value,
   )
   @IsOptional()
-  @IsUrl({
-    require_protocol: true,
+  @IsString()
+  @Matches(NOTICE_IMAGE_URL_PATTERN, {
+    message:
+      'imageUrl deve ser uma URL completa ou um caminho de upload valido.',
   })
   @MaxLength(2000)
   imageUrl?: string | null;

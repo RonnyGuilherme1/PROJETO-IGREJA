@@ -9,6 +9,7 @@ export class CampaignDetailResponseDto {
   churchName!: string;
   title!: string;
   description!: string | null;
+  imageUrl!: string | null;
   installmentCount!: number;
   installmentAmount!: string;
   startDate!: Date | null;
@@ -24,6 +25,7 @@ export class CampaignDetailResponseDto {
     this.churchName = campaign.church.name;
     this.title = campaign.title;
     this.description = campaign.description;
+    this.imageUrl = campaign.imageUrl;
     this.installmentCount = campaign.installmentCount;
     this.installmentAmount = campaign.installmentAmount.toString();
     this.startDate = campaign.startDate;
