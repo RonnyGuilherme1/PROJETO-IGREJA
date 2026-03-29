@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import {
   ArrowLeft,
   Copy,
+  ExternalLink,
   Link2,
   LoaderCircle,
   RefreshCw,
@@ -126,9 +127,22 @@ function getWhatsappStatusLabel(status: MasterTenantWhatsappConnectionStatus) {
     case "PENDING_AUTHORIZATION":
       return "Aguardando autorizacao";
     case "ERROR":
-      return "Com erro";
+      return "Erro na configuracao";
     default:
       return "Nao configurado";
+  }
+}
+
+function getWhatsappStatusDescription(status: MasterTenantWhatsappConnectionStatus) {
+  switch (status) {
+    case "CONNECTED":
+      return "A conexao oficial do WhatsApp deste ambiente esta ativa e pronta para uso.";
+    case "PENDING_AUTHORIZATION":
+      return "O ambiente aguarda a autorizacao final da Meta. Se precisar reenviar ao cliente ou pastor, gere um novo link de conexao.";
+    case "ERROR":
+      return "O onboarding oficial retornou erro. Revise a mensagem abaixo, ajuste o numero e gere um novo link se necessario.";
+    default:
+      return "Ainda nao ha uma conexao oficial configurada. Gere o link publico e envie ao cliente ou pastor para iniciar o onboarding da Meta.";
   }
 }
 
@@ -142,6 +156,19 @@ function getWhatsappStatusTone(status: MasterTenantWhatsappConnectionStatus) {
       return "border-destructive/20 bg-destructive/10 text-destructive";
     default:
       return "border-border bg-secondary/50 text-muted-foreground";
+  }
+}
+
+function getWhatsappStatusPanelTone(status: MasterTenantWhatsappConnectionStatus) {
+  switch (status) {
+    case "CONNECTED":
+      return "border-emerald-500/20 bg-emerald-500/5";
+    case "PENDING_AUTHORIZATION":
+      return "border-amber-500/20 bg-amber-500/5";
+    case "ERROR":
+      return "border-destructive/20 bg-destructive/5";
+    default:
+      return "border-border bg-secondary/20";
   }
 }
 
@@ -417,6 +444,20 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
     }
   }
 
+  function handleOpenWhatsappLink() {
+    if (!generatedWhatsappLink) {
+      return;
+    }
+
+    window.open(generatedWhatsappLink, "_blank", "noopener,noreferrer");
+  }
+
+  function handleRequestedPhoneNumberChange(value: string) {
+    setRequestedPhoneNumber(value);
+    setGeneratedWhatsappLink(null);
+    setCopyLinkStatus("idle");
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -519,6 +560,8 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
   const hasCustomLogo = Boolean(normalizeTenantLogoUrl(previewLogoUrl));
   const whatsappStatus =
     whatsappIntegration?.connectionStatus ?? "NOT_CONFIGURED";
+  const whatsappStatusDescription = getWhatsappStatusDescription(whatsappStatus);
+  const generatedWhatsappLinkAvailable = Boolean(generatedWhatsappLink);
 
   return (
     <div className="space-y-6">
@@ -729,7 +772,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                         Integracao WhatsApp
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        Gere o link de conexao oficial deste ambiente e acompanhe o retorno do onboarding.
+                        Gere o link publico deste ambiente, envie ao cliente ou pastor e acompanhe o onboarding oficial da Meta.
                       </p>
                     </div>
                     <span
@@ -752,6 +795,19 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                     </div>
                   ) : (
                     <>
+                      <div
+                        className={`rounded-2xl border px-4 py-3 text-sm ${getWhatsappStatusPanelTone(
+                          whatsappStatus,
+                        )}`}
+                      >
+                        <p className="font-medium text-foreground">
+                          {getWhatsappStatusLabel(whatsappStatus)}
+                        </p>
+                        <p className="mt-1 text-muted-foreground">
+                          {whatsappStatusDescription}
+                        </p>
+                      </div>
+
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
                           <Label htmlFor="tenant-whatsapp-phone">
@@ -761,7 +817,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                             id="tenant-whatsapp-phone"
                             value={requestedPhoneNumber}
                             onChange={(event) =>
-                              setRequestedPhoneNumber(event.target.value)
+                              handleRequestedPhoneNumberChange(event.target.value)
                             }
                             placeholder="+5585988887777"
                           />
@@ -805,7 +861,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                       {generatedWhatsappLink ? (
                         <div className="space-y-2">
                           <Label htmlFor="tenant-whatsapp-link">
-                            Link de conexao gerado
+                            Link para cliente ou pastor
                           </Label>
                           <Input
                             id="tenant-whatsapp-link"
@@ -813,7 +869,7 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                             readOnly
                           />
                           <p className="text-xs leading-5 text-muted-foreground">
-                            Este link aponta para o fluxo desacoplado da plataforma e fica pronto para receber o Hosted/Embedded Signup.
+                            Este e o link publico correto para compartilhar. Ao abrir, ele redireciona para o onboarding oficial da Meta.
                           </p>
                         </div>
                       ) : null}
@@ -859,7 +915,18 @@ export function TenantFormPage({ mode, tenantId }: TenantFormPageProps) {
                           Gerar link de conexao
                         </Button>
 
-                        {generatedWhatsappLink ? (
+                        {generatedWhatsappLinkAvailable ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleOpenWhatsappLink}
+                          >
+                            <ExternalLink className="size-4" />
+                            Abrir onboarding
+                          </Button>
+                        ) : null}
+
+                        {generatedWhatsappLinkAvailable ? (
                           <Button
                             type="button"
                             variant="outline"

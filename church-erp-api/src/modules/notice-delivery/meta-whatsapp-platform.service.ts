@@ -10,11 +10,22 @@ import { PrismaService } from '../../database/prisma/prisma.service';
 
 const META_GRAPH_API_VERSION = 'v22.0';
 const META_GRAPH_API_BASE_URL = `https://graph.facebook.com/${META_GRAPH_API_VERSION}`;
+const META_OAUTH_DIALOG_URL = 'https://www.facebook.com/dialog/oauth';
 // Segredos e tokens abaixo pertencem a configuracao global da plataforma.
 // Eles nunca devem ser editaveis por tenants comuns.
-const META_WEBHOOK_VERIFY_TOKEN_ENV = 'WHATSAPP_META_WEBHOOK_VERIFY_TOKEN';
-const META_APP_ID_ENV = 'WHATSAPP_META_APP_ID';
-const META_APP_SECRET_ENV = 'WHATSAPP_META_APP_SECRET';
+const META_WEBHOOK_VERIFY_TOKEN_ENVS = [
+  'META_VERIFY_TOKEN',
+  'WHATSAPP_META_WEBHOOK_VERIFY_TOKEN',
+] as const;
+const META_APP_ID_ENVS = ['META_APP_ID', 'WHATSAPP_META_APP_ID'] as const;
+const META_APP_SECRET_ENVS = [
+  'META_APP_SECRET',
+  'WHATSAPP_META_APP_SECRET',
+] as const;
+const META_CONFIG_ID_ENVS = [
+  'META_CONFIG_ID',
+  'WHATSAPP_META_CONFIG_ID',
+] as const;
 
 interface MetaGraphTokenResponse {
   access_token?: string;
@@ -78,9 +89,55 @@ export interface MetaWhatsappOnboardingExchangeResult {
   connectedPhoneDisplay: string | null;
 }
 
+export interface MetaWhatsappHostedSignupUrlInput {
+  state: string;
+  redirectUri: string;
+}
+
 @Injectable()
 export class MetaWhatsappPlatformService {
   constructor(private readonly prisma: PrismaService) {}
+
+  buildHostedSignupUrl(input: MetaWhatsappHostedSignupUrlInput): string {
+    const appId = this.resolveRequiredEnv(
+      META_APP_ID_ENVS,
+      'Configure o app id da Meta em nivel de plataforma para iniciar o onboarding oficial.',
+    );
+    const configId = this.resolveRequiredEnv(
+      META_CONFIG_ID_ENVS,
+      'Configure o config id da Meta em nivel de plataforma para iniciar o Hosted ou Embedded Signup.',
+    );
+    const redirectUri = this.normalizeOptionalString(input.redirectUri);
+    const state = this.normalizeOptionalString(input.state);
+
+    if (!redirectUri) {
+      throw new BadRequestException(
+        'A plataforma precisa de um redirectUri publico valido para iniciar o onboarding oficial da Meta.',
+      );
+    }
+
+    if (!state) {
+      throw new BadRequestException(
+        'A plataforma precisa de um state valido para iniciar o onboarding oficial da Meta.',
+      );
+    }
+
+    const params = new URLSearchParams({
+      client_id: appId,
+      config_id: configId,
+      redirect_uri: redirectUri,
+      state,
+      response_type: 'code',
+      override_default_response_type: 'true',
+      display: 'page',
+      extras: JSON.stringify({
+        feature: 'whatsapp_embedded_signup',
+        sessionInfoVersion: '3',
+      }),
+    });
+
+    return `${META_OAUTH_DIALOG_URL}?${params.toString()}`;
+  }
 
   verifyWebhookChallenge(
     query: Record<string, string | string[] | undefined>,
@@ -195,11 +252,11 @@ export class MetaWhatsappPlatformService {
     }
 
     const appId = this.resolveRequiredEnv(
-      META_APP_ID_ENV,
+      META_APP_ID_ENVS,
       'Configure o app id da Meta em nivel de plataforma para concluir o onboarding.',
     );
     const appSecret = this.resolveRequiredEnv(
-      META_APP_SECRET_ENV,
+      META_APP_SECRET_ENVS,
       'Configure o app secret da Meta em nivel de plataforma para concluir o onboarding.',
     );
     const tokenResponse = await this.fetchJson<MetaGraphTokenResponse>(
@@ -395,7 +452,7 @@ export class MetaWhatsappPlatformService {
     rawBody: Buffer | string | null | undefined,
     signatureHeader?: string | string[],
   ): void {
-    const appSecret = this.normalizeOptionalString(process.env[META_APP_SECRET_ENV]);
+    const appSecret = this.resolveOptionalEnv(META_APP_SECRET_ENVS);
     const normalizedSignatureHeader = Array.isArray(signatureHeader)
       ? signatureHeader[0]
       : signatureHeader;
@@ -599,19 +656,34 @@ export class MetaWhatsappPlatformService {
 
   private resolveWebhookVerifyToken(): string {
     return this.resolveRequiredEnv(
-      META_WEBHOOK_VERIFY_TOKEN_ENV,
+      META_WEBHOOK_VERIFY_TOKEN_ENVS,
       'Configure o verify token do webhook da Meta em nivel de plataforma.',
     );
   }
 
-  private resolveRequiredEnv(envName: string, errorMessage: string): string {
-    const normalizedValue = this.normalizeOptionalString(process.env[envName]);
+  private resolveRequiredEnv(
+    envNames: readonly string[],
+    errorMessage: string,
+  ): string {
+    const normalizedValue = this.resolveOptionalEnv(envNames);
 
     if (!normalizedValue) {
       throw new BadRequestException(errorMessage);
     }
 
     return normalizedValue;
+  }
+
+  private resolveOptionalEnv(envNames: readonly string[]): string | null {
+    for (const envName of envNames) {
+      const normalizedValue = this.normalizeOptionalString(process.env[envName]);
+
+      if (normalizedValue) {
+        return normalizedValue;
+      }
+    }
+
+    return null;
   }
 
   private async fetchJson<TResponse>(

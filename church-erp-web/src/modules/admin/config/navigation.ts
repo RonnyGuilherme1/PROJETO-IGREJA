@@ -175,3 +175,27 @@ export function getAdminLeafNavItems(
 ): AdminNavLeafItem[] {
   return flattenAdminNavItems(getAdminNavItems(user));
 }
+
+export function matchesAdminNavPath(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function getBestMatchingAdminLeafItem(
+  pathname: string,
+  user?: AuthUser | null,
+): AdminNavLeafItem | undefined {
+  return getAdminLeafNavItems(user).reduce<AdminNavLeafItem | undefined>(
+    (bestMatch, item) => {
+      if (!matchesAdminNavPath(pathname, item.href)) {
+        return bestMatch;
+      }
+
+      if (!bestMatch || item.href.length > bestMatch.href.length) {
+        return item;
+      }
+
+      return bestMatch;
+    },
+    undefined,
+  );
+}

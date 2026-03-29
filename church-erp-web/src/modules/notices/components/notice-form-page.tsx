@@ -285,7 +285,7 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
       : "Sem imagem configurada para este aviso.";
   const sendDisabledReason = useMemo(() => {
     if (mode !== "edit" || !noticeId) {
-      return "Salve o aviso antes de enviar pelo fluxo centralizado.";
+      return "Salve o aviso antes de enviar pelo WhatsApp.";
     }
 
     if (selectedImageFile) {
@@ -440,8 +440,8 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
         title={mode === "create" ? "Novo aviso" : "Editar aviso"}
         description={
           mode === "create"
-            ? "Monte avisos com texto, imagem por arquivo, publico alvo e agendamento."
-            : "Atualize o aviso mantendo o preview visual e o envio centralizado pelo sistema."
+            ? "Monte avisos com texto, imagem, publico alvo e agendamento."
+            : "Atualize o aviso mantendo o preview visual e a opcao de envio pelo WhatsApp."
         }
         badge="Avisos"
         action={
@@ -461,7 +461,7 @@ export function NoticeFormPage({ mode, noticeId }: NoticeFormPageProps) {
               {mode === "create" ? "Cadastro de aviso" : "Edicao de aviso"}
             </CardTitle>
             <CardDescription>
-              Defina a mensagem, a imagem do aviso e o agendamento. O envio pode ser acionado pelo preview quando o aviso ja existir.
+              Defina a mensagem, a imagem do aviso e o agendamento. O envio ficara disponivel no preview quando o aviso ja existir.
             </CardDescription>
           </CardHeader>
           <CardContent>

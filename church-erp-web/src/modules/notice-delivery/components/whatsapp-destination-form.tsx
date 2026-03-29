@@ -92,17 +92,17 @@ export function WhatsappDestinationForm({
     setSubmitError(null);
 
     if (!formValues.label.trim()) {
-      setSubmitError("Informe um nome para o destino.");
+      setSubmitError("Informe um nome para este grupo ou contato.");
       return;
     }
 
     if (formValues.type === "GROUP" && !formValues.groupId.trim()) {
-      setSubmitError("Destinos do tipo grupo exigem um groupId.");
+      setSubmitError("Informe o codigo do grupo.");
       return;
     }
 
     if (formValues.type === "PERSON" && !formValues.phoneNumber.trim()) {
-      setSubmitError("Destinos do tipo pessoa exigem um numero especifico.");
+      setSubmitError("Informe o numero do contato.");
       return;
     }
 
@@ -120,7 +120,7 @@ export function WhatsappDestinationForm({
       const message =
         error instanceof Error && error.message.trim()
           ? error.message
-          : "Nao foi possivel salvar o destino agora.";
+          : "Nao foi possivel salvar este grupo ou contato agora.";
       setSubmitError(message);
     }
   }
@@ -137,12 +137,12 @@ export function WhatsappDestinationForm({
             disabled={isSubmitting}
           >
             <option value="GROUP">Grupo</option>
-            <option value="PERSON">Pessoa especifica</option>
+            <option value="PERSON">Contato individual</option>
           </Select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="whatsapp-destination-label">Nome do destino</Label>
+          <Label htmlFor="whatsapp-destination-label">Nome do grupo ou contato</Label>
           <Input
             id="whatsapp-destination-label"
             value={formValues.label}
@@ -177,7 +177,7 @@ export function WhatsappDestinationForm({
 
         {formValues.type === "GROUP" ? (
           <div className="space-y-2 md:col-span-2 xl:col-span-2">
-            <Label htmlFor="whatsapp-destination-group-id">Group ID</Label>
+            <Label htmlFor="whatsapp-destination-group-id">Codigo do grupo</Label>
             <Input
               id="whatsapp-destination-group-id"
               value={formValues.groupId}
@@ -188,13 +188,12 @@ export function WhatsappDestinationForm({
               disabled={isSubmitting}
             />
             <p className="text-xs leading-5 text-muted-foreground">
-              Grupos sao o foco principal desta tela. Use o identificador do grupo
-              oficial que recebera os avisos.
+              Use o codigo do grupo que deve receber os avisos.
             </p>
           </div>
         ) : (
           <div className="space-y-2 md:col-span-2 xl:col-span-2">
-            <Label htmlFor="whatsapp-destination-phone">Numero especifico</Label>
+            <Label htmlFor="whatsapp-destination-phone">Numero do contato</Label>
             <Input
               id="whatsapp-destination-phone"
               value={formValues.phoneNumber}
@@ -205,8 +204,7 @@ export function WhatsappDestinationForm({
               disabled={isSubmitting}
             />
             <p className="text-xs leading-5 text-muted-foreground">
-              Pessoa especifica continua disponivel para excecoes e contatos
-              pontuais.
+              Use esta opcao quando o aviso precisar chegar a um contato especifico.
             </p>
           </div>
         )}
@@ -240,7 +238,7 @@ export function WhatsappDestinationForm({
           ) : (
             <Save className="size-4" />
           )}
-          {destination ? "Salvar destino" : "Criar destino"}
+          {destination ? "Salvar" : "Adicionar"}
         </Button>
         <Button
           type="button"

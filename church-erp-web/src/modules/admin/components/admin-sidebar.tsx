@@ -8,11 +8,12 @@ import { getTenantLabel } from "@/lib/tenant-branding";
 import { cn } from "@/lib/utils";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import {
+  getBestMatchingAdminLeafItem,
   getAdminNavItems,
   isAdminNavGroup,
+  type AdminNavGroupItem,
   type AdminNavItem,
   type AdminNavLeafItem,
-  type AdminNavGroupItem,
 } from "@/modules/admin/config/navigation";
 import type { AuthUser } from "@/modules/auth/types/auth";
 
@@ -21,13 +22,10 @@ interface AdminSidebarProps {
   user?: AuthUser;
 }
 
-function matchesPath(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
 export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
   const pathname = usePathname();
   const navigationItems = getAdminNavItems(user);
+  const activeLeaf = getBestMatchingAdminLeafItem(pathname, user);
   const tenantLabel =
     getTenantLabel(user?.tenantName, user?.tenantCode) ?? "Painel da igreja";
   const tenantTitle = user?.tenantName?.trim() || "Igreja ERP";
@@ -37,7 +35,7 @@ export function AdminSidebar({ onNavigate, user }: AdminSidebarProps) {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   function isLeafActive(item: AdminNavLeafItem) {
-    return matchesPath(pathname, item.href);
+    return activeLeaf?.href === item.href;
   }
 
   function hasActiveLeaf(item: AdminNavItem): boolean {

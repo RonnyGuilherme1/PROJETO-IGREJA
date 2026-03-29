@@ -13,13 +13,15 @@ import { PrismaService } from '../../database/prisma/prisma.service';
 import { MetaWhatsappPlatformService } from '../notice-delivery/meta-whatsapp-platform.service';
 
 const ONBOARDING_STATE_VERSION = 1;
-const ONBOARDING_MODE = 'HOSTED_OR_EMBEDDED_SIGNUP_PLACEHOLDER';
+const ONBOARDING_MODE = 'HOSTED_EMBEDDED_SIGNUP';
+const LEGACY_ONBOARDING_MODE = 'HOSTED_OR_EMBEDDED_SIGNUP_PLACEHOLDER';
 const START_ENDPOINT_PATH = '/public/whatsapp/onboarding/start';
 const CALLBACK_ENDPOINT_PATH = '/public/whatsapp/onboarding/callback';
+const API_PUBLIC_URL_ENV = 'API_PUBLIC_URL';
 
 interface StoredOnboardingState {
   version: number;
-  mode: typeof ONBOARDING_MODE;
+  mode: string;
   stateToken: string;
   nonce: string;
   generatedAt: string;
@@ -28,6 +30,11 @@ interface StoredOnboardingState {
   lastStatus: WhatsappConnectionStatus;
   lastCallbackAt?: string;
   lastCallbackPayload?: Record<string, string | null>;
+  completedAt?: string;
+  businessAccountId?: string | null;
+  phoneNumberId?: string | null;
+  connectedPhoneDisplay?: string | null;
+  lastErrorMessage?: string | null;
 }
 
 interface StateTokenPayload {
@@ -38,12 +45,12 @@ interface StateTokenPayload {
 
 interface CallbackResolution {
   connectionStatus: WhatsappConnectionStatus;
-  businessAccountId: string | null;
-  phoneNumberId: string | null;
-  connectedPhoneDisplay: string | null;
+  businessAccountId?: string | null;
+  phoneNumberId?: string | null;
+  connectedPhoneDisplay?: string | null;
   accessToken?: string | null;
-  onboardingState: string;
-  lastConnectedAt: Date | null;
+  onboardingState: StoredOnboardingState;
+  lastConnectedAt?: Date | null;
   lastErrorMessage: string | null;
   message: string;
 }
@@ -65,14 +72,6 @@ export interface TenantWhatsappIntegrationStatusResponse {
 export interface TenantWhatsappOnboardingLinkResponse
   extends TenantWhatsappIntegrationStatusResponse {
   onboardingLink: string;
-}
-
-export interface PublicWhatsappOnboardingStartResponse {
-  ok: true;
-  tenantId: string;
-  connectionStatus: WhatsappConnectionStatus;
-  callbackUrl: string;
-  message: string;
 }
 
 export interface PublicWhatsappOnboardingCallbackResponse {
@@ -129,7 +128,7 @@ export class TenantWhatsappOnboardingService {
   async generateOnboardingLink(
     tenantId: string,
     requestedPhoneNumber: string,
-    apiBaseUrl: string,
+    fallbackApiBaseUrl: string,
   ): Promise<TenantWhatsappOnboardingLinkResponse> {
     await this.ensureTenantExists(tenantId);
 
@@ -142,8 +141,9 @@ export class TenantWhatsappOnboardingService {
       nonce,
       generatedAt,
     });
-    const callbackUrl = `${apiBaseUrl}${CALLBACK_ENDPOINT_PATH}`;
-    const onboardingLink = `${apiBaseUrl}${START_ENDPOINT_PATH}?state=${encodeURIComponent(
+    const publicApiBaseUrl = this.resolvePublicApiBaseUrl(fallbackApiBaseUrl);
+    const callbackUrl = `${publicApiBaseUrl}${CALLBACK_ENDPOINT_PATH}`;
+    const onboardingLink = `${publicApiBaseUrl}${START_ENDPOINT_PATH}?state=${encodeURIComponent(
       stateToken,
     )}`;
     const onboardingState: StoredOnboardingState = {
@@ -205,7 +205,7 @@ export class TenantWhatsappOnboardingService {
 
   async startOnboarding(
     stateToken: string,
-  ): Promise<PublicWhatsappOnboardingStartResponse> {
+  ): Promise<string> {
     if (!stateToken.trim()) {
       throw new BadRequestException(
         'O link de onboarding do WhatsApp precisa receber o parametro state.',
@@ -217,14 +217,11 @@ export class TenantWhatsappOnboardingService {
 
     this.ensureValidStateToken(stateToken, storedState);
 
-    return {
-      ok: true,
-      tenantId: config.tenantId,
-      connectionStatus: config.connectionStatus,
-      callbackUrl: storedState.callbackUrl,
-      message:
-        'Link de onboarding preparado. O callback oficial da Meta ja aceita code exchange quando o fluxo Hosted ou Embedded Signup estiver configurado na plataforma.',
-    };
+    // O endpoint publico start valida o state salvo e redireciona para o Hosted/Embedded Signup oficial da Meta.
+    return this.metaWhatsappPlatformService.buildHostedSignupUrl({
+      state: stateToken,
+      redirectUri: storedState.callbackUrl,
+    });
   }
 
   async handleCallback(
@@ -252,24 +249,13 @@ export class TenantWhatsappOnboardingService {
     await this.prisma.whatsappIntegrationConfig.update({
       where: { tenantId: config.tenantId },
       data: {
-        businessAccountId:
-          callbackResolution.connectionStatus === WhatsappConnectionStatus.CONNECTED
-            ? callbackResolution.businessAccountId
-            : undefined,
-        phoneNumberId:
-          callbackResolution.connectionStatus === WhatsappConnectionStatus.CONNECTED
-            ? callbackResolution.phoneNumberId
-            : undefined,
-        connectedPhoneDisplay:
-          callbackResolution.connectionStatus === WhatsappConnectionStatus.CONNECTED
-            ? callbackResolution.connectedPhoneDisplay
-            : undefined,
-        onboardingState: callbackResolution.onboardingState,
+        businessAccountId: callbackResolution.businessAccountId,
+        phoneNumberId: callbackResolution.phoneNumberId,
+        connectedPhoneDisplay: callbackResolution.connectedPhoneDisplay,
+        onboardingState: JSON.stringify(callbackResolution.onboardingState),
         connectionStatus: callbackResolution.connectionStatus,
-        lastConnectedAt:
-          callbackResolution.connectionStatus === WhatsappConnectionStatus.CONNECTED
-            ? callbackResolution.lastConnectedAt
-            : undefined,
+        // Aqui a conexao oficial do tenant e marcada como concluida ou com erro final.
+        lastConnectedAt: callbackResolution.lastConnectedAt,
         lastErrorMessage: callbackResolution.lastErrorMessage,
         accessToken:
           callbackResolution.accessToken !== undefined
@@ -305,6 +291,8 @@ export class TenantWhatsappOnboardingService {
         tenantId: true,
         connectionStatus: true,
         onboardingState: true,
+        businessAccountId: true,
+        phoneNumberId: true,
         connectedPhoneDisplay: true,
         lastConnectedAt: true,
       },
@@ -329,6 +317,7 @@ export class TenantWhatsappOnboardingService {
       'error_message',
       'error_description',
       'error',
+      'error_reason',
       'message',
     ]);
     const normalizedStatus = this.normalizeStatus(
@@ -350,9 +339,7 @@ export class TenantWhatsappOnboardingService {
         'connectedPhoneDisplay',
         'display_phone_number',
         'phone_number_display',
-      ]) ??
-      storedState.requestedPhoneNumber ??
-      previousConnectedPhoneDisplay;
+      ]) ?? previousConnectedPhoneDisplay;
     let accessToken: string | null | undefined;
     const nextStoredState: StoredOnboardingState = {
       ...storedState,
@@ -362,59 +349,69 @@ export class TenantWhatsappOnboardingService {
     };
 
     if (errorMessage || normalizedStatus === 'error') {
-      return {
-        connectionStatus: WhatsappConnectionStatus.ERROR,
-        businessAccountId: null,
-        phoneNumberId: null,
-        connectedPhoneDisplay: null,
-        onboardingState: JSON.stringify(nextStoredState),
-        lastConnectedAt: null,
-        lastErrorMessage: errorMessage ?? 'O onboarding foi finalizado com erro.',
+      return this.buildErrorCallbackResolution({
+        storedState: nextStoredState,
+        businessAccountId,
+        phoneNumberId,
+        connectedPhoneDisplay,
         message:
           errorMessage ?? 'O callback do onboarding retornou erro para o tenant.',
-      };
+      });
     }
 
-    if (code) {
-      try {
-        const onboardingExchange =
-          await this.metaWhatsappPlatformService.exchangeOnboardingCode({
-            code,
-            redirectUri: storedState.callbackUrl,
-            requestedPhoneNumber: storedState.requestedPhoneNumber,
-            businessAccountId,
-            phoneNumberId,
-            connectedPhoneDisplay,
-          });
+    if (!code) {
+      return this.buildErrorCallbackResolution({
+        storedState: nextStoredState,
+        businessAccountId,
+        phoneNumberId,
+        connectedPhoneDisplay,
+        message:
+          'O callback de onboarding do WhatsApp foi recebido sem o parametro code da Meta.',
+      });
+    }
 
-        accessToken = onboardingExchange.accessToken;
-        businessAccountId =
-          businessAccountId ?? onboardingExchange.businessAccountId;
-        phoneNumberId = phoneNumberId ?? onboardingExchange.phoneNumberId;
-        connectedPhoneDisplay =
-          onboardingExchange.connectedPhoneDisplay ?? connectedPhoneDisplay;
-      } catch (error) {
-        return {
-          connectionStatus: WhatsappConnectionStatus.ERROR,
-          businessAccountId: null,
-          phoneNumberId: null,
-          connectedPhoneDisplay: null,
-          onboardingState: JSON.stringify(nextStoredState),
-          lastConnectedAt: null,
-          lastErrorMessage:
-            error instanceof Error
-              ? error.message
-              : 'Nao foi possivel concluir a troca do code do onboarding pela Meta.',
-          message:
-            error instanceof Error
-              ? error.message
-              : 'Nao foi possivel concluir a troca do code do onboarding pela Meta.',
-        };
-      }
+    try {
+      // O code exchange oficial ocorre aqui, reaproveitando o servico de plataforma da Meta.
+      const onboardingExchange =
+        await this.metaWhatsappPlatformService.exchangeOnboardingCode({
+          code,
+          redirectUri: storedState.callbackUrl,
+          requestedPhoneNumber: storedState.requestedPhoneNumber,
+          businessAccountId,
+          phoneNumberId,
+          connectedPhoneDisplay:
+            connectedPhoneDisplay ??
+            storedState.requestedPhoneNumber ??
+            previousConnectedPhoneDisplay,
+        });
+
+      accessToken = onboardingExchange.accessToken;
+      businessAccountId =
+        businessAccountId ?? onboardingExchange.businessAccountId;
+      phoneNumberId = phoneNumberId ?? onboardingExchange.phoneNumberId;
+      connectedPhoneDisplay =
+        onboardingExchange.connectedPhoneDisplay ?? connectedPhoneDisplay;
+    } catch (error) {
+      return this.buildErrorCallbackResolution({
+        storedState: nextStoredState,
+        businessAccountId,
+        phoneNumberId,
+        connectedPhoneDisplay,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Nao foi possivel concluir a troca do code do onboarding pela Meta.',
+      });
     }
 
     if (businessAccountId && phoneNumberId) {
+      const connectedAt = new Date();
       nextStoredState.lastStatus = WhatsappConnectionStatus.CONNECTED;
+      nextStoredState.completedAt = connectedAt.toISOString();
+      nextStoredState.businessAccountId = businessAccountId;
+      nextStoredState.phoneNumberId = phoneNumberId;
+      nextStoredState.connectedPhoneDisplay = connectedPhoneDisplay;
+      nextStoredState.lastErrorMessage = null;
 
       return {
         connectionStatus: WhatsappConnectionStatus.CONNECTED,
@@ -422,43 +419,22 @@ export class TenantWhatsappOnboardingService {
         phoneNumberId,
         connectedPhoneDisplay,
         accessToken,
-        onboardingState: JSON.stringify(nextStoredState),
-        lastConnectedAt: new Date(),
+        onboardingState: nextStoredState,
+        lastConnectedAt: connectedAt,
         lastErrorMessage: null,
         message: 'Onboarding do WhatsApp concluido com sucesso.',
       };
     }
 
-    if (normalizedStatus === 'success') {
-      return {
-        connectionStatus: WhatsappConnectionStatus.ERROR,
-        businessAccountId: null,
-        phoneNumberId: null,
-        connectedPhoneDisplay: null,
-        accessToken,
-        onboardingState: JSON.stringify(nextStoredState),
-        lastConnectedAt: null,
-        lastErrorMessage:
-          'O callback foi recebido sem businessAccountId e phoneNumberId validos.',
-        message:
-          'O callback do onboarding nao trouxe os identificadores necessarios para conectar o tenant.',
-      };
-    }
-
-    nextStoredState.lastStatus = WhatsappConnectionStatus.PENDING_AUTHORIZATION;
-
-    return {
-      connectionStatus: WhatsappConnectionStatus.PENDING_AUTHORIZATION,
-      businessAccountId: null,
-      phoneNumberId: null,
-      connectedPhoneDisplay: null,
+    return this.buildErrorCallbackResolution({
+      storedState: nextStoredState,
+      businessAccountId,
+      phoneNumberId,
+      connectedPhoneDisplay,
       accessToken,
-      onboardingState: JSON.stringify(nextStoredState),
-      lastConnectedAt: null,
-      lastErrorMessage: null,
       message:
-        'Callback recebido sem resultado final. O tenant permanece aguardando autorizacao.',
-    };
+        'O callback do onboarding nao trouxe businessAccountId e phoneNumberId validos para conectar o tenant.',
+    });
   }
 
   private parseStoredOnboardingState(
@@ -475,7 +451,9 @@ export class TenantWhatsappOnboardingService {
 
       if (
         parsedState.version !== ONBOARDING_STATE_VERSION ||
-        parsedState.mode !== ONBOARDING_MODE ||
+        ![ONBOARDING_MODE, LEGACY_ONBOARDING_MODE].includes(
+          parsedState.mode ?? '',
+        ) ||
         typeof parsedState.stateToken !== 'string' ||
         typeof parsedState.nonce !== 'string' ||
         typeof parsedState.generatedAt !== 'string' ||
@@ -487,7 +465,7 @@ export class TenantWhatsappOnboardingService {
 
       return {
         version: parsedState.version,
-        mode: parsedState.mode,
+        mode: parsedState.mode ?? ONBOARDING_MODE,
         stateToken: parsedState.stateToken,
         nonce: parsedState.nonce,
         generatedAt: parsedState.generatedAt,
@@ -497,6 +475,11 @@ export class TenantWhatsappOnboardingService {
           parsedState.lastStatus ?? WhatsappConnectionStatus.PENDING_AUTHORIZATION,
         lastCallbackAt: parsedState.lastCallbackAt,
         lastCallbackPayload: parsedState.lastCallbackPayload,
+        completedAt: parsedState.completedAt,
+        businessAccountId: parsedState.businessAccountId ?? null,
+        phoneNumberId: parsedState.phoneNumberId ?? null,
+        connectedPhoneDisplay: parsedState.connectedPhoneDisplay ?? null,
+        lastErrorMessage: parsedState.lastErrorMessage ?? null,
       };
     } catch {
       throw new BadRequestException(
@@ -606,9 +589,93 @@ export class TenantWhatsappOnboardingService {
     return Object.fromEntries(
       Object.entries(query).map(([key, value]) => [
         key,
-        Array.isArray(value) ? (value[0] ?? null) : value ?? null,
+        this.sanitizeCallbackValue(
+          key,
+          Array.isArray(value) ? (value[0] ?? null) : value ?? null,
+        ),
       ]),
     );
+  }
+
+  private buildErrorCallbackResolution(input: {
+    storedState: StoredOnboardingState;
+    businessAccountId?: string | null;
+    phoneNumberId?: string | null;
+    connectedPhoneDisplay?: string | null;
+    accessToken?: string | null;
+    message: string;
+  }): CallbackResolution {
+    input.storedState.lastStatus = WhatsappConnectionStatus.ERROR;
+    input.storedState.completedAt = new Date().toISOString();
+    input.storedState.businessAccountId = input.businessAccountId ?? null;
+    input.storedState.phoneNumberId = input.phoneNumberId ?? null;
+    input.storedState.connectedPhoneDisplay =
+      input.connectedPhoneDisplay ?? null;
+    input.storedState.lastErrorMessage = input.message;
+
+    return {
+      connectionStatus: WhatsappConnectionStatus.ERROR,
+      businessAccountId: input.businessAccountId ?? undefined,
+      phoneNumberId: input.phoneNumberId ?? undefined,
+      connectedPhoneDisplay: input.connectedPhoneDisplay ?? undefined,
+      accessToken: input.accessToken,
+      onboardingState: input.storedState,
+      lastErrorMessage: input.message,
+      message: input.message,
+    };
+  }
+
+  private sanitizeCallbackValue(
+    key: string,
+    value: string | null,
+  ): string | null {
+    if (!value) {
+      return value;
+    }
+
+    if (['code', 'auth_code', 'access_token'].includes(key.toLowerCase())) {
+      return '[redacted]';
+    }
+
+    return value;
+  }
+
+  private resolvePublicApiBaseUrl(fallbackApiBaseUrl: string): string {
+    const configuredApiPublicUrl = this.readOptionalEnv(API_PUBLIC_URL_ENV);
+
+    if (configuredApiPublicUrl) {
+      return this.normalizePublicApiBaseUrl(configuredApiPublicUrl);
+    }
+
+    return this.normalizePublicApiBaseUrl(fallbackApiBaseUrl);
+  }
+
+  private normalizePublicApiBaseUrl(rawUrl: string): string {
+    try {
+      const url = new URL(rawUrl);
+
+      if (!url.pathname || url.pathname === '/') {
+        url.pathname = '/api';
+      }
+
+      return url.toString().replace(/\/$/, '');
+    } catch {
+      throw new BadRequestException(
+        'A plataforma nao possui uma API_PUBLIC_URL valida para o onboarding oficial do WhatsApp.',
+      );
+    }
+  }
+
+  private readOptionalEnv(envName: string): string | null {
+    const envValue = process.env[envName];
+
+    if (typeof envValue !== 'string') {
+      return null;
+    }
+
+    const trimmedValue = envValue.trim();
+
+    return trimmedValue.length > 0 ? trimmedValue : null;
   }
 
   private readQueryValue(

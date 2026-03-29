@@ -1,7 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
@@ -44,7 +43,7 @@ interface NoticeSendDialogProps {
 }
 
 function getDestinationTypeLabel(type: WhatsappDestinationItem["type"]) {
-  return type === "GROUP" ? "Grupo" : "Pessoa";
+  return type === "GROUP" ? "Grupo" : "Contato";
 }
 
 function getDestinationIdentity(destination: WhatsappDestinationItem) {
@@ -75,6 +74,63 @@ function isIntegrationReady(status: WhatsappIntegrationStatusItem | null) {
       status.enabled &&
       status.connectionStatus === "CONNECTED",
   );
+}
+
+const TECHNICAL_COPY_PATTERN =
+  /master|onboarding|provider|fallback manual|conexao oficial|configurac(?:ao|oes)\s*>\s*whatsapp|configurac(?:ao|oes)\s+tecnica|token|credencial|callback|code exchange|phone number id|business account|webhook|fluxo centralizado|\/master|\/configuracoes/i;
+
+function sanitizeUserFacingText(
+  value: string | null | undefined,
+  fallback: string,
+) {
+  if (!value) {
+    return fallback;
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue || TECHNICAL_COPY_PATTERN.test(trimmedValue)) {
+    return fallback;
+  }
+
+  return trimmedValue;
+}
+
+function getFriendlyIntegrationMessage(
+  status: WhatsappIntegrationStatusItem | null,
+) {
+  if (!status) {
+    return "A integracao do WhatsApp nao esta disponivel no momento.";
+  }
+
+  if (status.available && status.connectionStatus === "CONNECTED") {
+    return "WhatsApp disponivel para envio.";
+  }
+
+  if (status.connectionStatus === "PENDING_AUTHORIZATION") {
+    return "A ativacao do WhatsApp ainda esta em andamento. O envio ficara disponivel assim que tudo estiver concluido.";
+  }
+
+  if (status.connectionStatus === "ERROR") {
+    return "A integracao do WhatsApp nao esta disponivel no momento. Se precisar, fale com o suporte.";
+  }
+
+  if (!status.hasDestinations) {
+    return "O envio ficara disponivel assim que houver ao menos um grupo ou contato ativo.";
+  }
+
+  return "O envio pelo WhatsApp ainda nao esta disponivel neste ambiente. Para ativar esta funcao, contate o suporte.";
+}
+
+function getDeliveryStatusLabel(status: NoticeDeliveryResult["status"]) {
+  switch (status) {
+    case "SENT":
+      return "Enviado";
+    case "FAILED":
+      return "Falha";
+    default:
+      return "Em andamento";
+  }
 }
 
 export function NoticeSendDialog({
@@ -185,9 +241,12 @@ export function NoticeSendDialog({
         setDestinations([]);
         setSelectedDestinationId("");
         setLoadError(
-          getApiErrorMessage(
-            error,
-            "Nao foi possivel carregar o status do WhatsApp e os destinos ativos.",
+          sanitizeUserFacingText(
+            getApiErrorMessage(
+              error,
+              "Nao foi possivel carregar as informacoes do WhatsApp para este envio.",
+            ),
+            "Nao foi possivel carregar as informacoes do WhatsApp para este envio.",
           ),
         );
       } finally {
@@ -252,7 +311,10 @@ export function NoticeSendDialog({
       setDeliveryResult(response);
     } catch (error) {
       setSubmitError(
-        getApiErrorMessage(error, "Nao foi possivel enviar o aviso agora."),
+        sanitizeUserFacingText(
+          getApiErrorMessage(error, "Nao foi possivel enviar o aviso agora."),
+          "Nao foi possivel enviar o aviso agora.",
+        ),
       );
     } finally {
       setIsSending(false);
@@ -288,8 +350,7 @@ export function NoticeSendDialog({
                 Enviar aviso
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="mt-1 text-sm leading-6 text-muted-foreground">
-                Selecione um destino ativo do WhatsApp. Grupos aparecem primeiro e
-                o envio acontece dentro do sistema.
+                Selecione um grupo ou contato ativo para enviar este aviso pelo WhatsApp.
               </DialogPrimitive.Description>
             </div>
 
@@ -301,13 +362,16 @@ export function NoticeSendDialog({
                       Envio indisponivel neste aviso
                     </h3>
                     <p className="text-sm leading-6 text-amber-900/90">
-                      {sendBlockedReason}
+                      {sanitizeUserFacingText(
+                        sendBlockedReason,
+                        "Este aviso ainda nao pode ser enviado.",
+                      )}
                     </p>
                   </div>
                 ) : isLoading ? (
                   <div className="flex h-full min-h-64 items-center justify-center gap-3 rounded-3xl border border-border bg-secondary/15 text-sm text-muted-foreground">
                     <LoaderCircle className="size-4 animate-spin" />
-                    Carregando destinos ativos e status da integracao.
+                    Carregando grupos, contatos e disponibilidade do WhatsApp.
                   </div>
                 ) : loadError ? (
                   <div className="space-y-4 rounded-3xl border border-destructive/20 bg-destructive/5 p-5">
@@ -319,17 +383,11 @@ export function NoticeSendDialog({
                 ) : !integrationReady ? (
                   <div className="space-y-4 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-5">
                     <h3 className="text-base font-semibold text-amber-900">
-                      Integracao do WhatsApp ainda nao esta pronta
+                      WhatsApp indisponivel no momento
                     </h3>
                     <p className="text-sm leading-6 text-amber-900/90">
-                      {integrationStatus?.summary ||
-                        "Conclua a configuracao e a conexao do ambiente antes de enviar avisos."}
+                      {getFriendlyIntegrationMessage(integrationStatus)}
                     </p>
-                    <Button asChild type="button" variant="outline">
-                      <Link href="/configuracoes/whatsapp">
-                        Verificar Configuracoes &gt; WhatsApp
-                      </Link>
-                    </Button>
                   </div>
                 ) : destinations.length === 0 ? (
                   <div className="space-y-4 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-5">
@@ -337,33 +395,26 @@ export function NoticeSendDialog({
                       Nenhum destino ativo encontrado
                     </h3>
                     <p className="text-sm leading-6 text-amber-900/90">
-                      Cadastre um grupo ou numero especifico em Configuracoes &gt;
-                      WhatsApp antes de enviar este aviso.
+                      Nenhum grupo ou contato esta disponivel para envio no momento. Se precisar, fale com o suporte.
                     </p>
-                    <Button asChild type="button" variant="outline">
-                      <Link href="/configuracoes/whatsapp">
-                        Abrir Configuracoes &gt; WhatsApp
-                      </Link>
-                    </Button>
                   </div>
                 ) : (
                   <div className="flex h-full flex-col gap-4">
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-foreground">
-                        Destino
+                        Grupo ou contato
                       </p>
                       <div className="relative">
                         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           value={search}
                           onChange={(event) => setSearch(event.target.value)}
-                          placeholder="Buscar por nome do grupo ou destino"
+                          placeholder="Buscar por nome do grupo ou contato"
                           className="pl-9"
                         />
                       </div>
                       <p className="text-xs leading-5 text-muted-foreground">
-                        Grupos aparecem primeiro. Numero especifico continua
-                        disponivel quando necessario.
+                        Grupos aparecem primeiro. Use contato individual quando necessario.
                       </p>
                     </div>
 
@@ -439,8 +490,7 @@ export function NoticeSendDialog({
                           Preview final
                         </p>
                         <p className="text-xs leading-5 text-muted-foreground">
-                          O envio usa a legenda abaixo e a imagem atual vinculada a
-                          este conteudo.
+                          O envio usara a legenda abaixo e a imagem atual deste aviso.
                         </p>
                       </div>
                       {selectedDestination ? (
@@ -496,10 +546,17 @@ export function NoticeSendDialog({
                       <div className="flex items-start gap-3">
                         <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
                         <div className="space-y-1">
-                          <p className="font-medium">{deliveryResult.message}</p>
+                          <p className="font-medium">
+                            {sanitizeUserFacingText(
+                              deliveryResult.message,
+                              deliveryResult.success
+                                ? "Aviso enviado com sucesso."
+                                : "Nao foi possivel concluir o envio do aviso.",
+                            )}
+                          </p>
                           <p>
-                            Destino: {deliveryResult.destinationLabel} - Status:{" "}
-                            {deliveryResult.status}
+                            Grupo ou contato: {deliveryResult.destinationLabel} - Situacao:{" "}
+                            {getDeliveryStatusLabel(deliveryResult.status)}
                           </p>
                         </div>
                       </div>

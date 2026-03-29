@@ -8,16 +8,16 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { IsString, MaxLength, MinLength } from 'class-validator';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PlatformMasterGuard } from './guards/platform-master.guard';
 import {
   PublicWhatsappOnboardingCallbackResponse,
-  PublicWhatsappOnboardingStartResponse,
   TenantWhatsappIntegrationStatusResponse,
   TenantWhatsappOnboardingLinkResponse,
   TenantWhatsappOnboardingService,
@@ -82,16 +82,23 @@ export class PublicWhatsappOnboardingController {
   ) {}
 
   @Get('start')
-  start(
+  async start(
+    @Res() response: Response,
     @Query('state') state?: string,
-  ): Promise<PublicWhatsappOnboardingStartResponse> {
-    return this.tenantWhatsappOnboardingService.startOnboarding(state ?? '');
+  ): Promise<void> {
+    // O start publico valida o state salvo e faz o 302 para a URL oficial da Meta.
+    const onboardingUrl = await this.tenantWhatsappOnboardingService.startOnboarding(
+      state ?? '',
+    );
+
+    response.redirect(302, onboardingUrl);
   }
 
   @Get('callback')
   callback(
     @Query() query: Record<string, string | string[] | undefined>,
   ): Promise<PublicWhatsappOnboardingCallbackResponse> {
+    // O callback publico espera state e code para concluir o onboarding oficial da Meta.
     return this.tenantWhatsappOnboardingService.handleCallback(query);
   }
 }

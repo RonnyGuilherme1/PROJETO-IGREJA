@@ -61,12 +61,15 @@ function formatDateTime(value: string | null) {
   }).format(parsedDate);
 }
 
+const TECHNICAL_COPY_PATTERN =
+  /master|onboarding|provider|fallback manual|conexao oficial|configurac(?:ao|oes)\s*>\s*whatsapp|configurac(?:ao|oes)\s+tecnica|token|credencial|callback|code exchange|phone number id|business account|webhook|fluxo centralizado|\/master|\/configuracoes/i;
+
 function getConnectionStatusLabel(status: WhatsappConnectionStatus) {
   switch (status) {
     case "CONNECTED":
       return "Conectado";
     case "PENDING_AUTHORIZATION":
-      return "Pendente";
+      return "Em ativacao";
     case "ERROR":
       return "Erro";
     default:
@@ -92,6 +95,36 @@ function countDestinationType(
   type: WhatsappDestinationItem["type"],
 ) {
   return destinations.filter((destination) => destination.type === type).length;
+}
+
+function sanitizeUserFacingText(
+  value: string | null | undefined,
+  fallback: string,
+) {
+  if (!value) {
+    return fallback;
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue || TECHNICAL_COPY_PATTERN.test(trimmedValue)) {
+    return fallback;
+  }
+
+  return trimmedValue;
+}
+
+function getFriendlyConnectionMessage(status: WhatsappConnectionStatus) {
+  switch (status) {
+    case "CONNECTED":
+      return "O WhatsApp deste ambiente esta disponivel para envio.";
+    case "PENDING_AUTHORIZATION":
+      return "A ativacao do WhatsApp ainda esta em andamento. O envio ficara disponivel assim que a liberacao for concluida.";
+    case "ERROR":
+      return "A integracao do WhatsApp nao esta disponivel no momento.";
+    default:
+      return "O WhatsApp ainda nao esta disponivel neste ambiente.";
+  }
 }
 
 export function WhatsappSettingsPage() {
@@ -134,9 +167,12 @@ export function WhatsappSettingsPage() {
       setChurches(churchesResult.items);
     } catch (error) {
       setLoadError(
-        getApiErrorMessage(
-          error,
-          "Nao foi possivel carregar as configuracoes de WhatsApp deste ambiente.",
+        sanitizeUserFacingText(
+          getApiErrorMessage(
+            error,
+            "Nao foi possivel carregar as informacoes do WhatsApp deste ambiente.",
+          ),
+          "Nao foi possivel carregar as informacoes do WhatsApp deste ambiente.",
         ),
       );
     } finally {
@@ -177,7 +213,7 @@ export function WhatsappSettingsPage() {
     [sortedDestinations],
   );
   const connectionStatus = config?.connectionStatus ?? "NOT_CONFIGURED";
-  const needsMasterAdjustment = connectionStatus !== "CONNECTED";
+  const needsSupportAttention = connectionStatus !== "CONNECTED";
 
   function handleCreateClick() {
     setActionError(null);
@@ -221,10 +257,10 @@ export function WhatsappSettingsPage() {
     try {
       if (formMode === "edit" && editingDestination) {
         await updateWhatsappDestination(editingDestination.id, payload);
-        setSuccessMessage("Destino WhatsApp atualizado com sucesso.");
+        setSuccessMessage("Grupo ou contato atualizado com sucesso.");
       } else {
         await createWhatsappDestination(payload);
-        setSuccessMessage("Destino WhatsApp criado com sucesso.");
+        setSuccessMessage("Grupo ou contato adicionado com sucesso.");
       }
 
       await loadWhatsappData(true);
@@ -233,10 +269,16 @@ export function WhatsappSettingsPage() {
     } catch (error) {
       const message = getApiErrorMessage(
         error,
-        "Nao foi possivel salvar o destino WhatsApp.",
+        "Nao foi possivel salvar o grupo ou contato.",
       );
-      setActionError(message);
-      throw new Error(message);
+      const userFacingMessage = sanitizeUserFacingText(
+        message,
+        "Nao foi possivel salvar o grupo ou contato.",
+      );
+      setActionError(
+        userFacingMessage,
+      );
+      throw new Error(userFacingMessage);
     } finally {
       setIsSubmittingDestination(false);
     }
@@ -250,12 +292,15 @@ export function WhatsappSettingsPage() {
     try {
       await inactivateWhatsappDestination(destination.id);
       await loadWhatsappData(true);
-      setSuccessMessage(`Destino "${destination.label}" inativado com sucesso.`);
+      setSuccessMessage(`"${destination.label}" foi desativado com sucesso.`);
     } catch (error) {
       setActionError(
-        getApiErrorMessage(
-          error,
-          "Nao foi possivel inativar o destino WhatsApp.",
+        sanitizeUserFacingText(
+          getApiErrorMessage(
+            error,
+            "Nao foi possivel desativar este item.",
+          ),
+          "Nao foi possivel desativar este item.",
         ),
       );
     } finally {
@@ -267,7 +312,7 @@ export function WhatsappSettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="WhatsApp"
-        description="Acompanhe a conexao do ambiente e gerencie destinos com foco principal em grupos. Pessoa especifica continua disponivel quando necessario."
+        description="Acompanhe a disponibilidade do WhatsApp e organize os grupos e contatos que podem receber avisos."
         badge="Configuracoes"
         action={
           <Button asChild variant="outline">
@@ -281,9 +326,9 @@ export function WhatsappSettingsPage() {
 
       <Card className="bg-card/90">
         <CardHeader>
-          <CardTitle>Status da integracao</CardTitle>
+          <CardTitle>Status do WhatsApp</CardTitle>
           <CardDescription>
-            O onboarding e a conexao oficial ficam no master. Aqui o ambiente acompanha o estado atual sem expor token ou outras credenciais sensiveis.
+            Consulte a disponibilidade do envio, o numero vinculado e as ultimas atualizacoes deste ambiente.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -317,8 +362,7 @@ export function WhatsappSettingsPage() {
                     {getConnectionStatusLabel(connectionStatus)}
                   </span>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                    {status?.summary ??
-                      "A integracao do ambiente ainda nao informou um estado de conexao."}
+                    {getFriendlyConnectionMessage(connectionStatus)}
                   </p>
                 </div>
 
@@ -336,49 +380,49 @@ export function WhatsappSettingsPage() {
 
                 <div className="rounded-3xl border border-border bg-secondary/20 p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                    Numero solicitado
+                    Numero informado
                   </p>
                   <p className="mt-3 text-lg font-semibold text-foreground">
                     {config?.requestedPhoneNumber ?? "-"}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Provider: {config?.provider ?? "WHATSAPP_CLOUD_API"}
+                    Ultima atualizacao: {formatDateTime(config?.updatedAt ?? null)}
                   </p>
                 </div>
 
                 <div className="rounded-3xl border border-border bg-secondary/20 p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                    Fallback manual
+                    Destinos ativos
                   </p>
                   <p className="mt-3 text-lg font-semibold text-foreground">
-                    {config?.fallbackToManual ?? true ? "Ativo" : "Desligado"}
+                    {status?.destinationsCount ?? 0}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Destinos ativos: {status?.destinationsCount ?? 0}
+                    Total cadastrados: {sortedDestinations.length}
                   </p>
                 </div>
               </div>
 
               {config?.lastErrorMessage ? (
                 <div className="rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                  {config.lastErrorMessage}
+                  {sanitizeUserFacingText(
+                    config.lastErrorMessage,
+                    "Houve um problema com o WhatsApp deste ambiente. Se precisar, fale com o suporte.",
+                  )}
                 </div>
               ) : null}
 
-              {needsMasterAdjustment ? (
-                <div className="flex flex-col gap-3 rounded-3xl border border-amber-500/20 bg-amber-500/10 p-5 md:flex-row md:items-center md:justify-between">
+              {needsSupportAttention ? (
+                <div className="rounded-3xl border border-amber-500/20 bg-amber-500/10 p-5">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-amber-800">
                       <CircleAlert className="size-4" />
-                      <p className="font-semibold">Conexao ainda nao pronta</p>
+                      <p className="font-semibold">WhatsApp indisponivel no momento</p>
                     </div>
                     <p className="text-sm leading-6 text-amber-900/80">
-                      O ambiente pode organizar destinos agora, mas a conexao oficial precisa ser ajustada no master antes do envio automatico.
+                      {getFriendlyConnectionMessage(connectionStatus)} Se precisar, fale com o suporte ou com o desenvolvedor responsavel.
                     </p>
                   </div>
-                  <Button asChild variant="outline">
-                    <Link href="/master/tenants">Ajustar no master</Link>
-                  </Button>
                 </div>
               ) : null}
 
@@ -406,14 +450,14 @@ export function WhatsappSettingsPage() {
         <CardHeader className="space-y-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="space-y-2">
-              <CardTitle>Destinos WhatsApp</CardTitle>
+              <CardTitle>Grupos e contatos</CardTitle>
               <CardDescription>
-                O foco principal e grupo. Pessoa especifica continua disponivel para excecoes sem remover a prioridade dos grupos.
+                Organize os grupos e contatos que podem receber avisos por este ambiente.
               </CardDescription>
             </div>
             <Button type="button" variant="outline" onClick={handleCreateClick}>
               <Plus className="size-4" />
-              Novo grupo ou destino
+              Novo grupo ou contato
             </Button>
           </div>
         </CardHeader>
@@ -453,7 +497,7 @@ export function WhatsappSettingsPage() {
                     {groupsCount}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Aparecem primeiro na listagem e devem concentrar os avisos principais.
+                    Recomendados para comunicados enviados a varias pessoas.
                   </p>
                 </div>
 
@@ -461,26 +505,26 @@ export function WhatsappSettingsPage() {
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Users className="size-4" />
                     <p className="text-xs font-semibold uppercase tracking-[0.2em]">
-                      Pessoas
+                      Contatos
                     </p>
                   </div>
                   <p className="mt-3 text-2xl font-semibold text-foreground">
                     {peopleCount}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Mantidas para excecoes, confirmacoes ou contatos diretos.
+                    Use quando precisar enviar para um contato individual.
                   </p>
                 </div>
 
                 <div className="rounded-3xl border border-border bg-secondary/20 p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                    Total de destinos
+                    Total cadastrado
                   </p>
                   <p className="mt-3 text-2xl font-semibold text-foreground">
                     {sortedDestinations.length}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Inativos permanecem listados para manter o historico operacional.
+                    Os itens inativos continuam listados para facilitar a organizacao.
                   </p>
                 </div>
               </div>
@@ -498,12 +542,10 @@ export function WhatsappSettingsPage() {
                 <div className="rounded-3xl border border-border bg-secondary/15 p-5">
                   <div className="mb-4 space-y-1">
                     <h3 className="text-base font-semibold text-foreground">
-                      {formMode === "edit"
-                        ? "Editar destino WhatsApp"
-                        : "Novo destino WhatsApp"}
+                      {formMode === "edit" ? "Editar grupo ou contato" : "Novo grupo ou contato"}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Priorize grupos. Use pessoa especifica apenas quando o fluxo exigir um contato individual.
+                      Cadastre grupos e contatos que podem receber avisos neste ambiente.
                     </p>
                   </div>
 

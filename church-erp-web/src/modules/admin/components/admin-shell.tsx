@@ -17,6 +17,7 @@ import { AdminSidebar } from "@/modules/admin/components/admin-sidebar";
 import {
   adminNavItems,
   flattenAdminNavItems,
+  getBestMatchingAdminLeafItem,
   getAdminLeafNavItems,
 } from "@/modules/admin/config/navigation";
 import type { AuthUser } from "@/modules/auth/types/auth";
@@ -31,11 +32,7 @@ export function AdminShell({ children, user }: AdminShellProps) {
   const [open, setOpen] = useState(false);
   const navigationItems = getAdminLeafNavItems(user);
   const fallbackPage = navigationItems[0] ?? flattenAdminNavItems(adminNavItems)[0]!;
-
-  const currentPage =
-    navigationItems.find(
-      (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-    ) ?? fallbackPage;
+  const currentPage = getBestMatchingAdminLeafItem(pathname, user) ?? fallbackPage;
 
   return (
     <TenantThemeScope themeKey={user.tenantThemeKey}>

@@ -26,7 +26,7 @@ function resolveChurchLabel(
 }
 
 function getDestinationTypeLabel(type: WhatsappDestinationItem["type"]) {
-  return type === "GROUP" ? "Grupo" : "Pessoa especifica";
+  return type === "GROUP" ? "Grupo" : "Contato individual";
 }
 
 function getDestinationTargetLabel(destination: WhatsappDestinationItem) {
@@ -46,8 +46,8 @@ export function WhatsappDestinationsTable({
   if (destinations.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-6 text-sm text-muted-foreground">
-        Nenhum destino cadastrado ainda. Comece por um grupo principal e use
-        pessoa especifica apenas quando precisar.
+        Nenhum grupo ou contato cadastrado ainda. Adicione um item quando
+        precisar enviar avisos por aqui.
       </div>
     );
   }
@@ -55,9 +55,9 @@ export function WhatsappDestinationsTable({
   return (
     <div className="overflow-hidden rounded-3xl border border-border">
       <div className="hidden grid-cols-[1.1fr_0.9fr_1fr_0.9fr_auto] gap-4 border-b border-border bg-secondary/30 px-5 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground md:grid">
-        <span>Destino</span>
+        <span>Grupo ou contato</span>
         <span>Tipo</span>
-        <span>Identificador</span>
+        <span>Grupo ou numero</span>
         <span>Igreja</span>
         <span>Acoes</span>
       </div>

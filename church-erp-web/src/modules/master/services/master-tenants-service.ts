@@ -19,6 +19,34 @@ interface MasterTenantLogoUploadResponse {
   logoUrl: string;
 }
 
+function normalizeOptionalString(value: string | null | undefined) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+
+  return trimmedValue.length > 0 ? trimmedValue : null;
+}
+
+function normalizeWhatsappIntegrationStatus(
+  integration: MasterTenantWhatsappIntegrationStatus,
+): MasterTenantWhatsappIntegrationStatus {
+  return {
+    ...integration,
+    requestedPhoneNumber: normalizeOptionalString(integration.requestedPhoneNumber),
+    connectedPhoneDisplay: normalizeOptionalString(
+      integration.connectedPhoneDisplay,
+    ),
+    businessAccountId: normalizeOptionalString(integration.businessAccountId),
+    phoneNumberId: normalizeOptionalString(integration.phoneNumberId),
+    onboardingState: normalizeOptionalString(integration.onboardingState),
+    lastConnectedAt: normalizeOptionalString(integration.lastConnectedAt),
+    lastErrorMessage: normalizeOptionalString(integration.lastErrorMessage),
+    updatedAt: normalizeOptionalString(integration.updatedAt),
+  };
+}
+
 function sanitizeCreatePayload(payload: CreateMasterTenantPayload) {
   return {
     name: payload.name.trim(),
@@ -147,7 +175,7 @@ export async function getMasterTenantWhatsappIntegrationStatus(
     `${MASTER_TENANTS_ENDPOINT}/${id}/whatsapp`,
   );
 
-  return response.data;
+  return normalizeWhatsappIntegrationStatus(response.data);
 }
 
 export async function generateMasterTenantWhatsappOnboardingLink(
@@ -163,5 +191,17 @@ export async function generateMasterTenantWhatsappOnboardingLink(
     },
   );
 
-  return response.data;
+  const normalizedIntegration = normalizeWhatsappIntegrationStatus(response.data);
+  const onboardingLink = normalizeOptionalString(response.data.onboardingLink);
+
+  if (!onboardingLink) {
+    throw new Error(
+      "O backend nao retornou um link publico valido para o onboarding do WhatsApp.",
+    );
+  }
+
+  return {
+    ...normalizedIntegration,
+    onboardingLink,
+  };
 }

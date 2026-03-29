@@ -59,6 +59,48 @@ function getStatusLabel(status: NoticeStatus) {
   }
 }
 
+const TECHNICAL_COPY_PATTERN =
+  /master|onboarding|provider|fallback manual|conexao oficial|configurac(?:ao|oes)\s*>\s*whatsapp|configurac(?:ao|oes)\s+tecnica|token|credencial|callback|code exchange|phone number id|business account|webhook|fluxo centralizado|\/master|\/configuracoes/i;
+
+function sanitizeUserFacingText(
+  value: string | null | undefined,
+  fallback: string,
+) {
+  if (!value) {
+    return fallback;
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue || TECHNICAL_COPY_PATTERN.test(trimmedValue)) {
+    return fallback;
+  }
+
+  return trimmedValue;
+}
+
+function getWhatsappAvailabilityMessage(
+  status: WhatsappIntegrationStatusItem,
+) {
+  if (status.available && status.connectionStatus === "CONNECTED") {
+    return "WhatsApp disponivel para envio.";
+  }
+
+  if (status.connectionStatus === "PENDING_AUTHORIZATION") {
+    return "O envio pelo WhatsApp sera liberado assim que a ativacao for concluida.";
+  }
+
+  if (status.connectionStatus === "ERROR") {
+    return "A integracao do WhatsApp nao esta disponivel no momento. Se precisar, fale com o suporte.";
+  }
+
+  if (!status.hasDestinations) {
+    return "O envio ficara disponivel assim que houver ao menos um grupo ou contato ativo.";
+  }
+
+  return "O envio pelo WhatsApp ainda nao esta disponivel neste ambiente.";
+}
+
 export function buildNoticeCaption(
   title: string,
   message: string,
@@ -130,9 +172,12 @@ export function NoticePreviewCard({
 
         setWhatsappStatus(null);
         setWhatsappStatusError(
-          getApiErrorMessage(
-            error,
-            "Nao foi possivel verificar a integracao do WhatsApp neste momento.",
+          sanitizeUserFacingText(
+            getApiErrorMessage(
+              error,
+              "Nao foi possivel verificar o WhatsApp neste momento.",
+            ),
+            "Nao foi possivel verificar o WhatsApp neste momento.",
           ),
         );
       }
@@ -152,7 +197,7 @@ export function NoticePreviewCard({
           <div className="space-y-2">
             <CardTitle>Preview do aviso</CardTitle>
             <CardDescription>
-              Visualizacao do aviso com envio centralizado pelo sistema.
+              Veja como o aviso ficara antes de enviar.
             </CardDescription>
           </div>
           <div className="flex flex-col items-stretch gap-2 sm:items-end">
@@ -167,7 +212,10 @@ export function NoticePreviewCard({
             </Button>
             {sendHelperText ? (
               <p className="max-w-xs text-xs leading-5 text-muted-foreground sm:text-right">
-                {sendHelperText}
+                {sanitizeUserFacingText(
+                  sendHelperText,
+                  "Este aviso ainda nao pode ser enviado.",
+                )}
               </p>
             ) : null}
           </div>
@@ -187,11 +235,11 @@ export function NoticePreviewCard({
                 : "rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800"
             }
           >
-            {whatsappStatus.summary}
+            {getWhatsappAvailabilityMessage(whatsappStatus)}
           </div>
         ) : (
           <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-3 text-sm text-muted-foreground">
-            Verificando a disponibilidade da integracao do WhatsApp.
+            Verificando a disponibilidade do WhatsApp.
           </div>
         )}
 

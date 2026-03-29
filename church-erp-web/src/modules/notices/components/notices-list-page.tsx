@@ -94,7 +94,7 @@ export function NoticesListPage({ canEdit }: NoticesListPageProps) {
     <div className="space-y-6">
       <PageHeader
         title="Avisos"
-        description="Crie avisos manuais com mensagem, imagem por URL, agendamento e preview visual para uso no painel."
+        description="Crie avisos com mensagem, imagem, agendamento e preview visual."
         badge={canEdit ? "Gerenciamento" : "Consulta"}
         action={
           canEdit ? (
@@ -113,7 +113,7 @@ export function NoticesListPage({ canEdit }: NoticesListPageProps) {
           <div className="space-y-2">
             <CardTitle>Listagem</CardTitle>
             <CardDescription>
-              Consulte os avisos cadastrados, o publico alvo e o agendamento configurado manualmente.
+              Consulte os avisos cadastrados, o publico alvo e o agendamento previsto.
             </CardDescription>
           </div>
           <Badge variant="secondary">Total: {total}</Badge>

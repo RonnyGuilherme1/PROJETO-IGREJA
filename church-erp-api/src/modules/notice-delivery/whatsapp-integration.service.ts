@@ -103,12 +103,8 @@ export class WhatsappIntegrationService {
     this.ensureCanManage(currentUser);
     const tenantId = this.ensureTenantAccess(currentUser);
     const existingConfig = await this.findConfigByTenantId(tenantId);
-
-    const nextAccessToken = updateWhatsappIntegrationConfigDto.clearAccessToken
-      ? null
-      : updateWhatsappIntegrationConfigDto.accessToken !== undefined
-        ? this.normalizeOptionalString(updateWhatsappIntegrationConfigDto.accessToken)
-        : existingConfig?.accessToken ?? null;
+    // O access token oficial passa a ser controlado apenas pelo onboarding da plataforma.
+    const nextAccessToken = existingConfig?.accessToken ?? null;
 
     const persistedConfig = await this.prisma.$transaction(async (transaction) => {
       if (existingConfig) {
@@ -212,7 +208,7 @@ export class WhatsappIntegrationService {
       updateWhatsappIntegrationConfigDto.accessToken !== undefined ||
       updateWhatsappIntegrationConfigDto.clearAccessToken
     ) {
-      data.accessToken = nextAccessToken;
+      data.accessToken = existingConfig.accessToken;
     }
 
     if (updateWhatsappIntegrationConfigDto.fallbackToManual !== undefined) {
