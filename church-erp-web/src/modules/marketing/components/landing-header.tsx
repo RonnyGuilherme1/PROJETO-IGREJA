@@ -72,16 +72,16 @@ export function LandingHeader({
   }, [navigation]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4 lg:px-6">
+    <header className="fixed inset-x-0 top-0 z-50">
       <div
         className={cn(
-          "mx-auto max-w-[1680px] rounded-2xl border transition-all duration-300",
+          "w-full transition-all duration-300",
           hasScrolled
-            ? "border-border/70 bg-background/93 shadow-[0_14px_34px_rgba(24,35,30,0.07)] backdrop-blur-xl"
-            : "border-[var(--marketing-dark-border)] bg-[var(--marketing-dark-surface)] shadow-[0_14px_34px_rgba(6,17,13,0.12)] backdrop-blur-xl",
+            ? "border-b border-border/60 bg-background/94 shadow-[0_12px_28px_rgba(24,35,30,0.06)] backdrop-blur-xl"
+            : "border-b border-transparent bg-sidebar/72 shadow-none backdrop-blur-lg",
         )}
       >
-        <div className="flex w-full items-center justify-between gap-4 px-5 py-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+        <div className="mx-auto flex w-full max-w-[1680px] items-center justify-between gap-4 px-5 py-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
           <Link href="/" className="flex items-center gap-3.5">
             <BrandLogo variant="icon" className="size-14 sm:size-16" />
             <div className="min-w-0">
@@ -130,7 +130,7 @@ export function LandingHeader({
                 "hidden lg:inline-flex",
                 hasScrolled
                   ? "border-border bg-card/92 text-foreground shadow-none hover:bg-secondary/78"
-                  : "border-[var(--marketing-dark-border)] bg-[var(--marketing-dark-surface)] text-white shadow-none hover:bg-white/[0.09]",
+                  : "border-white/12 bg-white/[0.04] text-white shadow-none hover:bg-white/[0.08]",
               )}
             >
               <Link href={loginAction.href}>Entrar</Link>
@@ -145,7 +145,7 @@ export function LandingHeader({
                     "lg:hidden",
                     hasScrolled
                       ? "border-border bg-card/92 text-foreground shadow-none hover:bg-secondary/78"
-                      : "border-[var(--marketing-dark-border)] bg-[var(--marketing-dark-surface)] text-white shadow-none hover:bg-white/[0.09]",
+                      : "border-white/12 bg-white/[0.04] text-white shadow-none hover:bg-white/[0.08]",
                   )}
                   aria-label="Abrir menu"
                 >
