@@ -10,10 +10,8 @@ import { landingContent } from "@/modules/marketing/data/landing-content";
 export function LandingPage() {
   return (
     <div className="relative overflow-x-clip bg-background text-foreground">
-      <div className="absolute inset-x-0 top-0 h-[860px] bg-[radial-gradient(circle_at_top,rgba(199,167,106,0.2),transparent_30%),radial-gradient(circle_at_top_left,rgba(31,91,73,0.42),transparent_26%),linear-gradient(180deg,#08140f_0%,#10271f_100%)] lg:h-[920px]" />
-      <div className="absolute inset-x-0 top-[42rem] h-96 bg-[radial-gradient(circle,rgba(199,167,106,0.09),transparent_60%)]" />
-      <div className="absolute inset-x-0 top-[88rem] h-[28rem] bg-[linear-gradient(180deg,transparent_0%,rgba(255,255,255,0.42)_16%,rgba(244,246,241,0.96)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-[42rem] bg-[radial-gradient(circle_at_bottom,rgba(31,91,73,0.08),transparent_58%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[700px] bg-[linear-gradient(180deg,var(--marketing-hero-start)_0%,var(--marketing-hero-end)_58%,var(--background)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[360px] bg-[radial-gradient(circle_at_top,var(--marketing-glow-soft),transparent_46%)]" />
 
       <div className="relative">
         <LandingHeader
@@ -26,22 +24,19 @@ export function LandingPage() {
         <main className="relative z-10">
           <LandingHero content={landingContent.hero} />
 
-          <div className="relative">
-            <div className="absolute inset-x-0 top-0 h-48 bg-[linear-gradient(180deg,rgba(11,29,23,0)_0%,rgba(244,246,241,0.94)_100%)]" />
+          <div className="relative border-t border-border/50 bg-background">
             <LandingAbout content={landingContent.about} />
           </div>
 
-          <div className="relative bg-[linear-gradient(180deg,rgba(244,246,241,0.9)_0%,rgba(248,246,240,0.98)_100%)]">
+          <div className="relative border-y border-border/50 bg-[var(--marketing-panel-soft)]">
             <LandingFeatures content={landingContent.features} />
           </div>
 
-          <div className="relative">
-            <div className="absolute inset-x-0 top-0 h-36 bg-[radial-gradient(circle_at_top,rgba(31,91,73,0.08),transparent_68%)]" />
+          <div className="relative bg-background">
             <LandingBenefits content={landingContent.benefits} />
           </div>
 
-          <div className="relative">
-            <div className="absolute inset-x-0 bottom-0 h-44 bg-[linear-gradient(180deg,rgba(244,246,241,0)_0%,rgba(8,21,16,0.16)_100%)]" />
+          <div className="relative border-t border-border/50 bg-[var(--marketing-panel-muted)]">
             <LandingCta content={landingContent.cta} />
           </div>
         </main>

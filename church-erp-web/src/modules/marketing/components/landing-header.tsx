@@ -30,14 +30,14 @@ interface LandingHeaderProps {
 const navigationLabelMap: Record<string, string> = {
   "#visao-geral": "Sobre",
   "#recursos": "Funcionalidades",
-  "#beneficios": "Benefícios",
+  "#beneficios": "Beneficios",
   "#contato": "Contato",
 };
 
 const fallbackNavigation: LandingNavigationItem[] = [
   { label: "Sobre", href: "#visao-geral" },
   { label: "Funcionalidades", href: "#recursos" },
-  { label: "Benefícios", href: "#beneficios" },
+  { label: "Beneficios", href: "#beneficios" },
   { label: "Contato", href: "#contato" },
 ];
 
@@ -72,32 +72,49 @@ export function LandingHeader({
   }, [navigation]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50">
+    <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4 lg:px-6">
       <div
         className={cn(
-          "w-full border-b transition-all duration-300",
+          "mx-auto max-w-[1680px] rounded-2xl border transition-all duration-300",
           hasScrolled
-            ? "border-white/10 bg-[#081510]/78 shadow-[0_24px_60px_rgba(3,9,7,0.24)] backdrop-blur-2xl"
-            : "border-transparent bg-[linear-gradient(180deg,rgba(8,21,16,0.5)_0%,rgba(8,21,16,0.12)_100%)] backdrop-blur-md",
+            ? "border-border/70 bg-background/93 shadow-[0_14px_34px_rgba(24,35,30,0.07)] backdrop-blur-xl"
+            : "border-[var(--marketing-dark-border)] bg-[var(--marketing-dark-surface)] shadow-[0_14px_34px_rgba(6,17,13,0.12)] backdrop-blur-xl",
         )}
       >
-        <div className="flex w-full items-center justify-between gap-4 px-5 py-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-24">
+        <div className="flex w-full items-center justify-between gap-4 px-5 py-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
           <Link href="/" className="flex items-center gap-3.5">
-            <BrandLogo variant="icon" className="size-16 sm:size-[4.5rem]" />
+            <BrandLogo variant="icon" className="size-14 sm:size-16" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold uppercase tracking-[0.18em] text-white">
+              <p
+                className={cn(
+                  "truncate text-sm font-semibold uppercase tracking-[0.18em]",
+                  hasScrolled ? "text-foreground" : "text-white",
+                )}
+              >
                 {brandName}
               </p>
-              <p className="hidden text-xs text-white/58 sm:block">{brandLabel}</p>
+              <p
+                className={cn(
+                  "hidden text-xs sm:block",
+                  hasScrolled ? "text-muted-foreground" : "text-white/60",
+                )}
+              >
+                {brandLabel}
+              </p>
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-9 xl:gap-10 lg:flex">
+          <nav className="hidden items-center gap-8 lg:flex xl:gap-10">
             {items.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-sm font-medium text-white/68 transition-colors hover:text-[#f4dfb2]"
+                className={cn(
+                  "text-sm font-medium transition-colors",
+                  hasScrolled
+                    ? "text-foreground/72 hover:text-foreground"
+                    : "text-white/72 hover:text-white",
+                )}
               >
                 {item.label}
               </Link>
@@ -109,7 +126,12 @@ export function LandingHeader({
               asChild
               variant="outline"
               size="sm"
-              className="hidden border-white/12 bg-white/6 text-white shadow-[0_12px_30px_rgba(3,9,7,0.12)] hover:bg-white/10 lg:inline-flex"
+              className={cn(
+                "hidden lg:inline-flex",
+                hasScrolled
+                  ? "border-border bg-card/92 text-foreground shadow-none hover:bg-secondary/78"
+                  : "border-[var(--marketing-dark-border)] bg-[var(--marketing-dark-surface)] text-white shadow-none hover:bg-white/[0.09]",
+              )}
             >
               <Link href={loginAction.href}>Entrar</Link>
             </Button>
@@ -119,7 +141,12 @@ export function LandingHeader({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="border-white/12 bg-white/6 text-white shadow-[0_12px_30px_rgba(3,9,7,0.12)] hover:bg-white/10 lg:hidden"
+                  className={cn(
+                    "lg:hidden",
+                    hasScrolled
+                      ? "border-border bg-card/92 text-foreground shadow-none hover:bg-secondary/78"
+                      : "border-[var(--marketing-dark-border)] bg-[var(--marketing-dark-surface)] text-white shadow-none hover:bg-white/[0.09]",
+                  )}
                   aria-label="Abrir menu"
                 >
                   <Menu className="size-5" />
@@ -128,12 +155,13 @@ export function LandingHeader({
 
               <SheetContent
                 side="right"
-                className="w-[88vw] border-white/10 bg-[linear-gradient(180deg,#0d2019_0%,#081510_100%)] text-white shadow-[0_30px_90px_rgba(3,9,7,0.34)] sm:max-w-sm"
+                className="w-[88vw] border-border bg-background text-foreground shadow-[0_18px_44px_rgba(24,35,30,0.1)] sm:max-w-sm"
               >
-                <SheetHeader className="border-b border-white/10 pb-5 pr-8">
-                  <SheetTitle className="text-white">{brandName}</SheetTitle>
-                  <SheetDescription className="text-white/60">
-                    Navegação rápida para conhecer a plataforma e acessar o sistema.
+                <SheetHeader className="border-b border-border/70 pb-5 pr-8">
+                  <SheetTitle className="text-foreground">{brandName}</SheetTitle>
+                  <SheetDescription className="text-muted-foreground">
+                    Navegacao rapida para conhecer a plataforma e acessar o
+                    sistema.
                   </SheetDescription>
                 </SheetHeader>
 
@@ -142,7 +170,7 @@ export function LandingHeader({
                     <SheetClose key={item.href} asChild>
                       <a
                         href={item.href}
-                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                        className="rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground/80 transition-colors hover:bg-secondary/80 hover:text-foreground"
                       >
                         {item.label}
                       </a>
@@ -151,7 +179,7 @@ export function LandingHeader({
                 </div>
 
                 <div className="mt-8 space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     Acesso
                   </p>
                   <SheetClose asChild>
@@ -159,7 +187,7 @@ export function LandingHeader({
                       href={loginAction.href}
                       className={cn(
                         buttonVariants({ size: "lg" }),
-                        "w-full bg-[linear-gradient(135deg,#dcc283_0%,#b38a49_100%)] text-[#13241d] hover:opacity-95",
+                        "w-full bg-primary text-primary-foreground shadow-[0_12px_24px_rgba(20,53,43,0.1)] hover:bg-primary/92",
                       )}
                     >
                       Entrar

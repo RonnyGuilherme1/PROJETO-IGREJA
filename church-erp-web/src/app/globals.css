@@ -1,37 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f6f1;
-  --foreground: #10261d;
+  --background: #f6f3ee;
+  --foreground: #18231e;
   --card: #ffffff;
-  --card-foreground: #10261d;
+  --card-foreground: #18231e;
   --popover: #ffffff;
-  --popover-foreground: #10261d;
-  --primary: #0f4a36;
-  --primary-foreground: #f8fbf9;
-  --secondary: #f2ecd8;
-  --secondary-foreground: #3f3520;
-  --muted: #f6f2e7;
-  --muted-foreground: #6f6a5b;
-  --accent: #c7a64a;
-  --accent-foreground: #1f1a10;
+  --popover-foreground: #18231e;
+  --primary: #14352b;
+  --primary-foreground: #f8f7f3;
+  --secondary: #f1ece2;
+  --secondary-foreground: #352d22;
+  --muted: #f5f1e8;
+  --muted-foreground: #5e6a63;
+  --accent: #b3914b;
+  --accent-foreground: #201a10;
   --destructive: #b93831;
   --destructive-foreground: #ffffff;
-  --border: #e3dcc8;
-  --input: #ddd5c0;
-  --ring: #c7a64a;
+  --border: #d8d1c3;
+  --input: #ded7c8;
+  --ring: #b3914b;
   --radius: 1.25rem;
-  --sidebar: #0d3327;
-  --sidebar-foreground: #eef6f1;
-  --sidebar-accent: #124636;
+  --sidebar: #112820;
+  --sidebar-foreground: #eef3ef;
+  --sidebar-accent: #18382d;
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --surface-base: #ffffff;
-  --surface-soft: rgb(255 255 255 / 0.88);
-  --surface-muted: rgb(255 255 255 / 0.76);
+  --surface-soft: rgb(255 255 255 / 0.9);
+  --surface-muted: rgb(255 255 255 / 0.78);
   --surface-strong: #ffffff;
-  --tenant-shell-glow: rgb(15 74 54 / 0.1);
-  --tenant-shell-start: #fbfaf6;
-  --tenant-shell-end: #f4f0e4;
+  --tenant-shell-glow: rgb(20 53 43 / 0.06);
+  --tenant-shell-start: #faf8f3;
+  --tenant-shell-end: #f3eee4;
+  --marketing-hero-start: #0d221b;
+  --marketing-hero-end: #14352b;
+  --marketing-glow-soft: rgb(179 145 75 / 0.08);
+  --marketing-panel-soft: #fbf8f2;
+  --marketing-panel-muted: #f3ede3;
+  --marketing-dark-border: rgb(255 255 255 / 0.12);
+  --marketing-dark-surface: rgb(255 255 255 / 0.05);
+  --marketing-dark-surface-soft: rgb(255 255 255 / 0.03);
 }
 
 @theme inline {

@@ -19,7 +19,7 @@ interface LandingFooterProps {
 const navigationLabelMap: Record<string, string> = {
   "#visao-geral": "Sobre",
   "#recursos": "Funcionalidades",
-  "#beneficios": "Benefícios",
+  "#beneficios": "Beneficios",
   "#contato": "Contato",
 };
 
@@ -35,8 +35,8 @@ export function LandingFooter({
   }));
 
   return (
-    <footer className="relative overflow-hidden border-t border-[#17382e]/80 bg-[linear-gradient(180deg,#081510_0%,#06110d_100%)] text-white">
-      <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,rgba(216,187,123,0.08),transparent_62%)]" />
+    <footer className="relative overflow-hidden border-t border-primary/14 bg-gradient-to-b from-sidebar to-primary text-white">
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-accent/6 to-transparent" />
 
       <div className="relative flex w-full flex-col gap-8 px-5 py-10 sm:px-6 lg:px-10 xl:px-16 2xl:px-24">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between lg:gap-12">
@@ -51,27 +51,27 @@ export function LandingFooter({
               </div>
             </div>
 
-            <p className="text-sm leading-7 text-white/65">{content.description}</p>
+            <p className="text-sm leading-7 text-white/64">{content.description}</p>
           </div>
 
-          <div className="grid gap-8 rounded-[30px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_18px_48px_rgba(3,9,7,0.14)] backdrop-blur sm:grid-cols-[1fr_auto] lg:min-w-[580px] xl:min-w-[640px]">
+          <div className="grid gap-8 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_14px_34px_rgba(6,17,13,0.12)] sm:grid-cols-[1fr_auto] lg:min-w-[580px] xl:min-w-[640px]">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/56">
-                Links úteis
+                Links uteis
               </p>
               <nav className="mt-4 grid gap-3 sm:grid-cols-2">
                 {items.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="text-sm text-white/68 transition-colors hover:text-[#f4dfb2]"
+                    className="text-sm text-white/68 transition-colors hover:text-white"
                   >
                     {item.label}
                   </Link>
                 ))}
                 <Link
                   href="/login"
-                  className="text-sm text-white/68 transition-colors hover:text-[#f4dfb2]"
+                  className="text-sm text-white/68 transition-colors hover:text-white"
                 >
                   {content.loginLabel}
                 </Link>
@@ -80,12 +80,12 @@ export function LandingFooter({
 
             <div className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/56">
-                Ações
+                Acoes
               </p>
 
               <Button
                 asChild
-                className="w-full bg-[linear-gradient(135deg,#dcc283_0%,#b38a49_100%)] text-[#13241d] hover:opacity-95"
+                className="w-full bg-primary-foreground text-sidebar shadow-none hover:bg-white"
               >
                 <a href={whatsappHref} target="_blank" rel="noreferrer">
                   <MessageCircle className="size-4" />
@@ -95,7 +95,7 @@ export function LandingFooter({
 
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 text-sm font-semibold text-[#f4dfb2] transition-opacity hover:opacity-80"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-accent transition-opacity hover:opacity-80"
               >
                 {content.loginLabel}
                 <ArrowRight className="size-4" />
